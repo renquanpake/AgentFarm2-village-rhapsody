@@ -1,0 +1,164 @@
+{
+ "baolongjia": {
+  "width": 35,
+  "height": 36,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "chunshuian": {
+  "width": 35,
+  "height": 30,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "chunzhangjia1": {
+  "width": 14,
+  "height": 12,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "chunzhangjias2": {
+  "width": 14,
+  "height": 14,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "daditu": {
+  "width": 77,
+  "height": 61,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "diaoqiao": {
+  "width": 39,
+  "height": 35,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "feifeijia": {
+  "width": 7,
+  "height": 8,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "feiqikuangdong": {
+  "width": 29,
+  "height": 18,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "gfujia": {
+  "width": 13,
+  "height": 11,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "hebian": {
+  "width": 44,
+  "height": 37,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "hoshantondao": {
+  "width": 29,
+  "height": 41,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "jiashiboo": {
+  "width": 11,
+  "height": 9,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "jitishuitian": {
+  "width": 53,
+  "height": 22,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "kuannanzhemuyuan": {
+  "width": 32,
+  "height": 68,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "laott": {
+  "width": 9,
+  "height": 10,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "migon": {
+  "width": 45,
+  "height": 61,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "milin": {
+  "width": 52,
+  "height": 66,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "mujiagjia": {
+  "width": 11,
+  "height": 10,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "shanding": {
+  "width": 39,
+  "height": 45,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "shugenjia": {
+  "width": 15,
+  "height": 12,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "suodao": {
+  "width": 39,
+  "height": 35,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "tfujia": {
+  "width": 10,
+  "height": 10,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "wenquan": {
+  "width": 40,
+  "height": 35,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "yiyuanshinei": {
+  "width": 18,
+  "height": 17,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "zhahuodianzz": {
+  "width": 13,
+  "height": 11,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "zhujuejia": {
+  "width": 29,
+  "height": 29,
+  "tilewidth": 100,
+  "tileheight": 100
+ },
+ "zjuejnei": {
+  "width": 12,
+  "height": 10,
+  "tilewidth": 100,
+  "tileheight": 100
+ }
+}

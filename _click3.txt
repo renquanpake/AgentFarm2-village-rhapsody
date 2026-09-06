@@ -1,0 +1,37 @@
+INPUT: null
+STATE: {
+ "entered": true,
+ "keys": [
+  "mapData_100001",
+  "attributeData_100001",
+  "settingData_100001",
+  "farmData_100001",
+  "playerData_100001",
+  "plantData_100001",
+  "castingData_100001",
+  "knapData_100001",
+  "plotData_100001",
+  "buffData_100001",
+  "npcData_100001",
+  "gameData",
+  "taskData_100001",
+  "audioData",
+  "achvData_100001",
+  "shopData_100001",
+  "makeData_100001"
+ ]
+}
+ELAPSED: 38.7s
+--- logs ---
+[log] [AF] 权威存档已同步: 17 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvrpu821jdxq nick=玩家jdxq sync=true
+[warn] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] name = UiStorage  zindex = 2
+[log] name = UiRename  zindex = 3

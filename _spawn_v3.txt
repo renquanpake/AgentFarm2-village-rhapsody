@@ -1,0 +1,17 @@
+出生状态: {"pos":{"x":8000,"y":1600},"spawns":true,"colliders":false}
+碰撞测试 移动前: {"x":8000,"y":1600} 移动后: {"x":10458,"y":1600} 位移: 2458 0
+--- logs ---
+[log] [AF] 权威存档已同步: 19 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvu6x3q41aud nick=玩家1aud sync=true
+[log] [AF] 模块捕获已挂载
+[warn] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] name = UiStorage  zindex = 2
+[log] beforCloseCb
+[log] [AF] 已注入宅基地碰撞体 x7 (物理+回滚)

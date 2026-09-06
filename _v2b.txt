@@ -1,0 +1,26 @@
+注册账号: vw42ac
+登录状态: {"uid":"","token":true,"loginGone":true}
+进世界: {"x":6000,"y":1400}
+shot lot#2
+shot lot#3
+shot lot#4
+shot lot#5
+shot lot#6
+shot lot#7
+shot lot#8
+--- logs tail ---
+[log] [AF] 等待登录完成...
+[warn] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[log] [AF] 权威存档已同步: 20 条
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] name = UiStorage  zindex = 2
+[log] [AF] 已隐藏存档槽 storageItem2
+[log] [AF] 已隐藏存档槽 storageItem3
+[log] beforCloseCb
+[log] [AF] 已注入宅基地碰撞体 x7 (物理+回滚)

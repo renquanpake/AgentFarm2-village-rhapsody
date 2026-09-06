@@ -1,0 +1,15 @@
+ENTERED: false
+ELAPSED: 71.6s
+--- logs ---
+[log] [AF] 权威存档已同步: 11 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvrjtt836b6l nick=玩家6b6l sync=true
+[warn] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] name = UiStorage  zindex = 2
+[log] name = UiRename  zindex = 3

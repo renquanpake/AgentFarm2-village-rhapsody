@@ -1,0 +1,161 @@
+检查 42 张图片 (模型: agnes-2.5-flash)...
+=== byuand_part1.png ===
+
+=== cdui_part2.png ===
+
+
+格子1: 白色背景区域|unknown
+格子2: 白色背景区域|unknown
+格子3: 黄色毛发纹理物体，底部有黑色边缘|object
+格子4: 黄色毛发纹理物体，底部有黑色边缘|object
+=== cdui_part1.png ===
+
+
+格子1: 纯白色背景|unknown
+格子2: 纯
+=== cichis2_part1.png ===
+
+=== cichis_part1.png ===
+
+
+格子1: 画框/相框（木质边框，黄色背景带纹理）|decoration
+格子2: 画框/相框（木质边框，黄色背景带纹理）|decoration
+格子3: 图片未显示该区域|unknown
+格子4: 图片未显示该区域|unknown
+=== cdui2_part1.png ===
+
+
+格子1: 黄色圆形干草堆物体，带纹理细节|object
+格子2: 黄色螺旋状干草堆物体|object
+格子3: 无内容显示|unknown
+格子4: 无内容显示|unknown
+=== ggbangs_part2.png ===
+
+=== ggbangs_part1.png ===
+
+
+格子1: 白色背景带深色边缘|house
+格子2: 白色背景带灰色砖石边缘|house
+格子3: 灰色砖石纹理带深色边缘|house
+格子4: 灰色砖石纹理带深色边缘|house
+=== ggbangs_part3.png ===
+
+
+格子1: 白色空白区域|unknown
+格子2: 带有中文文字的文档|object
+格子3: 带有中文文字和黄色标注的文档|object
+格子4: 带有中文文字的文档和黄色标注|object
+=== cdi_part1.png ===
+
+
+格子1: 纯草地纹理|grass
+格子2: 纯草地纹理|grass
+格子3: 纯草地纹理（含编号标注cdi#3 gid 7）|grass
+格子4: 纯草地纹理（含编号标注cdi#4 gid 8）|grass
+=== mucai_part2.png ===
+
+
+格子1: 木板(素材)#5 | object
+格子2: 木板(素材)#6 | object
+格子3: 木板(素材)#5 | object
+格子4: 木板(素材)#6 | object
+=== mucai_part1.png ===
+
+
+格子1: 堆叠的木板|object
+格子2: 延伸的木板|object
+格子3: 散落的木板|object
+格子4: 部分木板|object
+=== mulan_part1.png ===
+
+=== mulan2_part1.png ===
+
+
+格子1: 门的左上部分（白色背景上的门框顶部）|object
+格子2: 门的右上部分（深棕色门框）|object
+格子3: 门的左下部分（深色门框和浅色门面）|object
+格子4: 门的右下部分（包含门把手/拱形设计）|object
+=== ggbangs_part4.png ===
+
+
+格子1: 白色L形墙体边缘+木质立柱|object
+格子2: 深棕色背景+木质横梁与立柱顶部|object
+格子3: 深棕色背景+木质横梁与立柱底部|object
+格子4: 白色L形墙体边缘+木质立柱|object
+
+分析：四个格子均显示木质结构元素（立柱、横梁）和白色墙体角落，这是像素游戏中典型的栅栏/大门/建筑部件，属于object类别。
+=== shilu_part1.png ===
+
+
+格子1: 灰色石板路面边缘|road
+格子2: 灰色石板路面|road
+格子3: 灰色石板路面边缘|road
+格子4: 灰色石板路面边缘|road
+=== mulan3_part1.png ===
+
+
+格子1: 木质条纹纹理|other
+格子2: 木质条纹纹理|other
+格子3: 木质条纹纹理|other
+格子4: 木质条纹纹理|other
+=== mulan4_part1.png ===
+
+
+格子1: 白色空白区域|other
+格子2: 棕色水平木纹条纹|object
+格子3: 白色空白
+=== shilu_part2.png ===
+
+
+格子1: 灰色石板路面边缘,带有石板纹理|road
+格子2: 灰色石板路面边缘,右侧有长条形石板|road
+格子3: 椭圆形石头/石板位于白色背景上|object
+格子4: 灰色石板路面边缘,底部有弧线石板|road
+=== shilu_part3.png ===
+
+=== shilu2_part1.png ===
+
+=== shilu2_part2.png ===
+
+=== shilu2_part3.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu2_part4.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu3_part1.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== di1_part1.png ===
+
+=== shilu3_part2.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu3_part4.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu3_part3.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu4_part1.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu4_part2.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shilu4_part3.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions
+=== shuic_part1.png ===
+
+=== shilu4_part4.png ===
+
+=== shuijingssss_part1.png ===
+
+
+格子1: 深棕色木制结构（部分建筑/工具部件）|object
+格子2: 白色背景上的木桩与卷绕的绳索|decoration
+格子3: 带黄色字符标注的木制机械结构（部分）|object
+格子4: 带金属环与绳索的木制结构（部分）及字符标注|object
+=== shuic_part2.png ===
+
+=== shuijingssss_part3.png ===
+
+
+格子1: 灰色砖石墙体角落,带深色边框|house
+=== tanzi1_part1.png ===
+
+=== shuijingssss_part2.png ===
+
+=== tanzi4_part1.png ===
+
+
+格子1: 陶罐/花瓶|object
+格子2: 黑色空白区域|unknown
+格子3: 黑色空白区域|unknown
+格子4: 黑色空白区域|unknown
+=== tanzi2_part1.png ===
+
+=== tanzi3_part1.png === 失败: 429 Client Error: Too Many Requests for url: https://apihub.agnes-ai.com/v1/chat/completions

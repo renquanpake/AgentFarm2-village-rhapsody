@@ -1,0 +1,170 @@
+{
+ "byuand_part1.png": {
+  "text": "格子1: 绿色草地与黄色沙地交界纹理|grass\n格子2: 绿色草地与黄色沙地交界纹理|grass\n格子3: 黄色沙地为主，左下角带绿色草地边缘|dirt\n格子4: 黑色空白区域，无内容|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\byuand_part1.png"
+ },
+ "cdi_part1.png": {
+  "text": "格子1: 绿色草地纹理|grass\n格子2: 绿色草地纹理|grass\n格子3: 绿色草地纹理|grass\n格子4: 绿色草地纹理|grass",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\cdi_part1.png"
+ },
+ "cdui2_part1.png": {
+  "text": "格子1: 干草堆顶部局部|object\n格子2: 干草堆俯视图|object\n格子3: 内容不可见|unknown\n格子4: 内容不可见|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\cdui2_part1.png"
+ },
+ "cdui_part1.png": {
+  "text": "[[FAIL]] (empty)",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\cdui_part1.png"
+ },
+ "cdui_part2.png": {
+  "text": "格子1: 白色空白区域|unknown\n格子2: 黄色草丛纹理右半部分|object\n格子3: 黄色草丛纹理左下部分|object\n格子4: 黄色草丛纹理右下部分|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\cdui_part2.png"
+ },
+ "cichis2_part1.png": {
+  "text": "格子1: 木制框架内含蓝色水面|object\n格子2: 木制框架内含蓝色水面|object\n格子3: 木制框架下半部分|object\n格子4: 木制框架下半部分|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\cichis2_part1.png"
+ },
+ "cichis_part1.png": {
+  "text": "格子1: 干草堆|object\n格子2: 干草堆|object\n格子3: unknown|unknown\n格子4: unknown|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\cichis_part1.png"
+ },
+ "di1_part1.png": {
+  "text": "格子1: 黄褐色沙地/泥土地面纹理|dirt\n格子2: 黄褐色沙地/泥土地面纹理|dirt\n格子3: 黄褐色沙地/泥土地面纹理|dirt\n格子4: 黄褐色沙地/泥土地面纹理|dirt",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\di1_part1.png"
+ },
+ "ggbangs_part1.png": {
+  "text": "格子1: 石板路|road\n格子2: 石板路|road\n格子3: 石板路|road\n格子4: 石板路|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\ggbangs_part1.png"
+ },
+ "ggbangs_part2.png": {
+  "text": "格子1: 灰色砖石屋顶与棕色木质墙体|building\n格子2: 灰色砖石屋顶、木质墙体及招牌|house\n格子3: 灰色砖石屋顶与棕色木质墙体|building\n格子4: 灰色砖石屋顶、木质墙体及红色招牌|house",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\ggbangs_part2.png"
+ },
+ "ggbangs_part3.png": {
+  "text": "格子1: 空白页面区域|unknown\n格子2: 带有中文文字的文档页面|unknown\n格子3: 带有文字、红色方框和插图的文档页面|unknown\n格子4: 空白页面区域|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\ggbangs_part3.png"
+ },
+ "ggbangs_part4.png": {
+  "text": "格子1: 左侧白色与深棕色区域，右侧有树干部分|tree\n格子2: 深棕色背景，底部有横向深色条|tree\n格子3: 深棕色背景，底部有横向深色条，右侧有树干部分|tree\n格子4: 右侧白色L形区域，左侧深棕色，底部有树干部分|tree",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\ggbangs_part4.png"
+ },
+ "mucai_part1.png": {
+  "text": "格子1: 木板的左侧部分|object\n格子2: 木板的右侧部分|object\n格子3: 下方木板和三角形木块|object\n格子4: 另一块木板的右端部分|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\mucai_part1.png"
+ },
+ "mucai_part2.png": {
+  "text": "格子1: 木头|object\n格子2: 木头|object\n格子3: 木头|object\n格子4: 木头|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\mucai_part2.png"
+ },
+ "mulan2_part1.png": {
+  "text": "格子1: 木质门的上半部分，有门框结构|object\n格子2: 门的右侧边缘及背景|object\n格子3: 木质门的下半部分|object\n格子4: 门右下角及背景区域|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\mulan2_part1.png"
+ },
+ "mulan3_part1.png": {
+  "text": "格子1: 棕色木质条纹纹理|building\n格子2: 无法判断|unknown\n格子3: 无法判断|unknown\n格子4: 无法判断|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\mulan3_part1.png"
+ },
+ "mulan4_part1.png": {
+  "text": "格子1: 木质纹理图案|object\n格子2: 无法判断|unknown\n格子3: 无法判断|unknown\n格子4: 无法判断|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\mulan4_part1.png"
+ },
+ "mulan_part1.png": {
+  "text": "格子1: 木门|object\n格子2: 木门|object\n格子3: 木门|object\n格子4: 木门|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\mulan_part1.png"
+ },
+ "shilu2_part1.png": {
+  "text": "格子1: 石头|object\n格子2: 石头|object\n格子3: 石头|object\n格子4: 石头|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu2_part1.png"
+ },
+ "shilu2_part2.png": {
+  "text": "格子1: 白色石板地面纹理|road\n格子2: 灰色石板路面|road\n格子3: 灰色石板路面|road\n格子4: 灰色石板路面|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu2_part2.png"
+ },
+ "shilu2_part3.png": {
+  "text": "格子1: 树干|tree\n格子2: dirt|dirt\n格子3: road|road\n格子4: road|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu2_part3.png"
+ },
+ "shilu2_part4.png": {
+  "text": "格子1: 含物体部分|object\n格子2: 含物体部分|object\n格子3: 含物体部分|object\n格子4: unknown|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu2_part4.png"
+ },
+ "shilu3_part1.png": {
+  "text": "格子1: 灰色石板路边缘|road\n格子2: 灰色石板路主体|road\n格子3: 灰色石板路边缘与石块|road\n格子4: 灰色石板路边缘与石块|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu3_part1.png"
+ },
+ "shilu3_part2.png": {
+  "text": "格子1: 灰色石板路面纹理|road\n格子2: 灰色石板路面纹理|road\n格子3: 灰色石板路面纹理|road\n格子4: 灰色石板路面纹理|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu3_part2.png"
+ },
+ "shilu3_part3.png": {
+  "text": "格子1: 灰色石板路纹理|road\n格子2: 灰色石板路纹理|road\n格子3: 灰色石板路纹理|road\n格子4: 灰色石板路纹理|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu3_part3.png"
+ },
+ "shilu3_part4.png": {
+  "text": "格子1: 灰色石板路面纹理|road\n格子2: 灰色石板路面纹理|road\n格子3: 灰色石板路面纹理边缘|road\n格子4: 黑色空白区域|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu3_part4.png"
+ },
+ "shilu4_part1.png": {
+  "text": "[[FAIL]] (empty)",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu4_part1.png"
+ },
+ "shilu4_part2.png": {
+  "text": "格子1: 石板路面边缘，灰白色石板与深灰缝隙|road\n格子2: 石板路垂直边缘，石板缝隙结构|road\n格子3: 石板路地面，多块不规则石板拼接|road\n格子4: 石板路地面，大块石板拼接|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu4_part2.png"
+ },
+ "shilu4_part3.png": {
+  "text": "格子1: 灰色建筑结构局部|building\n格子2: 灰色建筑结构局部|building\n格子3: 空白区域|building\n格子4: 灰色建筑结构局部|building",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu4_part3.png"
+ },
+ "shilu4_part4.png": {
+  "text": "格子1: 灰色岩石状物体|object\n格子2: 灰色岩石状物体|object\n格子3: 灰色岩石状物体|object\n格子4: 灰色岩石状物体|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu4_part4.png"
+ },
+ "shilu_part1.png": {
+  "text": "格子1: 灰色石板边缘|road\n格子2: 灰色石板表面|road\n格子3: 灰色石板角落|road\n格子4: 灰色石板曲线|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu_part1.png"
+ },
+ "shilu_part2.png": {
+  "text": "格子1: 灰色石板路面纹理|road\n格子2: 灰色石板路面纹理|road\n格子3: 石板路上的石块碎片|road\n格子4: 灰色石板路面纹理|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu_part2.png"
+ },
+ "shilu_part3.png": {
+  "text": "格子1: 灰色石板路面边缘|road\n格子2: 灰色石板路面边缘|road\n格子3: 灰色石板路面|road\n格子4: 灰色石板路面|road",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shilu_part3.png"
+ },
+ "shuic_part1.png": {
+  "text": "格子1: 绿色草地|grass\n格子2: 草地与沙地边缘|grass\n格子3: 草地边缘、棕色岩石悬崖、蓝色水面|object\n格子4: 棕色岩石悬崖、蓝色水面|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shuic_part1.png"
+ },
+ "shuic_part2.png": {
+  "text": "格子1: 绿色草地左侧，中间有垂直棕色岩壁，右侧为蓝色水面 | grass\n格子2: 纯蓝色水面，无其他元素 | water",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shuic_part2.png"
+ },
+ "shuijingssss_part1.png": {
+  "text": "格子1: 木制结构边缘|object\n格子2: 绳索卷轴|object\n格子3: 木制手柄工具|object\n格子4: 井口绳索装置|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shuijingssss_part1.png"
+ },
+ "shuijingssss_part2.png": {
+  "text": "格子1: 水井石砌井口|house\n格子2: 木桩井架|house\n格子3: 木桶|object\n格子4: 石砖井壁|house",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shuijingssss_part2.png"
+ },
+ "shuijingssss_part3.png": {
+  "text": "格子1: 砖墙建筑结构角落|house\n格子2: 白色墙面与门框部分|house\n格子3: 建筑底部与深色边框|house\n格子4: 黑色背景|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\shuijingssss_part3.png"
+ },
+ "tanzi1_part1.png": {
+  "text": "格子1: 陶罐左上部分|object\n格子2: 陶罐右上部分|object\n格子3: 陶罐左下部分|object\n格子4: 陶罐右下部分|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\tanzi1_part1.png"
+ },
+ "tanzi2_part1.png": {
+  "text": "格子1: 空白/纯白色地面|other\n格子2: 带红色盖子的罐子|object\n格子3: 带红色盖子的罐子|object\n格子4: 两个带红色盖子的罐子叠放|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\tanzi2_part1.png"
+ },
+ "tanzi3_part1.png": {
+  "text": "格子1: 白色背景与陶罐边缘顶部|object\n格子2: 陶罐右上主体部分|object\n格子3: 陶罐开口边缘左侧|object\n格子4: 陶罐右下主体部分|object",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\tanzi3_part1.png"
+ },
+ "tanzi4_part1.png": {
+  "text": "格子1: 一个陶罐|object\n格子2: 黑色区域，无内容|unknown\n格子3: 黑色区域，无内容|unknown\n格子4: 黑色区域，无内容|unknown",
+  "path": "D:\\agent社区\\AgentFarm2\\_tiles_parts\\tanzi4_part1.png"
+ }
+}

@@ -1,0 +1,17 @@
+=== 双玩家进入 ===
+A 视角: {"uid":"umsvs8c9l1k4xj","remote":[["umsvs952r1wihi",{"uid":"umsvs952r1wihi","nick":"玩家wihi"}]]}
+B 视角: {"uid":"umsvs952r1wihi","remote":[["umsvs8c9l1k4xj",{"uid":"umsvs8c9l1k4xj","nick":"玩家k4xj","scene":0,"x":0,"y":0}]]}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error [TypeError]: Cannot read properties of undefined (reading 'getIns')
+    at evaluate (evaluate at file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/twin-move.mjs:44:29, <anonymous>:3:60)
+    at #evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:402:19)
+    at async ExecutionContext.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:288:16)
+    at async IsolatedWorld.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/cdp/IsolatedWorld.js:104:16)
+    at async CdpFrame.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:364:20)
+    at async CdpPage.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:832:20)
+    at async file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/twin-move.mjs:44:16
+
+Node.js v24.16.0

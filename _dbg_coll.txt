@@ -1,0 +1,69 @@
+{
+ "physics": {
+  "enabled": true,
+  "hasWorld": false
+ },
+ "walls": [
+  {
+   "pos": {
+    "x": 2300,
+    "y": 550
+   },
+   "rbActive": true,
+   "colliderEnabled": true,
+   "size": {
+    "w": 1000,
+    "h": 900
+   }
+  },
+  {
+   "pos": {
+    "x": 2300,
+    "y": -25
+   },
+   "rbActive": true,
+   "colliderEnabled": true,
+   "size": {
+    "w": 1250,
+    "h": 50
+   }
+  },
+  {
+   "pos": {
+    "x": 2300,
+    "y": 1125
+   },
+   "rbActive": true,
+   "colliderEnabled": true,
+   "size": {
+    "w": 1250,
+    "h": 50
+   }
+  },
+  {
+   "pos": {
+    "x": 1675,
+    "y": 550
+   },
+   "rbActive": true,
+   "colliderEnabled": true,
+   "size": {
+    "w": 50,
+    "h": 1150
+   }
+  }
+ ],
+ "player": {
+  "rbType": 2,
+  "rbActive": true,
+  "collider": {
+   "enabled": true,
+   "size": {
+    "w": 80,
+    "h": 58
+   }
+  },
+  "group": "player"
+ },
+ "wallCount": 35
+}

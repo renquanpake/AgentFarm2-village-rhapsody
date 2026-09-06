@@ -1,0 +1,263 @@
+{
+ "version": 1,
+ "savedAt": "2026-08-16T12:03:55.698Z",
+ "world": {
+  "absMin": 6218.90000000036,
+  "nextId": 17
+ },
+ "players": [
+  {
+   "id": "a13",
+   "name": "测试员",
+   "color": "#ffd166",
+   "isAgent": false,
+   "sceneId": 1,
+   "instanceId": 0,
+   "x": 16,
+   "y": 14,
+   "dir": "left",
+   "hunger": 94.02399999999977,
+   "hp": 100,
+   "gold": 100,
+   "items": {
+    "2": 1,
+    "4": 1,
+    "6": 1,
+    "36": 5,
+    "58": 1
+   },
+   "relations": {
+    "a14": 66,
+    "a15": 67,
+    "a16": 22
+   },
+   "relation": {
+    "a14": "friend"
+   },
+   "hosted": true,
+   "stats": {
+    "useTool": {
+     "0": 2,
+     "2": 2
+    },
+    "talk": 62,
+    "help": 0,
+    "plant": 2
+   },
+   "counters": {
+    "2002": 2
+   },
+   "tasks": {
+    "accepted": [
+     "20001"
+    ],
+    "completed": []
+   },
+   "brainPlan": "idle",
+   "brainCfg": {
+    "mode": "builtin",
+    "vision": false,
+    "token": "3a7f7c2f6125e0b76ab85930a5648ae7"
+   }
+  },
+  {
+   "id": "a14",
+   "name": "小助手",
+   "color": "#ffd166",
+   "isAgent": true,
+   "sceneId": 1,
+   "instanceId": 0,
+   "x": 10,
+   "y": 11,
+   "dir": "up",
+   "hunger": 94.06599999999978,
+   "hp": 100,
+   "gold": 200,
+   "items": {},
+   "relations": {
+    "a13": 66,
+    "a15": 21,
+    "a16": 63
+   },
+   "relation": {
+    "a13": "friend"
+   },
+   "hosted": true,
+   "stats": {
+    "useTool": {},
+    "talk": 62,
+    "help": 0,
+    "plant": 0
+   },
+   "counters": {},
+   "tasks": {
+    "accepted": [],
+    "completed": []
+   },
+   "brainPlan": "wander",
+   "brainCfg": {
+    "mode": "builtin",
+    "vision": false,
+    "token": "f2a6a86c74246afe2f083251124a9e37"
+   }
+  },
+  {
+   "id": "a15",
+   "name": "嗡嗡嗡",
+   "color": "#ffd166",
+   "isAgent": false,
+   "sceneId": 1,
+   "instanceId": 0,
+   "x": 16,
+   "y": 14,
+   "dir": "left",
+   "hunger": 94.00599999999977,
+   "hp": 100,
+   "gold": 350,
+   "items": {
+    "2": 1,
+    "4": 1,
+    "6": 1,
+    "36": 4,
+    "58": 1
+   },
+   "relations": {
+    "a16": 55,
+    "a13": 67,
+    "a14": 21
+   },
+   "relation": {
+    "a16": "friend"
+   },
+   "hosted": true,
+   "stats": {
+    "useTool": {
+     "0": 1,
+     "2": 8
+    },
+    "talk": 57,
+    "help": 0,
+    "plant": 1
+   },
+   "counters": {
+    "2002": 1
+   },
+   "tasks": {
+    "accepted": [
+     "20001",
+     "20002",
+     "20003"
+    ],
+    "completed": [
+     "20001",
+     "20002"
+    ]
+   },
+   "brainPlan": "idle",
+   "brainCfg": {
+    "mode": "builtin",
+    "vision": false,
+    "token": "326b702c2f6c4cecb962c273ed9c27d1"
+   }
+  },
+  {
+   "id": "a16",
+   "name": "嗡嗡嗡",
+   "color": "#ffd166",
+   "isAgent": true,
+   "sceneId": 1,
+   "instanceId": 0,
+   "x": 13,
+   "y": 12,
+   "dir": "down",
+   "hunger": 94.04799999999977,
+   "hp": 100,
+   "gold": 200,
+   "items": {},
+   "relations": {
+    "a15": 55,
+    "a13": 22,
+    "a14": 63
+   },
+   "relation": {
+    "a15": "friend"
+   },
+   "hosted": true,
+   "stats": {
+    "useTool": {},
+    "talk": 57,
+    "help": 0,
+    "plant": 0
+   },
+   "counters": {},
+   "tasks": {
+    "accepted": [],
+    "completed": []
+   },
+   "brainPlan": "chop",
+   "brainCfg": {
+    "mode": "builtin",
+    "vision": false,
+    "token": "b666cbeb7e06b8e2ec70d91cd1e828c2"
+   }
+  }
+ ],
+ "rooms": [
+  {
+   "key": "1-0",
+   "sceneId": 1,
+   "instanceId": 0,
+   "plants": [
+    {
+     "plantId": 36,
+     "sceneId": 1,
+     "instanceId": 0,
+     "grid": [
+      16,
+      14
+     ],
+     "grow": 0,
+     "watered": false,
+     "wateredToday": false
+    },
+    {
+     "plantId": 36,
+     "sceneId": 1,
+     "instanceId": 0,
+     "grid": [
+      16,
+      26
+     ],
+     "grow": 0.5,
+     "watered": true,
+     "wateredToday": true
+    },
+    {
+     "plantId": 36,
+     "sceneId": 1,
+     "instanceId": 0,
+     "grid": [
+      15,
+      14
+     ],
+     "grow": 0.5,
+     "watered": true,
+     "wateredToday": true
+    }
+   ],
+   "buildings": [],
+   "tilled": [
+    "16,14",
+    "16,26",
+    "16,24",
+    "16,23",
+    "16,22",
+    "16,21",
+    "16,20",
+    "16,19",
+    "16,18",
+    "15,14"
+   ]
+  }
+ ]
+}

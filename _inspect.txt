@@ -1,0 +1,50 @@
+{
+ "Application": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "PlayerMoudle": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "GameManager": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "SdkManager": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "WebApi": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "GameData": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "NpcMoudle": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ },
+ "ConfigureHelper": {
+  "keys": [
+   "exports"
+  ],
+  "defaultKeys": null
+ }
+}

@@ -1,0 +1,1175 @@
+{
+  "tilesets": [
+    {
+      "name": "di1",
+      "firstgid": 1,
+      "tilecount": 4,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 1,
+          "category": "dirt",
+          "name": "黄褐色沙地/泥土地面(纯)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 2,
+          "category": "dirt",
+          "name": "黄褐色沙地/泥土地面(纯)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 3,
+          "category": "dirt",
+          "name": "黄褐色沙地/泥土地面(纯)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 3,
+          "gid": 4,
+          "category": "dirt",
+          "name": "黄褐色沙地/泥土地面(纯)",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "cdi",
+      "firstgid": 5,
+      "tilecount": 4,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 5,
+          "category": "grass",
+          "name": "绿色草地(纯)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 6,
+          "category": "grass",
+          "name": "绿色草地(纯)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 7,
+          "category": "grass",
+          "name": "绿色草地(纯)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 3,
+          "gid": 8,
+          "category": "grass",
+          "name": "绿色草地(纯)",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "byuand",
+      "firstgid": 99,
+      "tilecount": 3,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 99,
+          "category": "grass",
+          "name": "草地→黄泥土过渡(纯地面)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 100,
+          "category": "dirt",
+          "name": "黄泥→草地过渡(纯地面)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 101,
+          "category": "dirt",
+          "name": "黄沙/泥土(纯地面)",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "mulan",
+      "firstgid": 102,
+      "tilecount": 1,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 102,
+          "category": "object",
+          "name": "木门/木质门体",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "mulan2",
+      "firstgid": 103,
+      "tilecount": 1,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 103,
+          "category": "object",
+          "name": "木门结构(门架)",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "mulan3",
+      "firstgid": 104,
+      "tilecount": 1,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 104,
+          "category": "object",
+          "name": "木质门/木纹墙片",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "mulan4",
+      "firstgid": 105,
+      "tilecount": 1,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 105,
+          "category": "object",
+          "name": "木质门/木纹构件",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "cdui",
+      "firstgid": 340,
+      "tilecount": 6,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 340,
+          "category": "object",
+          "name": "干草堆边缘+稻草束",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 341,
+          "category": "object",
+          "name": "草叶/麦穗装饰(非地面)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 342,
+          "category": "object",
+          "name": "稻草丛装饰(非地面)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 343,
+          "category": "object",
+          "name": "稻草垛(捆扎)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 4,
+          "gid": 344,
+          "category": "object",
+          "name": "陶罐/罐子局部",
+          "safe_to_pave": false
+        },
+        {
+          "index": 5,
+          "gid": 345,
+          "category": "object",
+          "name": "干草堆/草捆",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "cdui2",
+      "firstgid": 346,
+      "tilecount": 2,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 346,
+          "category": "object",
+          "name": "干草堆顶/稻草",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 347,
+          "category": "object",
+          "name": "干草堆俯视",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "cichis",
+      "firstgid": 350,
+      "tilecount": 2,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 350,
+          "category": "object",
+          "name": "干草堆/草垛",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 351,
+          "category": "decoration",
+          "name": "木框挂画/告示牌(黄底闪电纹)",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "cichis2",
+      "firstgid": 348,
+      "tilecount": 2,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 348,
+          "category": "object",
+          "name": "木框水井/水池",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 349,
+          "category": "object",
+          "name": "木框容器内含蓝色水面(水槽/井)",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "shuic",
+      "firstgid": 660,
+      "tilecount": 8,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 660,
+          "category": "water",
+          "name": "水岸:棕色岩壁/沙滩(临水)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 661,
+          "category": "water",
+          "name": "水岸:草地/岩石崖壁(临水)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 662,
+          "category": "water",
+          "name": "水岸:岩壁+蓝水面",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 663,
+          "category": "water",
+          "name": "水面+岩石岸(混合)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 4,
+          "gid": 664,
+          "category": "water",
+          "name": "青绿海岸/浅滩(混合)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 5,
+          "gid": 665,
+          "category": "water",
+          "name": "纯蓝色水面",
+          "safe_to_pave": false
+        },
+        {
+          "index": 6,
+          "gid": 666,
+          "category": "water",
+          "name": "草地边框内的蓝色水面/井口结构",
+          "safe_to_pave": false
+        },
+        {
+          "index": 7,
+          "gid": 667,
+          "category": "water",
+          "name": "草地与水面交界(临水岸)",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "mucai",
+      "firstgid": 758,
+      "tilecount": 6,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 758,
+          "category": "object",
+          "name": "木板(左)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 759,
+          "category": "object",
+          "name": "木板(右)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 760,
+          "category": "object",
+          "name": "木板+三角木块",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 761,
+          "category": "object",
+          "name": "木板右端",
+          "safe_to_pave": false
+        },
+        {
+          "index": 4,
+          "gid": 762,
+          "category": "object",
+          "name": "堆叠木板",
+          "safe_to_pave": false
+        },
+        {
+          "index": 5,
+          "gid": 763,
+          "category": "object",
+          "name": "堆叠木板",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "tanzi1",
+      "firstgid": 834,
+      "tilecount": 4,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 834,
+          "category": "object",
+          "name": "陶罐(局部)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 835,
+          "category": "object",
+          "name": "陶罐(局部)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 836,
+          "category": "object",
+          "name": "陶罐(侧面)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 837,
+          "category": "object",
+          "name": "陶罐/桶(局部)",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "tanzi2",
+      "firstgid": 827,
+      "tilecount": 4,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 827,
+          "category": "blank",
+          "name": "空白/纯白(空tile)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 828,
+          "category": "object",
+          "name": "红盖陶罐",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 829,
+          "category": "object",
+          "name": "红盖陶罐",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 830,
+          "category": "object",
+          "name": "两个红盖陶罐叠放",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "tanzi3",
+      "firstgid": 832,
+      "tilecount": 2,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 832,
+          "category": "object",
+          "name": "陶罐(开口/边缘)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 833,
+          "category": "object",
+          "name": "陶罐主体",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "tanzi4",
+      "firstgid": 831,
+      "tilecount": 1,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 831,
+          "category": "object",
+          "name": "一个陶罐",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "shuijingssss",
+      "firstgid": 838,
+      "tilecount": 9,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 838,
+          "category": "object",
+          "name": "陶罐/水罐(带把手)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 839,
+          "category": "object",
+          "name": "缠绕的粗绳/绳索卷轴",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 840,
+          "category": "object",
+          "name": "绳索捆扎道具",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 841,
+          "category": "object",
+          "name": "盘绕绳索",
+          "safe_to_pave": false
+        },
+        {
+          "index": 4,
+          "gid": 842,
+          "category": "building",
+          "name": "石砌水井",
+          "safe_to_pave": false
+        },
+        {
+          "index": 5,
+          "gid": 843,
+          "category": "object",
+          "name": "木制结构",
+          "safe_to_pave": false
+        },
+        {
+          "index": 6,
+          "gid": 844,
+          "category": "object",
+          "name": "木桶(局部)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 7,
+          "gid": 845,
+          "category": "object",
+          "name": "井底石板/井口装饰(深色)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 8,
+          "gid": 846,
+          "category": "object",
+          "name": "暗色结构/井边配件",
+          "safe_to_pave": false
+        }
+      ]
+    },
+    {
+      "name": "shilu",
+      "firstgid": 847,
+      "tilecount": 12,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 847,
+          "category": "road",
+          "name": "灰色石板路/石子路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 848,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 849,
+          "category": "road",
+          "name": "灰色石板路角",
+          "safe_to_pave": true
+        },
+        {
+          "index": 3,
+          "gid": 850,
+          "category": "road",
+          "name": "灰色石板路(转角)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 4,
+          "gid": 851,
+          "category": "road",
+          "name": "灰色石板路(碎石)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 5,
+          "gid": 852,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 6,
+          "gid": 853,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 7,
+          "gid": 854,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 8,
+          "gid": 855,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 9,
+          "gid": 856,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 10,
+          "gid": 857,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 11,
+          "gid": 858,
+          "category": "road",
+          "name": "灰色石板路",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "shilu2",
+      "firstgid": 859,
+      "tilecount": 15,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 859,
+          "category": "road",
+          "name": "灰白石板路(碎石)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 860,
+          "category": "road",
+          "name": "灰白石板路(碎石)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 861,
+          "category": "road",
+          "name": "灰白石板路(碎石)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 3,
+          "gid": 862,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 4,
+          "gid": 863,
+          "category": "road",
+          "name": "灰白色亮石板(广场)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 5,
+          "gid": 864,
+          "category": "road",
+          "name": "灰白石板路(深缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 6,
+          "gid": 865,
+          "category": "road",
+          "name": "灰白石板路(深缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 7,
+          "gid": 866,
+          "category": "road",
+          "name": "灰白石板路(深缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 8,
+          "gid": 867,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 9,
+          "gid": 868,
+          "category": "road",
+          "name": "灰白色石板(广场)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 10,
+          "gid": 869,
+          "category": "road",
+          "name": "灰白石板路(碎石)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 11,
+          "gid": 870,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 12,
+          "gid": 871,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 13,
+          "gid": 872,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 14,
+          "gid": 873,
+          "category": "road",
+          "name": "灰白色亮石板(广场)",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "shilu3",
+      "firstgid": 874,
+      "tilecount": 15,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 874,
+          "category": "road",
+          "name": "灰色石板路边缘",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 875,
+          "category": "road",
+          "name": "灰色石板路主体",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 876,
+          "category": "road",
+          "name": "灰色石板路边缘+石块",
+          "safe_to_pave": true
+        },
+        {
+          "index": 3,
+          "gid": 877,
+          "category": "road",
+          "name": "灰色石板路边缘+石块",
+          "safe_to_pave": true
+        },
+        {
+          "index": 4,
+          "gid": 878,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 5,
+          "gid": 879,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 6,
+          "gid": 880,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 7,
+          "gid": 881,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 8,
+          "gid": 882,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 9,
+          "gid": 883,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 10,
+          "gid": 884,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 11,
+          "gid": 885,
+          "category": "road",
+          "name": "灰色石板路面边缘",
+          "safe_to_pave": true
+        },
+        {
+          "index": 12,
+          "gid": 886,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 13,
+          "gid": 887,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        },
+        {
+          "index": 14,
+          "gid": 888,
+          "category": "road",
+          "name": "灰色石板路面",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "shilu4",
+      "firstgid": 889,
+      "tilecount": 15,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 889,
+          "category": "road",
+          "name": "灰白石板路(石阶/浅色)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 1,
+          "gid": 890,
+          "category": "road",
+          "name": "灰白石板路(竖接缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 2,
+          "gid": 891,
+          "category": "road",
+          "name": "灰白石板路(石板拼接)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 3,
+          "gid": 892,
+          "category": "road",
+          "name": "灰白石板路(大块石板)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 4,
+          "gid": 893,
+          "category": "road",
+          "name": "灰白石板路(多块拼接)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 5,
+          "gid": 894,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 6,
+          "gid": 895,
+          "category": "road",
+          "name": "灰白石板路(接缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 7,
+          "gid": 896,
+          "category": "road",
+          "name": "灰白石板路(边缘)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 8,
+          "gid": 897,
+          "category": "road",
+          "name": "灰白石板路",
+          "safe_to_pave": true
+        },
+        {
+          "index": 9,
+          "gid": 898,
+          "category": "road",
+          "name": "灰白石板路(接缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 10,
+          "gid": 899,
+          "category": "road",
+          "name": "灰白石板路(鹅卵石)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 11,
+          "gid": 900,
+          "category": "road",
+          "name": "灰白石板路(碎岩)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 12,
+          "gid": 901,
+          "category": "road",
+          "name": "灰白石板路(圆弧石板)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 13,
+          "gid": 902,
+          "category": "road",
+          "name": "灰白石板路(竖缝)",
+          "safe_to_pave": true
+        },
+        {
+          "index": 14,
+          "gid": 903,
+          "category": "road",
+          "name": "灰白石板路(深色石板)",
+          "safe_to_pave": true
+        }
+      ]
+    },
+    {
+      "name": "ggbangs",
+      "firstgid": 985,
+      "tilecount": 16,
+      "tiles": [
+        {
+          "index": 0,
+          "gid": 985,
+          "category": "building",
+          "name": "灰色砖/石墙+深棕边(建筑)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 1,
+          "gid": 986,
+          "category": "building",
+          "name": "灰色砖石墙(建筑)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 2,
+          "gid": 987,
+          "category": "building",
+          "name": "灰砖地面边缘(墙基)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 3,
+          "gid": 988,
+          "category": "building",
+          "name": "棕色砖墙(建筑)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 4,
+          "gid": 989,
+          "category": "building",
+          "name": "灰色瓦顶+木质墙(房屋角)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 5,
+          "gid": 990,
+          "category": "building",
+          "name": "灰色砖墙+木质墙裙(建筑)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 6,
+          "gid": 991,
+          "category": "building",
+          "name": "灰色砖墙+招牌窗(建筑)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 7,
+          "gid": 992,
+          "category": "building",
+          "name": "石墙+木结构(建筑角/门口)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 8,
+          "gid": 993,
+          "category": "building",
+          "name": "木质门框/墙壁片段",
+          "safe_to_pave": false
+        },
+        {
+          "index": 9,
+          "gid": 994,
+          "category": "decoration",
+          "name": "卷轴/纸张+木地板(告示/贴图)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 10,
+          "gid": 995,
+          "category": "decoration",
+          "name": "纸张/文件背景(非tile贴图)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 11,
+          "gid": 996,
+          "category": "building",
+          "name": "日式木拉门/障子窗(构件)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 12,
+          "gid": 997,
+          "category": "building",
+          "name": "木质墙片",
+          "safe_to_pave": false
+        },
+        {
+          "index": 13,
+          "gid": 998,
+          "category": "blank",
+          "name": "深黑/空门洞底(空)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 14,
+          "gid": 999,
+          "category": "blank",
+          "name": "深黑/空门洞底(空)",
+          "safe_to_pave": false
+        },
+        {
+          "index": 15,
+          "gid": 1000,
+          "category": "building",
+          "name": "垂直木桩/木条(栅栏/墙)",
+          "safe_to_pave": false
+        }
+      ]
+    }
+  ],
+  "pavement_whitelist": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    99,
+    100,
+    101
+  ],
+  "road_whitelist": [
+    847,
+    848,
+    849,
+    850,
+    851,
+    852,
+    853,
+    854,
+    855,
+    856,
+    857,
+    858,
+    859,
+    860,
+    861,
+    862,
+    863,
+    864,
+    865,
+    866,
+    867,
+    868,
+    869,
+    870,
+    871,
+    872,
+    873,
+    874,
+    875,
+    876,
+    877,
+    878,
+    879,
+    880,
+    881,
+    882,
+    883,
+    884,
+    885,
+    886,
+    887,
+    888,
+    889,
+    890,
+    891,
+    892,
+    893,
+    894,
+    895,
+    896,
+    897,
+    898,
+    899,
+    900,
+    901,
+    902,
+    903
+  ]
+}

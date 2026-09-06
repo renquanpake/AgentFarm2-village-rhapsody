@@ -1,0 +1,12 @@
+{
+ "pmKeys": [
+  "_world",
+  "_steping"
+ ],
+ "physicsWorldType": "undefined",
+ "rigidBodyTypeEnum": {},
+ "collisionMatrixDefault": "no",
+ "playerRbType": 2,
+ "playerBodyImpl": "no impl"
+}
+左走: 前 5800 6300 后 43 6338

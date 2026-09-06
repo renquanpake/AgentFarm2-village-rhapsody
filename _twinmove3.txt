@@ -1,0 +1,31 @@
+=== 双玩家进入 ===
+A 视角: {"uid":"umsvset7227vuj","remote":[["umsvsfm10250pz",{"uid":"umsvsfm10250pz","nick":"玩家50pz","scene":1,"x":1522,"y":1663}]]}
+B 视角: {"uid":"umsvsfm10250pz","remote":[["umsvset7227vuj",{"uid":"umsvset7227vuj","nick":"玩家7vuj","scene":1,"x":1522,"y":1663}]]}
+A 实际位置: {"x":2858,"y":1603}
+B 看到的 A: [["umsvset7227vuj",{"uid":"umsvset7227vuj","nick":"玩家7vuj","scene":1,"x":2858,"y":1603}]]
+=== B logs (tail) ===
+[log] [AF] 权威存档已同步: 18 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvsfm10250pz nick=玩家50pz sync=true
+[log] [AF] 玩家上线: 玩家7vuj umsvset7227vuj
+[log] [AF] 模块捕获已挂载
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[log] [AF] 渲染远程玩家节点: umsvset7227vuj
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] name = UiStorage  zindex = 2
+[log] beforCloseCb
+=== A logs (tail) ===
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] name = UiStorage  zindex = 2
+[log] beforCloseCb
+[log] [AF] 玩家上线: 玩家50pz umsvsfm10250pz
+[log] [AF] 渲染远程玩家节点: umsvsfm10250pz

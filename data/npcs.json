@@ -1,0 +1,992 @@
+[
+ {
+  "id": 1,
+  "name": "家石伯",
+  "path_name": "jiashibo",
+  "head": "dtu_gjsb",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   105,
+   106,
+   107,
+   108,
+   109,
+   110,
+   111
+  ],
+  "over_talks": [],
+  "hs_talk_id": 112,
+  "taskWords": [],
+  "appear_rule": [
+   [
+    2,
+    10101,
+    2,
+    5566,
+    5110
+   ],
+   [
+    2,
+    10102,
+    103
+   ],
+   [
+    2,
+    11501,
+    1000
+   ],
+   [
+    3,
+    11501,
+    10000
+   ]
+  ]
+ },
+ {
+  "id": 2,
+  "name": "树根",
+  "path_name": "shugen",
+  "head": "dtu_sg",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   204,
+   205,
+   206,
+   207,
+   208,
+   209,
+   210,
+   211,
+   212
+  ],
+  "over_talks": [],
+  "hs_talk_id": 213,
+  "taskWords": [],
+  "appear_rule": [
+   [
+    2,
+    10903,
+    2
+   ]
+  ]
+ },
+ {
+  "id": 3,
+  "name": "树根嫂",
+  "path_name": "shugensao",
+  "head": "dtu_sgs",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   309,
+   310,
+   311,
+   312,
+   313,
+   314,
+   315,
+   316,
+   317,
+   318
+  ],
+  "over_talks": [
+   319,
+   320,
+   321,
+   322
+  ],
+  "hs_talk_id": 326,
+  "taskWords": [
+   [
+    1,
+    10902,
+    306
+   ],
+   [
+    1,
+    10903,
+    302
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    10903,
+    104
+   ]
+  ]
+ },
+ {
+  "id": 4,
+  "name": "屠夫",
+  "path_name": "tufu",
+  "head": "dtu_tf",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   407,
+   410,
+   411,
+   412,
+   413,
+   414
+  ],
+  "over_talks": [],
+  "hs_talk_id": 415,
+  "taskWords": [
+   [
+    1,
+    10801,
+    409
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 5,
+  "name": "赵香茹",
+  "path_name": "guafu",
+  "head": "dtu_gf",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   514,
+   515,
+   516,
+   517,
+   518,
+   519
+  ],
+  "over_talks": [
+   520,
+   521,
+   522,
+   523
+  ],
+  "hs_talk_id": 526,
+  "taskWords": [
+   [
+    1,
+    10601,
+    512
+   ],
+   [
+    1,
+    10604,
+    513
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 6,
+  "name": "木匠",
+  "path_name": "mujiang",
+  "head": "dtu_mj",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   607,
+   611,
+   612,
+   613,
+   614,
+   615
+  ],
+  "over_talks": [],
+  "hs_talk_id": 616,
+  "taskWords": [
+   [
+    1,
+    10602,
+    609
+   ],
+   [
+    1,
+    10702,
+    610
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 7,
+  "name": "村长",
+  "path_name": "cunzhang",
+  "head": "dtu_czhangs",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   721,
+   737,
+   738,
+   739,
+   740,
+   741
+  ],
+  "over_talks": [],
+  "hs_talk_id": 742,
+  "taskWords": [
+   [
+    1,
+    10001,
+    733
+   ],
+   [
+    1,
+    10003,
+    734
+   ],
+   [
+    1,
+    10201,
+    735
+   ],
+   [
+    1,
+    10302,
+    736
+   ],
+   [
+    1,
+    12101,
+    743
+   ],
+   [
+    1,
+    12301,
+    744
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    10001,
+    106,
+    800,
+    310
+   ],
+   [
+    2,
+    10002,
+    106,
+    800,
+    310
+   ],
+   [
+    2,
+    10003,
+    1000
+   ],
+   [
+    2,
+    10205,
+    2
+   ],
+   [
+    2,
+    10206,
+    2
+   ],
+   [
+    2,
+    10201,
+    1000
+   ],
+   [
+    2,
+    10202,
+    1000
+   ],
+   [
+    2,
+    10203,
+    1000
+   ],
+   [
+    2,
+    10205,
+    1000
+   ],
+   [
+    2,
+    10206,
+    1000
+   ]
+  ]
+ },
+ {
+  "id": 8,
+  "name": "村长夫人",
+  "path_name": "cunzhangwife",
+  "head": "dtu_czfr",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   808,
+   813,
+   814,
+   815
+  ],
+  "over_talks": [
+   816,
+   817,
+   818,
+   819
+  ],
+  "hs_talk_id": 823,
+  "taskWords": [
+   [
+    1,
+    10202,
+    810
+   ],
+   [
+    1,
+    10203,
+    811
+   ],
+   [
+    1,
+    10205,
+    812
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    10205,
+    106
+   ],
+   [
+    2,
+    10206,
+    106
+   ]
+  ]
+ },
+ {
+  "id": 9,
+  "name": "飞英",
+  "path_name": "daughterB",
+  "head": "dtu_dane",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   920,
+   929,
+   930,
+   931,
+   932
+  ],
+  "over_talks": [
+   933,
+   934,
+   935,
+   936,
+   937
+  ],
+  "hs_talk_id": 940,
+  "taskWords": [
+   [
+    1,
+    10101,
+    925
+   ],
+   [
+    1,
+    10102,
+    926
+   ],
+   [
+    1,
+    10103,
+    927
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    10101,
+    2,
+    5433,
+    5110
+   ]
+  ]
+ },
+ {
+  "id": 10,
+  "name": "红英",
+  "path_name": "daughterS",
+  "head": "dtu_xner",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   1015,
+   1019,
+   1020
+  ],
+  "over_talks": [
+   1021,
+   1022,
+   1023,
+   1024,
+   1025,
+   1026,
+   1027
+  ],
+  "hs_talk_id": 1028,
+  "taskWords": [
+   [
+    1,
+    10004,
+    1016
+   ],
+   [
+    1,
+    10005,
+    1017
+   ]
+  ],
+  "appear_rule": [
+   [
+    1,
+    10005,
+    107
+   ]
+  ]
+ },
+ {
+  "id": 11,
+  "name": "小树根",
+  "path_name": "xiaoshugen",
+  "head": "dtu_xsg",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   1105,
+   1106,
+   1107,
+   1108,
+   1109,
+   1110,
+   1111,
+   1112,
+   1113,
+   1114,
+   1115,
+   1116,
+   1117,
+   1118,
+   1119
+  ],
+  "over_talks": [],
+  "hs_talk_id": 1120,
+  "taskWords": [
+   [
+    1,
+    10206,
+    1104
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    10205,
+    2
+   ],
+   [
+    2,
+    10903,
+    2
+   ],
+   [
+    2,
+    11001,
+    104
+   ]
+  ]
+ },
+ {
+  "id": 12,
+  "name": "梅姨",
+  "path_name": "laotaitai",
+  "head": "dtu_myi",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   1221,
+   1222,
+   1223,
+   1224
+  ],
+  "over_talks": [
+   1225,
+   1226,
+   1227
+  ],
+  "hs_talk_id": 1229,
+  "taskWords": [
+   [
+    1,
+    10002,
+    1219
+   ],
+   [
+    1,
+    11302,
+    1220
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    11301,
+    109
+   ],
+   [
+    2,
+    11302,
+    109
+   ]
+  ]
+ },
+ {
+  "id": 13,
+  "name": "杂货店老板",
+  "path_name": "zahuodian",
+  "head": "dtu_zhd",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   1309,
+   1313,
+   1314
+  ],
+  "over_talks": [],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    1,
+    10401,
+    1310
+   ],
+   [
+    1,
+    11102,
+    1311
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 14,
+  "name": "小青",
+  "path_name": "snake",
+  "head": "dtu_se",
+  "scale": 0.5,
+  "animal_id": 3,
+  "talks": [
+   1411,
+   1415,
+   1416
+  ],
+  "over_talks": [
+   1417,
+   1418,
+   1419
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    1,
+    10304,
+    1413
+   ],
+   [
+    1,
+    10305,
+    1414
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    10301,
+    3
+   ],
+   [
+    2,
+    10302,
+    3
+   ],
+   [
+    3,
+    10302,
+    1
+   ]
+  ]
+ },
+ {
+  "id": 15,
+  "name": "鲍龙哥",
+  "path_name": "baolong",
+  "head": "dtu_blge",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   1599
+  ],
+  "over_talks": [
+   1506,
+   1511,
+   1513
+  ],
+  "hs_talk_id": 1515,
+  "taskWords": [
+   [
+    1,
+    10502,
+    1508
+   ],
+   [
+    1,
+    11701,
+    1514
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 16,
+  "name": "小母牛",
+  "path_name": "cow",
+  "head": "dtu_nn",
+  "scale": 0.5,
+  "animal_id": 2,
+  "talks": [
+   1605
+  ],
+  "over_talks": [
+   1606,
+   1607,
+   1608
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    2,
+    11001,
+    1698
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 17,
+  "name": "小母狗",
+  "path_name": "dog",
+  "head": "dtu_gg",
+  "scale": 0.5,
+  "animal_id": 4,
+  "talks": [
+   1705
+  ],
+  "over_talks": [
+   1708,
+   1709,
+   1710,
+   1711,
+   1712
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    1,
+    11101,
+    1707
+   ]
+  ],
+  "appear_rule": [
+   [
+    2,
+    11101,
+    1
+   ],
+   [
+    2,
+    11102,
+    1
+   ],
+   [
+    2,
+    11103,
+    1
+   ],
+   [
+    2,
+    11104,
+    1
+   ]
+  ]
+ },
+ {
+  "id": 18,
+  "name": "狐狸精",
+  "path_name": "fox",
+  "head": "dtu_hli",
+  "scale": 1,
+  "animal_id": 5,
+  "talks": [
+   1806
+  ],
+  "over_talks": [
+   1810,
+   1811,
+   1812,
+   1813,
+   1814
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    1,
+    11404,
+    1809
+   ]
+  ],
+  "appear_rule": [
+   [
+    3,
+    11402,
+    12
+   ]
+  ]
+ },
+ {
+  "id": 19,
+  "name": "二休禅师",
+  "path_name": "monk",
+  "head": "dtu_hes",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   1903,
+   1905
+  ],
+  "over_talks": [],
+  "hs_talk_id": 1906,
+  "taskWords": [
+   [
+    1,
+    11201,
+    1904
+   ]
+  ],
+  "appear_rule": []
+ },
+ {
+  "id": 20,
+  "name": "老头子",
+  "path_name": "oldman",
+  "head": "",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   2002
+  ],
+  "over_talks": [],
+  "hs_talk_id": 1,
+  "taskWords": [],
+  "appear_rule": []
+ },
+ {
+  "id": 21,
+  "name": "陌生女",
+  "path_name": "stranger",
+  "head": "",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   2106
+  ],
+  "over_talks": [],
+  "hs_talk_id": 1,
+  "taskWords": [],
+  "appear_rule": []
+ },
+ {
+  "id": 22,
+  "name": "小母驴",
+  "path_name": "lv",
+  "head": "dtu_lv",
+  "scale": 0.5,
+  "animal_id": 1,
+  "talks": [
+   2215
+  ],
+  "over_talks": [
+   2216,
+   2217
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    1,
+    11702,
+    2218
+   ],
+   [
+    1,
+    11703,
+    2219
+   ],
+   [
+    1,
+    11704,
+    2220
+   ]
+  ],
+  "appear_rule": [
+   [
+    1,
+    10502,
+    7,
+    2133,
+    2200
+   ],
+   [
+    2,
+    11701,
+    111,
+    2147,
+    4236
+   ],
+   [
+    3,
+    11701,
+    111,
+    2147,
+    4236
+   ]
+  ]
+ },
+ {
+  "id": 23,
+  "name": "菲菲",
+  "path_name": "feifei",
+  "head": "dtu_tj",
+  "scale": 0.5,
+  "animal_id": 0,
+  "talks": [
+   2305,
+   2306,
+   2307
+  ],
+  "over_talks": [
+   2302,
+   2303,
+   2304
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [
+   [
+    1,
+    11802,
+    2308
+   ],
+   [
+    1,
+    11803,
+    2309
+   ]
+  ],
+  "appear_rule": [
+   [
+    1,
+    11801,
+    1000
+   ],
+   [
+    2,
+    11802,
+    10
+   ],
+   [
+    2,
+    11803,
+    10
+   ],
+   [
+    3,
+    11804,
+    10
+   ]
+  ]
+ },
+ {
+  "id": 24,
+  "name": "护士",
+  "path_name": "nurse",
+  "head": "dtu_hushi",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   2402
+  ],
+  "over_talks": [
+   2401
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [],
+  "appear_rule": []
+ },
+ {
+  "id": 25,
+  "name": "医生",
+  "path_name": "doctor",
+  "head": "dtu_ysheng",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   2502
+  ],
+  "over_talks": [
+   2501
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [],
+  "appear_rule": [
+   [
+    3,
+    12104,
+    113
+   ]
+  ]
+ },
+ {
+  "id": 26,
+  "name": "明珠",
+  "path_name": "mingzhu",
+  "head": "dtu_msnz",
+  "scale": 1,
+  "animal_id": 0,
+  "talks": [
+   2602
+  ],
+  "over_talks": [
+   2601
+  ],
+  "hs_talk_id": 1,
+  "taskWords": [],
+  "appear_rule": [
+   [
+    3,
+    12302,
+    113
+   ]
+  ]
+ }
+]

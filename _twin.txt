@@ -1,0 +1,33 @@
+=== 玩家A 进入 ===
+A: {"uid":"umsvs4uep58o14","hasPlayerData":true}
+=== 玩家B 进入 ===
+B: {"uid":"umsvs5n7o4fea4","hasPlayerData":true}
+B 收到聊天: ["玩家8o14: 你好我是玩家A"]
+uid 不同: true (umsvs4uep58o14 vs umsvs5n7o4fea4)
+服务器在线: []
+=== A logs (tail) ===
+[log] [AF] 权威存档已同步: 18 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvs4uep58o14 nick=玩家8o14 sync=true
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] name = UiStorage  zindex = 2
+[log] beforCloseCb
+[log] [AF] 玩家上线: 玩家fea4 umsvs5n7o4fea4
+=== B logs (tail) ===
+[log] [AF] 权威存档已同步: 18 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvs5n7o4fea4 nick=玩家fea4 sync=true
+[log] [AF] 玩家上线: 玩家8o14 umsvs4uep58o14
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] name = UiStorage  zindex = 2
+[log] beforCloseCb

@@ -1,0 +1,15 @@
+const s=require("../_lib.js").s;
+const mods=require("../_lib.js").mods;
+const of=1321762;
+let last=null;
+mods.forEach(m=>{if(m.off<=of)last=m;});
+console.log('nearest module before offset:',last?last.name:null);
+const head=s.lastIndexOf('[function',of);
+const keyStart=s.lastIndexOf('":',head-4);
+console.log('=== module header ===');
+console.log(JSON.stringify(s.substring(keyStart,keyStart+160)));
+const pop=s.indexOf('cc._RF.pop()',of);
+const b=s.substring(head-4,pop);
+const idx=b.indexOf('_gWord=');
+console.log('=== _gWord definition ===');
+console.log(JSON.stringify(b.substring(idx-80,idx+400)));

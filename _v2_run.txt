@@ -1,0 +1,16 @@
+注册账号: vw2dk6
+登录状态: {"uid":"","token":true,"loginGone":false}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error [TypeError]: Cannot read properties of null (reading 'x')
+    at evaluate (evaluate at file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/verify-map-v2.mjs:33:26, <anonymous>:4:27)
+    at #evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:402:19)
+    at async ExecutionContext.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:288:16)
+    at async IsolatedWorld.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/cdp/IsolatedWorld.js:104:16)
+    at async CdpFrame.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:364:20)
+    at async CdpPage.evaluate (file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:832:20)
+    at async file:///D:/agent%E7%A4%BE%E5%8C%BA/AgentFarm2/tools/verify-map-v2.mjs:33:15
+
+Node.js v24.16.0

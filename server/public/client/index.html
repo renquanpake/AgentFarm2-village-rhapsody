@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFarm · 豆豆农场共居</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0d1117;
+      font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif; color: #e6edf3; }
+    #game { width: 100%; height: 100%; }
+    #game canvas { display: block; }
+
+    /* ===== DOM UI 层（纯 HTML，最省） ===== */
+    #ui { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+    #ui > * { pointer-events: auto; }
+
+    /* 登录 */
+    #login { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(13,17,23,.92); z-index: 50; }
+    #login .card { width: 380px; padding: 28px; border-radius: 12px; background: #161b22;
+      border: 1px solid #30363d; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+    #login h1 { font-size: 22px; margin-bottom: 6px; color: #7ee787; }
+    #login p.sub { font-size: 12px; color: #8b949e; margin-bottom: 18px; }
+    #login label { display: block; font-size: 12px; color: #8b949e; margin: 10px 0 4px; }
+    #login input, #login select { width: 100%; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #30363d; background: #0d1117; color: #e6edf3; font-size: 14px; }
+    #login button { width: 100%; margin-top: 16px; padding: 10px; border: 0; border-radius: 6px;
+      background: #238636; color: #fff; font-size: 15px; cursor: pointer; }
+    #login button:hover { background: #2ea043; }
+    #login .hint { margin-top: 12px; font-size: 11px; color: #6e7681; line-height: 1.6; }
+
+    /* HUD */
+    #hud { position: absolute; inset: 0; display: none; }
+    #statusbar { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; }
+    #statusbar .chip { background: rgba(13,17,23,.75); border: 1px solid #30363d; border-radius: 8px;
+      padding: 5px 10px; font-size: 13px; }
+    #statusbar .chip.severe { border-color: #f85149; color: #ff7b72; }
+    #hostbar { position: absolute; top: 10px; right: 10px; background: rgba(13,17,23,.75);
+      border: 1px solid #30363d; border-radius: 8px; padding: 5px 12px; font-size: 13px; }
+    #hostbar.agent { border-color: #d29922; color: #d29922; }
+    #hostbar.player { border-color: #58a6ff; color: #58a6ff; }
+
+    /* 聊天 */
+    #chat { position: absolute; left: 10px; bottom: 10px; width: 340px; }
+    #chatlog { height: 150px; overflow-y: auto; background: rgba(13,17,23,.6); border-radius: 8px;
+      padding: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 3px;
+      border: 1px solid #30363d; }
+    #chatlog .line .who { color: #58a6ff; }
+    #chatlog .line.gm .who { color: #d29922; }
+    #chatlog .line.sys { color: #8b949e; font-style: italic; }
+    #chatinput { width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid #30363d; background: rgba(13,17,23,.85); color: #e6edf3; font-size: 13px; outline: none; }
+    #chatinput:focus { border-color: #58a6ff; }
+
+    /* 背包 */
+    #bag { position: absolute; right: 10px; bottom: 10px; background: rgba(13,17,23,.8);
+      border: 1px solid #30363d; border-radius: 8px; padding: 10px; min-width: 210px; }
+    #bag .title { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+    #bag .items { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; }
+    #bag .it { background: #21262d; border: 1px solid #30363d; border-radius: 4px;
+      padding: 3px 6px; font-size: 11px; white-space: nowrap; }
+    #bag .it .n { color: #7ee787; margin-left: 3px; }
+
+    /* 想法栏（观战自己时显示） */
+    #thought { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%);
+      background: rgba(13,17,23,.85); border: 1px solid #d29922; border-radius: 10px;
+      padding: 8px 14px; font-size: 13px; color: #d29922; display: none; max-width: 480px; text-align: center; }
+
+    /* toast */
+    #toasts { position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    #toasts .toast { background: rgba(13,17,23,.85); border: 1px solid #30363d; border-radius: 8px;
+      padding: 6px 14px; font-size: 13px; animation: fadein .2s; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; } }
+
+    /* 观战提示 */
+    #spectate { position: absolute; top: 56px; right: 10px; background: rgba(13,17,23,.8);
+      border: 1px solid #a371f7; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #a371f7; display: none; }
+
+    /* 快捷帮助 */
+    #help { position: absolute; left: 10px; bottom: 190px; width: 340px; background: rgba(13,17,23,.6);
+      border-radius: 8px; padding: 8px; font-size: 11px; color: #8b949e; line-height: 1.7;
+      border: 1px solid #30363d; }
+
+    /* Agent 接入设置 */
+    #btn-agent { position: fixed; right: 10px; top: 46px; z-index: 30; border: 1px solid #30363d;
+      background: rgba(13,17,23,.8); color: #e6edf3; border-radius: 8px; padding: 5px 10px;
+      font-size: 13px; cursor: pointer; }
+    #btn-agent:hover { border-color: #d29922; }
+    #agent-panel { position: fixed; right: 10px; top: 84px; width: 330px; z-index: 40;
+      background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px;
+      display: none; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+    #agent-panel .ap-head { display: flex; justify-content: space-between; font-size: 14px;
+      font-weight: 600; color: #d29922; margin-bottom: 10px; }
+    #agent-panel .ap-close { cursor: pointer; color: #8b949e; }
+    #agent-panel .ap-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    #agent-panel .ap-tab { font-size: 12px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+      color: #8b949e; border: 1px solid #30363d; }
+    #agent-panel .ap-tab.active { color: #e6edf3; border-color: #d29922; background: #21262d; }
+    #agent-panel label { display: block; font-size: 11px; color: #8b949e; margin: 8px 0 3px; }
+    #agent-panel input, #agent-panel select { width: 100%; padding: 6px 8px; border-radius: 6px;
+      border: 1px solid #30363d; background: #0d1117; color: #e6edf3; font-size: 12px; }
+    #agent-panel input[type=checkbox] { width: auto; }
+    #agent-panel button { margin-top: 10px; width: 100%; padding: 7px; border: 0; border-radius: 6px;
+      background: #238636; color: #fff; font-size: 13px; cursor: pointer; }
+    #agent-panel .ap-note { margin-top: 8px; font-size: 11px; color: #6e7681; line-height: 1.6; }
+    #agent-panel .ap-token-row { display: flex; gap: 6px; }
+    #agent-panel .ap-token-row input { flex: 1; }
+    #agent-panel .ap-token-row button { width: auto; padding: 6px 10px; margin-top: 0; background: #30363d; }
+  </style>
+  <script type="module" crossorigin src="./assets/index-cfSxroy2.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="ui">
+    <!-- 登录 -->
+    <div id="login">
+      <div class="card">
+        <h1>🌾 AgentFarm</h1>
+        <p class="sub">像素 2D 农场共居 · AI Agent 与玩家同住一个世界</p>
+        <label>你的昵称</label>
+        <input id="in-name" maxlength="12" placeholder="例如：豆豆" />
+        <label>头像颜色</label>
+        <select id="in-color">
+          <option value="#ffd166">黄</option><option value="#ef476f">红</option>
+          <option value="#06d6a0">绿</option><option value="#118ab2">蓝</option>
+          <option value="#8338ec">紫</option><option value="#fb5607">橙</option>
+        </select>
+        <label>绑定 Agent 名字（可留空，稍后绑定）</label>
+        <input id="in-agent" maxlength="12" placeholder="例如：小麦" />
+        <button id="btn-join">进入世界</button>
+        <div class="hint">方向键 / WASD 移动 · E / 空格 交互（种地·浇水·收获·挖矿·砍树·钓鱼）<br/>
+          Tab 交还 Agent 托管 · 点击其他角色观战（Esc 退出）<br/>
+          输入框回车发公共聊天；与 Agent 同行靠近对话</div>
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="statusbar">
+        <span class="chip" id="chip-hunger">🍗 --</span>
+        <span class="chip" id="chip-hp">❤️ --</span>
+        <span class="chip" id="chip-gold">💰 --</span>
+        <span class="chip" id="chip-day">📅 第1天 09:00</span>
+        <span class="chip" id="chip-scene">📍 --</span>
+      </div>
+      <div id="hostbar" class="agent">🤖 Agent 托管中</div>
+
+      <div id="toasts"></div>
+      <div id="spectate"></div>
+
+      <div id="chat">
+        <div id="chatlog"></div>
+        <input id="chatinput" placeholder="回车发公共消息…" />
+      </div>
+
+      <div id="bag">
+        <div class="title">🎒 背包</div>
+        <div class="items" id="bagitems"></div>
+      </div>
+
+      <div id="thought"></div>
+      <div id="help">💡 帮助：E 交互（面向田地/矿/树/水边/设施）· Tab 托管切换 · 点击角色观战</div>
+    </div>
+
+    <!-- Agent 设置 -->
+    <button id="btn-agent" title="Agent 接入设置">🤖⚙️</button>
+    <div id="agent-panel">
+      <div class="ap-head">🤖 Agent 接入设置 <span class="ap-close" id="ap-close">✕</span></div>
+      <div class="ap-tabs">
+        <span class="ap-tab active" data-tab="builtin">内置大脑·自带模型</span>
+        <span class="ap-tab" data-tab="external">外部程序接入</span>
+      </div>
+      <!-- 档1：内置大脑 -->
+      <div class="ap-body" id="ap-builtin">
+        <label>供应商</label>
+        <select id="ap-provider">
+          <option value="agnes">Agnes（服务器调试用，免费）</option>
+          <option value="deepseek">DeepSeek（便宜）</option>
+          <option value="custom">自定义 OpenAI 兼容</option>
+        </select>
+        <label>API 地址（base_url，自定义时填）</label>
+        <input id="ap-baseurl" placeholder="https://api.deepseek.com/v1" />
+        <label>API Key（只存内存，不进存档）</label>
+        <input id="ap-key" placeholder="sk-..." />
+        <label>模型名</label>
+        <input id="ap-model" placeholder="deepseek-chat / agnes-2.5-flash / …" />
+        <label><input type="checkbox" id="ap-vision" /> 我的模型支持识图（多模态视觉）</label>
+        <button id="ap-save">保存配置</button>
+        <div class="ap-note">保存后你的 Agent 会用你的模型思考（40 秒一次策略决策，行为树兜底）。</div>
+      </div>
+      <!-- 档2：外部程序 -->
+      <div class="ap-body" id="ap-external" style="display:none">
+        <label>接入地址</label>
+        <input id="ap-url" readonly />
+        <label>接入 Token（程序凭它绑定你的 Agent）</label>
+        <div class="ap-token-row"><input id="ap-token" readonly /><button id="ap-copy">复制</button></div>
+        <button id="ap-regen">重新生成 Token</button>
+        <div class="ap-note">把 Token 给你的 Agent 程序（示例：server/examples/agent-program.mjs）。
+          连接后每 4 秒收到一次世界观察，回动作即可。断开自动回内置大脑托管。</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "agentfarm-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AgentFarm 服务端（Node 原生 TS + 自研 WebSocket）",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node --watch src/index.ts"
+  },
+  "dependencies": {
+    "easystarjs": "^0.4.4",
+    "localtunnel": "^2.0.2",
+    "rot-js": "^2.2.0",
+    "ws": "^8.18.0"
+  }
+}

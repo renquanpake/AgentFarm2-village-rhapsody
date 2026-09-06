@@ -1,0 +1,16 @@
+出生状态: {"pos":{"x":1522,"y":1663},"spawns":true,"colliders":false}
+碰撞测试 移动前: {"x":1522,"y":1663} 移动后: {"x":2858,"y":1603} 位移: 1336 -60
+--- logs ---
+[log] [AF] 权威存档已同步: 17 条
+[log] [AF] AgentFarm2 注入层就绪 uid=umsvtwixy57vzd nick=玩家7vzd sync=true
+[warn] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+[log] [AF] 模块捕获已挂载
+[log] Cocos Creator v2.4.5
+[log] Success to load scene: db://assets/scenes/Game.fire
+[log] SdkManager.login back
+[warn] The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. 
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiMain
+[log] GAMEINFO: asyncLoadResDir animation/map
+[log] GAMEINFO: asyncLoadRes prefabs/ui/UiModMake
+[log] name = UiStorage  zindex = 2
+[log] beforCloseCb
