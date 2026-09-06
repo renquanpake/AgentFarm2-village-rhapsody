@@ -1,5 +1,4 @@
-# 只排除真正不需要的
-node_modules/
+# 排除不需要的
 _release/
 *.zip
 data/accounts.json
