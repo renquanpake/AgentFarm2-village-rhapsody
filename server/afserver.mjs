@@ -51,6 +51,11 @@ function findAccountByToken(t) {
   return null;
 }
 function uidOfToken(t) { const a = findAccountByToken(t); return a ? a.uid : null; }
+function findAccountByUid(uid) {
+  if (!uid) return null;
+  for (const a of Object.values(accounts)) if (a.uid === uid) return a;
+  return null;
+}
 const managedAgents = new Map(); // uid -> ChildProcess，由服务器负责生命周期
 
 function startManagedAgent(acc) {
@@ -618,7 +623,8 @@ const server = http.createServer((req, res) => {
 });
 
 // ---------- WebSocket（noServer：手动按 path 路由 /ws 游戏通道 + /agent 外部 agent 通道） ----------
-const wss = new WebSocketServer({ noServer: true });
+// maxPayload 8MB：单条 WS 消息超过即断开，防内存炸弹（正常存档远小于此值）
+const wss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 * 1024 });
 const online = new Map(); // uid -> { ws, nick, scene, x, y }
 
 // ---------- WS 心跳保活（防隧道/NAT 下空闲连接被中间设备掐断） ----------
@@ -652,13 +658,30 @@ server.on('upgrade', (req, socket, head) => {
 function gameConn(ws) {
   let uid = null;
   const send = (obj) => { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); };
+  // 协议/网络层错误（如消息超过 maxPayload）只断开该连接，绝不冒泡崩溃进程
+  ws.on('error', () => { try { ws.terminate(); } catch {} });
 
   ws.on('message', (raw) => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
     switch (msg.t) {
       case 'join': {
         uid = String(msg.uid || 'g' + Math.floor(Math.random() * 1e6));
-        const nick = String(msg.nick || '玩家' + uid.slice(-4));
+        // 鉴权：注册账号的 uid 必须携带账号当前 token，防止冒名接管（游客 uid 放行）
+        const acc = findAccountByUid(uid);
+        if (acc && String(msg.token || '') !== acc.token) {
+          send({ t: 'join_deny', msg: '账号校验失败，请刷新页面重新登录后再进入' });
+          try { ws.close(4001, 'auth'); } catch {}
+          break;
+        }
+        let nick = String(msg.nick || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16);
+        if (!nick) nick = '玩家' + uid.slice(-4);
+        // 单点登录：同一 uid 重复上线时踢掉旧连接（先送达提示，再断开）
+        const old = online.get(uid);
+        if (old && old.ws && old.ws !== ws) {
+          sendTo(old, { t: 'kicked', msg: '账号在别处上线，请刷新页面重新进入' });
+          const oldWs = old.ws;
+          setTimeout(() => { try { oldWs.terminate(); } catch {} }, 200);
+        }
         if (!playersDb.has(uid)) playersDb.set(uid, new Map());
         online.set(uid, { ws, uid, nick, scene: msg.scene ?? 0, x: msg.x ?? 0, y: msg.y ?? 0 });
         send({ t: 'welcome', uid, players: Array.from(online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })) });
@@ -671,9 +694,14 @@ function gameConn(ws) {
       }
       case 'save': {
         if (!msg.kv || !Array.isArray(msg.kv) || !uid) break;
+        // 连接身份校验：同 uid 被新连接顶掉后，旧连接的写操作全部失效
+        const cur = online.get(uid); if (!cur || cur.ws !== ws) break;
+        if (msg.kv.length > 1000) msg.kv = msg.kv.slice(0, 1000); // 单条消息最多 1000 个键
         const kvOut = [];
         let touchedWorld = false;
         for (const [key, value] of msg.kv) {
+          // 单值上限 512KB：防单玩家塞爆存档与广播带宽
+          if (typeof value === 'string' && value.length > 512 * 1024) { console.log(`[save] 跳过超大值 key=${key} (${value.length}B)`); continue; }
           let val; try { val = JSON.parse(value); } catch { val = value; }
           const b = bucketOf(key);
           // 未知 key（如游戏 storage_100001 经客户端翻译后的 storage_uXXX）一律按玩家私有处理；
@@ -697,13 +725,28 @@ function gameConn(ws) {
         break;
       }
       case 'move': {
-        const p = online.get(uid); if (!p) break;
-        p.scene = msg.scene ?? p.scene; p.x = msg.x ?? p.x; p.y = msg.y ?? p.y;
+        const p = online.get(uid); if (!p || p.ws !== ws) break;
+        // 节流：客户端正常 5 次/秒，超 12 次/秒视为异常洪泛直接丢弃
+        const now = Date.now();
+        if (!ws._moveWin) ws._moveWin = [];
+        ws._moveWin = ws._moveWin.filter(t => now - t < 1000);
+        if (ws._moveWin.length >= 12) break;
+        ws._moveWin.push(now);
+        // 坐标合法性：必须为有限数字且在 ±1e6 内，否则保持原值
+        const cv = (v, d) => { const n = Number(v); return Number.isFinite(n) && Math.abs(n) <= 1e6 ? n : d; };
+        p.scene = msg.scene === undefined ? p.scene : Math.round(cv(msg.scene, p.scene));
+        p.x = cv(msg.x, p.x); p.y = cv(msg.y, p.y);
         for (const [k, o] of online) if (k !== uid) sendTo(o, { t: 'move', uid, scene: p.scene, x: p.x, y: p.y });
         break;
       }
       case 'chat': {
-        const p = online.get(uid); if (!p) break;
+        const p = online.get(uid); if (!p || p.ws !== ws) break;
+        // 节流：每连接每秒最多 3 条，超出丢弃并提示
+        const now = Date.now();
+        if (!ws._chatWin) ws._chatWin = [];
+        ws._chatWin = ws._chatWin.filter(t => now - t < 1000);
+        if (ws._chatWin.length >= 3) { send({ t: 'chat_warn', msg: '发言太快啦，稍等一下' }); break; }
+        ws._chatWin.push(now);
         const text = String(msg.text || '').slice(0, 200);
         console.log(`[chat] ${p.nick}: ${text}`);
         CHAT_LOG.push({ nick: p.nick, text, at: Date.now() });
@@ -855,7 +898,8 @@ function gameConn(ws) {
     }
   });
   ws.on('close', () => {
-    if (uid && online.has(uid)) {
+    // 仅当关闭的是当前在线记录对应的连接时才移除（防止双开被顶掉的旧连接误删新连接）
+    if (uid && online.get(uid)?.ws === ws) {
       online.delete(uid);
       for (const [k, p] of online) sendTo(p, { t: 'player_leave', uid });
       console.log(`[leave] ${uid} 在线:${online.size}`);
@@ -1288,6 +1332,8 @@ function bfsPath(sx, sy, tx, ty) {
 }
 
 function agentConn(ws, u) {
+  // 协议/网络层错误（如消息超过 maxPayload）只断开该连接，绝不冒泡崩溃进程
+  ws.on('error', () => { try { ws.terminate(); } catch {} });
   const token = u.searchParams.get('token');
   const acc = findAccountByToken(token);
   if (!acc || !acc.agentToken || token !== acc.agentToken) {

@@ -176,6 +176,8 @@
           const r = await fetch(s + '/af/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password: pw }) });
           if (r.status === 401) {
             const r2 = await fetch(s + '/af/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password: pw }) });
+            if (r2.status === 409) { err.textContent = '该账号已被注册且密码不对，想下换个名字试试'; return; }
+            if (r2.status === 400) { err.textContent = '账号需 2-16 位（中文/字母/数字/下划线/横杠），密码至少 4 位'; return; }
             if (r2.status !== 200) { err.textContent = '注册失败 (' + r2.status + ')'; return; }
             onLoginOk(await r2.json()); return;
           }
@@ -474,11 +476,12 @@
   };
 
   // ---------- WebSocket ----------
+  let afKicked = false; // 被服务器踢出（顶号/鉴权失败）后停止自动重连
   function connect() {
     try { ws = new WebSocket(WS_URL); } catch (e) { console.warn('[AF] ws 创建失败', e); return; }
     ws.onopen = function () {
       connected = true;
-      ws.send(JSON.stringify({ t: 'join', uid, nick }));
+      ws.send(JSON.stringify({ t: 'join', uid, nick, token: token || '' }));
       if (pending.size) flush();
       startPosSync();
     };
@@ -501,6 +504,15 @@
           break;
         }
         case 'chat': onChat(msg.nick, msg.text); break;
+        case 'chat_warn': if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', msg.msg || '发言太快'); break;
+        case 'kicked':
+        case 'join_deny': {
+          // 被服务器拒绝（同账号别处上线 / 账号校验失败）：停止自动重连，提示用户
+          afKicked = true; connected = false;
+          try { ws.close(); } catch (e) {}
+          alert(msg.msg || '连接已被服务器断开，请刷新页面重新登录');
+          break;
+        }
         case 'move': onRemoteMove(msg); break;
         case 'social_in': onSocialIn(msg); break;
         case 'social_result': onSocialResult(msg); break;
@@ -531,6 +543,7 @@
     };
     ws.onclose = function () {
       connected = false;
+      if (afKicked) return; // 被踢/鉴权失败：等待用户刷新页面，避免重连循环
       setTimeout(connect, 3000);
     };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
