@@ -621,12 +621,29 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ noServer: true });
 const online = new Map(); // uid -> { ws, nick, scene, x, y }
 
+// ---------- WS 心跳保活（防隧道/NAT 下空闲连接被中间设备掐断） ----------
+// 定期向所有连接 ping；未在下一轮前回 pong 的视为死连接并强制断开。
+// ws 库与浏览器收到 ping 都会自动回 pong，客户端无需任何改动。
+const WS_HEARTBEAT_MS = Number(process.env.AF_WS_HEARTBEAT_MS || 30 * 1000);
+function wsHeartbeat() { if (process.env.AF_DEBUG) console.log('[hb] pong'); this.isAlive = true; }
+const wsHeartbeatTimer = setInterval(() => {
+  let dead = 0, pinged = 0;
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) { dead++; try { ws.terminate(); } catch {} continue; }
+    ws.isAlive = false;
+    try { ws.ping(); pinged++; } catch {}
+  }
+  if (process.env.AF_DEBUG) console.log(`[hb] pinged=${pinged} dead=${dead}`);
+}, WS_HEARTBEAT_MS);
+if (wsHeartbeatTimer.unref) wsHeartbeatTimer.unref();
+
 server.on('upgrade', (req, socket, head) => {
   const u = new URL(req.url, `http://${req.headers.host}`);
+  const setupAlive = (ws, handler) => { ws.isAlive = true; ws.on('pong', wsHeartbeat); handler(ws); };
   if (u.pathname === '/ws') {
-    wss.handleUpgrade(req, socket, head, (ws) => gameConn(ws));
+    wss.handleUpgrade(req, socket, head, (ws) => setupAlive(ws, (w) => gameConn(w)));
   } else if (u.pathname === '/agent') {
-    wss.handleUpgrade(req, socket, head, (ws) => agentConn(ws, u));
+    wss.handleUpgrade(req, socket, head, (ws) => setupAlive(ws, (w) => agentConn(w, u)));
   } else {
     socket.destroy();
   }
@@ -1699,9 +1716,10 @@ function agentConn(ws, u) {
   send({ t: 'state', ...observeState() });
 }
 
-// ---------- 内网穿透（localtunnel）----------
+// ---------- 内网穿透（cloudflared 快速隧道优先，localtunnel 兜底） ----------
 let tunnelUrl = null;  // 公网地址
 let tunnelInfo = null; // localtunnel 实例
+let tunnelProc = null; // cloudflared 子进程
 let roomCode = null;   // 6位房间码
 
 function genRoomCode() {
@@ -1711,14 +1729,65 @@ function genRoomCode() {
   return (now + rnd).replace(/[a-f]/g, c => (c.charCodeAt(0) - 87)).slice(0, 6);
 }
 
+function findCloudflaredBin() {
+  // 优先用仓库内自带的二进制（server/cloudflared.exe 或 server/cloudflared），其次 PATH 全局命令
+  const localBin = join(__dirname, process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared');
+  if (existsSync(localBin)) return localBin;
+  return 'cloudflared';
+}
+
+// cloudflared 快速隧道（*.trycloudflare.com，无需账号/域名）。timeoutMs 内拿不到公网地址视为失败
+function startCloudflared(port, timeoutMs = 30000) {
+  return new Promise((resolve) => {
+    const bin = findCloudflaredBin();
+    let proc;
+    try {
+      // --protocol http2 走 TCP 7844：QUIC(UDP) 在部分网络/防火墙下不通，http2 兼容性最好
+      proc = spawn(bin, ['tunnel', '--url', `http://127.0.0.1:${port}`, '--no-autoupdate', '--protocol', 'http2'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch {
+      resolve(null); return;
+    }
+    tunnelProc = proc;
+    let settled = false;
+    const finish = (url) => { if (settled) return; settled = true; clearTimeout(timer); resolve(url); };
+    const onData = (buf) => {
+      const m = String(buf).match(/https:\/\/[a-z0-9][a-z0-9-]*\.trycloudflare\.com/i);
+      if (m) finish(m[0]);
+    };
+    proc.stdout.on('data', onData);
+    proc.stderr.on('data', onData); // cloudflared 把隧道地址打在 stderr
+    proc.on('error', () => finish(null));
+    proc.on('exit', () => {
+      tunnelProc = null;
+      if (tunnelUrl && tunnelUrl.includes('.trycloudflare.com')) {
+        tunnelUrl = null; roomCode = null;
+        console.log('[tunnel] cloudflared 进程退出，隧道已断');
+      }
+      finish(null);
+    });
+    const timer = setTimeout(() => { try { proc.kill(); } catch {} finish(null); }, timeoutMs);
+  });
+}
+
 async function startTunnel(port) {
+  roomCode = genRoomCode();
+  // 1) cloudflared 快速隧道：稳、支持 WebSocket、国内可达性好
+  const cfUrl = await startCloudflared(port);
+  if (cfUrl) {
+    tunnelUrl = cfUrl;
+    roomCodes.set(roomCode, tunnelUrl);
+    console.log(`[tunnel] ✅ cloudflared 隧道成功！`);
+    console.log(`[tunnel] 公网地址: ${tunnelUrl}`);
+    console.log(`[tunnel] 房间码: ${roomCode}`);
+    console.log(`[tunnel] 朋友浏览器打开公网地址即可加入（快速隧道地址每次重启会变，记得发给朋友）`);
+    return;
+  }
+  // 2) localtunnel 兜底
   try {
     tunnelInfo = await localtunnel({ port, subdomain: 'afarm-' + genRoomCode() });
     tunnelUrl = tunnelInfo.url;
-    roomCode = genRoomCode();
-    // 存储房间码 -> 地址映射（内存中，重启失效）
     roomCodes.set(roomCode, tunnelUrl);
-    console.log(`[tunnel] ✅ 穿透成功！`);
+    console.log(`[tunnel] ✅ localtunnel 兜底穿透成功（稳定性一般）`);
     console.log(`[tunnel] 公网地址: ${tunnelUrl}`);
     console.log(`[tunnel] 房间码: ${roomCode}`);
     console.log(`[tunnel] 朋友输入房间码 ${roomCode} 即可加入`);
@@ -1726,10 +1795,19 @@ async function startTunnel(port) {
       tunnelUrl = null; roomCode = null;
       console.log('[tunnel] 隧道已关闭');
     });
+    return;
   } catch (e) {
-    console.log(`[tunnel] ❌ 穿透失败: ${e.message}`);
-    console.log(`[tunnel] 仍在局域网模式，朋友可通过 IP:${port} 加入`);
+    console.log(`[tunnel] ❌ localtunnel 兜底也失败: ${e.message}`);
   }
+  // 3) 局域网模式
+  tunnelUrl = null; roomCode = null;
+  console.log(`[tunnel] 仍在局域网模式，朋友可通过 IP:${port} 加入`);
+}
+
+// 服务器退出时清理隧道子进程，避免残留
+process.on('exit', () => { try { if (tunnelProc) tunnelProc.kill(); } catch {} });
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { try { if (tunnelProc) tunnelProc.kill(); } catch {} process.exit(0); });
 }
 
 const roomCodes = new Map(); // code -> url
