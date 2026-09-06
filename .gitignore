@@ -1,42 +1,14 @@
-# 大文件/临时文件
-_release/
-data/saves/
+# 只排除真正不需要的
 node_modules/
-*.log
-*.bak
+_release/
 *.zip
-
-# 服务端运行时数据
 data/accounts.json
 data/agent-provider.json
 data/agent-notes/
 data/screenshots/
 data/world.json
-
-# 编辑器
-.vscode/
-.idea/
-*.swp
-
-# Review/解密/调试目录
 _review_*/
 _decrypted/
-_backup/
 _dbg_*/
-tools/_dbg*.mjs
-tools/_test*.mjs
-tools/_verify*.mjs
-tools/_scan*.mjs
-tools/_viz*.mjs
-tools/_shot*.mjs
-tools/_dump*.mjs
-tools/_check*.mjs
-tools/_fix*.mjs
-tools/_probe*.mjs
-tools/_pixel*.mjs
-tools/_obj*.py
-tools/_single*.py
-tools/_tile*.py
-tools/_vision*.py
-tools/_out-*
-tools/原版代码定位报告.md
+_backup/
+_tiles_*/

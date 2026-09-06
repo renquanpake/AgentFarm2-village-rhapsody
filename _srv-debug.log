@@ -1,0 +1,24 @@
+AgentFarm2 服务器就绪: http://127.0.0.1:8080/  (静态+存档API+WS /ws)
+[spawn] 玩家 u900b4bddb2f7 (#166) 出生在 laotaiaifz(老太太家) 门口 (7200,9100)
+[hero] 新玩家 u900b4bddb2f7 继承主角初始档
+[account] 注册 aliceyrqplb -> u900b4bddb2f7
+[account] 登录 aliceyrqplb -> u900b4bddb2f7
+[join] u900b4bddb2f7 (aliceyrqplb) 在线:1
+[spawn] 玩家 ua88aae51a882 (#167) 出生在 tufufzi(屠夫家) 门口 (10500,3000)
+[hero] 新玩家 ua88aae51a882 继承主角初始档
+[account] 注册 bobyrr8sw -> ua88aae51a882
+[account] 登录 bobyrr8sw -> ua88aae51a882
+[join] ua88aae51a882 (bobyrr8sw) 在线:2
+[fav] addFav u900b4bddb2f7->ua88aae51a882 +2 prev=0 now=2 key=u900b4bddb2f7_ua88aae51a882
+[task] u900b4bddb2f7 完成: ✅ 任务完成「和玩家聊一次天」，奖励 金币×50（已放入背包）
+[task] ua88aae51a882 完成: ✅ 任务完成「和玩家聊一次天」，奖励 金币×50（已放入背包）
+[social] aliceyrqplb 对话 bobyrr8sw
+[fav] addFav u900b4bddb2f7->ua88aae51a882 +5 prev=2 now=7 key=u900b4bddb2f7_ua88aae51a882
+[task] u900b4bddb2f7 完成: ✅ 任务完成「给玩家送一次礼」，奖励 金币×80（已放入背包）
+[social] aliceyrqplb 送礼 bobyrr8sw 金币x50
+[fav] addFav u900b4bddb2f7->ua88aae51a882 +5 prev=0 now=5 key=u900b4bddb2f7_ua88aae51a882
+[social] aliceyrqplb 送礼 bobyrr8sw 金币x50
+[fav] addFav u900b4bddb2f7->ua88aae51a882 +5 prev=0 now=5 key=u900b4bddb2f7_ua88aae51a882
+[social] aliceyrqplb 送礼 bobyrr8sw 金币x50
+[leave] u900b4bddb2f7 在线:1
+[leave] ua88aae51a882 在线:0
