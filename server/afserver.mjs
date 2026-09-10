@@ -42,6 +42,7 @@ const MAP_OFFSET = (FARM && FARM.LEFT) || 14; // 原版存档格 -> 世界格 �
 // ---------- 账号系统 ----------
 // accounts: { username: { salt, hash, uid, nick, token, agentToken, createdAt } }
 let accounts = loadJson(ACCOUNTS_FILE, {});
+let regWin = []; // 注册限流窗口（每秒滑窗）
 function saveAccounts() { writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 1)); }
 function hashPw(pw, salt) { return createHash('sha256').update(salt + '::' + pw).digest('hex'); }
 function genToken() { return randomBytes(16).toString('hex'); }
@@ -112,6 +113,12 @@ function persist() {
   meta.lastPlayed = Date.now();
   meta.createdAt = meta.createdAt || Date.now();
   writeFileSync(SLOT_META_FILE, JSON.stringify(meta, null, 1));
+}
+// save 等高频写操作走防抖合并落盘（500ms 内多次只写一次盘）；关键路径仍直接调 persist()
+let persistTimer = null;
+function schedulePersist() {
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => { persistTimer = null; try { persist(); } catch (e) { console.log('[persist] 落盘失败', e && e.message); } }, 500);
 }
 
 // 初始化：从 seed 导入（原版存档格式，拆桶）
@@ -267,8 +274,13 @@ const server = http.createServer((req, res) => {
       }
       const existing = accounts[uname];
       if (u.pathname === '/af/register') {
-        if (existing) { res.writeHead(409); return res.end('exists'); }
-        const salt = randomBytes(8).toString('hex');
+      if (existing) { res.writeHead(409); return res.end('exists'); }
+      // 限流：全局每秒最多 5 个新注册，超出 429（每个注册 ensurePlayerData+落盘，防注册洪泛拖垮事件循环）
+      const rNow = Date.now();
+      regWin = regWin.filter(t => rNow - t < 1000);
+      if (regWin.length >= 5) { res.writeHead(429); return res.end('too many, slow down'); }
+      regWin.push(rNow);
+      const salt = randomBytes(8).toString('hex');
         const uid = 'u' + randomBytes(6).toString('hex');
         const a = { salt, hash: hashPw(pw, salt), uid, nick: uname, token: genToken(), createdAt: Date.now() };
         accounts[uname] = a;
@@ -663,6 +675,7 @@ function gameConn(ws) {
 
   ws.on('message', (raw) => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
+    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return; // 非对象消息（null/数组/基本类型）忽略，防 null.t 崩溃
     switch (msg.t) {
       case 'join': {
         uid = String(msg.uid || 'g' + Math.floor(Math.random() * 1e6));
@@ -696,10 +709,19 @@ function gameConn(ws) {
         if (!msg.kv || !Array.isArray(msg.kv) || !uid) break;
         // 连接身份校验：同 uid 被新连接顶掉后，旧连接的写操作全部失效
         const cur = online.get(uid); if (!cur || cur.ws !== ws) break;
+        // 节流：每连接每秒最多 5 条 save（正常客户端仅操作时才存档，频率极低），超出丢弃，防 persist 写盘洪泛 DoS
+        const sNow = Date.now();
+        if (!ws._saveWin) ws._saveWin = [];
+        ws._saveWin = ws._saveWin.filter(t => sNow - t < 1000);
+        if (ws._saveWin.length >= 5) break;
+        ws._saveWin.push(sNow);
         if (msg.kv.length > 1000) msg.kv = msg.kv.slice(0, 1000); // 单条消息最多 1000 个键
         const kvOut = [];
         let touchedWorld = false;
-        for (const [key, value] of msg.kv) {
+        for (const item of msg.kv) {
+          if (!Array.isArray(item) || item.length < 1) continue; // 元素须为 [key, value] 键值对，跳过数字/字符串/null 等非法元素
+          const key = String(item[0]);
+          const value = item[1];
           // 单值上限 512KB：防单玩家塞爆存档与广播带宽
           if (typeof value === 'string' && value.length > 512 * 1024) { console.log(`[save] 跳过超大值 key=${key} (${value.length}B)`); continue; }
           let val; try { val = JSON.parse(value); } catch { val = value; }
@@ -718,7 +740,7 @@ function gameConn(ws) {
           }
           kvOut.push([key, value]);
         }
-        persist();
+        schedulePersist();
         // 玩家在游戏里做了操作（存档变化）→ 打断自己的 agent（指挥消息/聊天不打断，走收件箱/聊天记录）
         if (touchedWorld) notePlayerOp(uid, 'save', '玩家在游戏里活动（存档变化）');
         for (const [k, p] of online) if (k !== uid) sendTo(p, { t: 'save_broadcast', kv: kvOut, by: uid });
@@ -934,7 +956,7 @@ function addFav(giver, target, n) {
   const { p } = pairOf(giver, target);
   const prev = p.fav[giver] || 0;
   p.fav[giver] = Math.min(100, prev + n);
-  persist();
+  schedulePersist(); // 好感变化走防抖落盘，防 social 洪泛写盘放大
   const now = p.fav[giver];
   if (Math.floor(now / 20) !== Math.floor(prev / 20)) {
     const pA = online.get(giver), pB = online.get(target);
@@ -985,7 +1007,7 @@ function tasksOf(uid) {
   if (!t || !t.list) {
     t = { list: {}, done: {} };
     for (const d of TASK_DEFS) t.list[d.id] = { cur: 0, total: d.count };
-    if (pm) { pm.set('afTasks', t); persist(); }
+    if (pm) { pm.set('afTasks', t); schedulePersist(); }
   }
   return t;
 }
@@ -1011,7 +1033,7 @@ function taskCount(uid, type, n = 1) {
       }
       changed = true;
     }
-    if (changed) { pm.set('afTasks', t); persist(); }
+    if (changed) { pm.set('afTasks', t); schedulePersist(); }
     if (completed) {
       const p = online.get(uid);
       if (p) sendTo(p, { t: 'task_done', msg: completed });
@@ -1475,6 +1497,7 @@ function agentConn(ws, u) {
 
   ws.on('message', (raw) => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
+    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return; // 非对象消息（null/数组/基本类型）忽略，防 null.t 崩溃
     switch (msg.t) {
       case 'observe': {
         send({ t: 'state', ...observeState() });
@@ -1850,8 +1873,8 @@ async function startTunnel(port) {
   console.log(`[tunnel] 仍在局域网模式，朋友可通过 IP:${port} 加入`);
 }
 
-// 服务器退出时清理隧道子进程，避免残留
-process.on('exit', () => { try { if (tunnelProc) tunnelProc.kill(); } catch {} });
+// 服务器退出时清理隧道子进程 + 刷盘未落的防抖存档，避免残留/丢档
+process.on('exit', () => { if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; try { persist(); } catch {} } try { if (tunnelProc) tunnelProc.kill(); } catch {} });
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => { try { if (tunnelProc) tunnelProc.kill(); } catch {} process.exit(0); });
 }
