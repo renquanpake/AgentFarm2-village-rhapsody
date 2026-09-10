@@ -93,6 +93,8 @@
       bootReady = true;
       if (window.__AF_ORIG_BOOT__) window.__AF_ORIG_BOOT__();
       startNetwork();
+      // 登录成功后立即预热小地图数据，首次打开时直接同步贴图零闪现
+      if (token) prewarmVillageMap();
     }
   }
 
@@ -596,22 +598,24 @@
     }, 200);
     sceneWatchTimer = setInterval(() => {
       // 场景切换后远程节点可能被清理，重建
-      for (const [uid2, n] of remotes) {
-        if (!n.isValid) remotes.delete(uid2);
-      }
-      for (const [uid2, p] of remotePlayers) {
-        if (!remotes.has(uid2)) ensureRemoteNode(uid2);
-      }
-      injectBlockers(); // 扩展区宅基地 + 水面 + 栅栏（统一阻挡注入）
-      injectAreaName(); // 扩展区区域名（左上角地名不残留"河边"）
-      shiftPassages(); // 场景入口对齐（地图内容平移 +28 格，入口 collider 需同步）
-      fixSpawnAfterReturn(); // 从别处回来时的出生点修正
-      installDayHomeBlock(); // 过夜后不强制传送回家（agent/玩家留在原地）
-      autoClosePopups(); // 进游戏后自动关回忆录/图鉴弹窗（体验优化）
-      if (window.__AF_BLOCK_BOXES__) startBlockWatch();
-      hideExtraSlots(); // 只留一个存档槽
-      uploadShot(); // 画面截图上传（多模态 agent 的眼睛）
-      injectVillageMap(); // 游戏内小地图 → 扩展版（133×117）
+      try {
+        for (const [uid2, n] of remotes) {
+          if (!n.isValid) remotes.delete(uid2);
+        }
+        for (const [uid2, p] of remotePlayers) {
+          if (!remotes.has(uid2)) ensureRemoteNode(uid2);
+        }
+      } catch (e) { console.warn('[AF] remote sync err:', e.message); }
+      try { injectBlockers(); } catch (e) { console.warn('[AF] injectBlockers err:', e.message); }
+      try { injectAreaName(); } catch (e) { console.warn('[AF] injectAreaName err:', e.message); }
+      try { shiftPassages(); } catch (e) { console.warn('[AF] shiftPassages err:', e.message); }
+      try { fixSpawnAfterReturn(); } catch (e) { console.warn('[AF] fixSpawnAfterReturn err:', e.message); }
+      try { installDayHomeBlock(); } catch (e) { console.warn('[AF] installDayHomeBlock err:', e.message); }
+      try { autoClosePopups(); } catch (e) { console.warn('[AF] autoClosePopups err:', e.message); }
+      try { if (window.__AF_BLOCK_BOXES__) startBlockWatch(); } catch (e) {}
+      try { hideExtraSlots(); } catch (e) { console.warn('[AF] hideExtraSlots err:', e.message); }
+      try { uploadShot(); } catch (e) { console.warn('[AF] uploadShot err:', e.message); }
+      try { injectVillageMap(); } catch (e) { console.warn('[AF] injectVillageMap err:', e.message); }
     }, 1000);
   }
 
@@ -1441,7 +1445,29 @@
   // 原版 LittleMap(UiMap) 的 village 节点只是标记定位容器（底图画在 pnlContent 羊皮纸总览里），
   // 玩家/NPC 标记按 plant json 尺寸（已扩到 133×117）映射到 village 节点坐标 → 只需在 village
   // 下垫一张自绘扩展版底图（zIndex 低于标记），标记位置自动正确。
-  let mapGridCache = null, mapImgDone = false;
+  // 修复：①缓存 mapgrid 数据 + SpriteFrame，village 出现时同步贴图（零闪现）
+  //        ②原版区（LEFT/TOP 内）留透明，透出 pnlContent 原版羊皮纸美术
+  //        ③删除中央金点（原版羊皮纸自带村子图标）
+  let mapGridCache = null, mapFrameCache = null, mapImgDone = false;
+  // 登录后预热：立即 fetch mapgrid，village 出现时直接同步贴（零网络延迟）
+  function prewarmVillageMap() {
+    fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token))
+      .then(r => r.json())
+      .then((g) => {
+        if (!g || !g.W) return;
+        mapGridCache = g;
+        // 若 village 已存在，立即画；否则等 injectVillageMap 首次触发时缓存已就绪
+        const scene = cc.director && cc.director.getScene();
+        if (!scene) return;
+        let village = null;
+        scene.walk(n => { if (!village && n.name === 'village' && n.parent && n.parent.name === 'pnlContent') village = n; });
+        if (!village || !village.activeInHierarchy) return;
+        const cw = Math.max(16, Math.round(village.width));
+        const ch = Math.max(16, Math.round(village.height));
+        drawAndCache(g, cw, ch, village);
+      })
+      .catch(() => {});
+  }
   function injectVillageMap() {
     try {
       const scene = cc.director && cc.director.getScene();
@@ -1449,57 +1475,89 @@
       let village = null;
       scene.walk(n => { if (!village && n.name === 'village' && n.parent && n.parent.name === 'pnlContent') village = n; });
       if (!village || !village.activeInHierarchy) { mapImgDone = false; return; }
-      if (mapImgDone) return;
+      // 有缓存 → 同步贴，无延迟
+      if (mapGridCache && mapFrameCache) {
+        const cw = Math.max(16, Math.round(village.width));
+        const ch = Math.max(16, Math.round(village.height));
+        let bg = village.getChildByName('afMapBg');
+        if (!bg) {
+          bg = new cc.Node('afMapBg');
+          bg.addComponent(cc.Sprite);
+          village.addChild(bg, -1);
+        }
+        const sprite = bg.getComponent(cc.Sprite);
+        sprite.spriteFrame = mapFrameCache;
+        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        bg.width = cw; bg.height = ch;
+        // 异步刷新缓存（宅基地变化时更新）
+        if (!injectVillageMap._refreshing) {
+          injectVillageMap._refreshing = true;
+          fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token))
+            .then(r => r.json())
+            .then((g) => {
+              if (g && g.W) drawAndCache(g, cw, ch, village);
+            })
+            .catch(() => {})
+            .finally(() => { injectVillageMap._refreshing = false; });
+        }
+        return;
+      }
+      // 首次：fetch + 绘制 + 缓存（village 出现后立即发起，缓存后下次打开零等待）
+      mapImgDone = false;
       fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token))
         .then(r => r.json())
         .then((g) => {
           if (!g || !g.W) return;
           const cw = Math.max(16, Math.round(village.width));
           const ch = Math.max(16, Math.round(village.height));
-          const cv = document.createElement('canvas');
-          cv.width = cw; cv.height = ch;
-          const ctx = cv.getContext('2d');
-          const sx = cw / g.W, sy = ch / g.H;
-          const fill = (x, y, style) => { ctx.fillStyle = style; ctx.fillRect(Math.floor(x * sx), Math.floor(y * sy), Math.ceil(sx) + 1, Math.ceil(sy) + 1); };
-          // 羊皮纸风底图（与 UiMap 总览一致）：米色底 → 原版区深一档 → 水/障碍/宅基地
-          ctx.fillStyle = '#e8d9ab';
-          ctx.fillRect(0, 0, cw, ch);
-          ctx.fillStyle = '#ddcb92';
-          ctx.fillRect(Math.floor(g.LEFT * sx), Math.floor(g.TOP * sy), Math.ceil(g.origW * sx) + 1, Math.ceil(g.origH * sy) + 1);
-          for (let y = 0; y < g.H; y++) for (let x = 0; x < g.W; x++) if (g.water[y * g.W + x]) fill(x, y, '#8fb0d8');
-          if (g.blocked) for (let y = 0; y < g.H; y++) for (let x = 0; x < g.W; x++) {
-            const i = y * g.W + x;
-            if (g.blocked[i] && !g.water[i]) fill(x, y, '#b5a06e');
-          }
-          for (const h of (g.houses || [])) {
-            ctx.strokeStyle = '#9a7428';
-            ctx.lineWidth = Math.max(1, Math.round(cw / 220));
-            ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
-          }
-          ctx.fillStyle = '#c9a227';
-          ctx.beginPath();
-          ctx.arc((g.LEFT + 35.5) * sx, (g.TOP + 30.5) * sy, Math.max(2, cw / 90), 0, Math.PI * 2);
-          ctx.fill();
-          const tex = new cc.Texture2D();
-          tex.initWithElement(cv);
-          tex.handleLoadedTexture();
-          const sf = new cc.SpriteFrame(tex);
-          sf.setRect(new cc.Rect(0, 0, cw, ch));
-          let bg = village.getChildByName('afMapBg');
-          if (!bg) {
-            bg = new cc.Node('afMapBg');
-            bg.addComponent(cc.Sprite);
-            village.addChild(bg, -1);
-          }
-          const sprite = bg.getComponent(cc.Sprite);
-          sprite.spriteFrame = sf;
-          sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-          bg.width = cw; bg.height = ch;
-          mapImgDone = true;
-          console.log('[AF] 村庄小地图底图已更新为扩展版 (' + g.W + 'x' + g.H + ')');
+          drawAndCache(g, cw, ch, village);
         })
         .catch((e) => console.warn('[AF] 小地图更新失败:', e.message));
     } catch (e) { /* 静默 */ }
+  }
+  function drawAndCache(g, cw, ch, village) {
+    const cv = document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    const ctx = cv.getContext('2d');
+    const sx = cw / g.W, sy = ch / g.H;
+    const fill = (x, y, style) => { ctx.fillStyle = style; ctx.fillRect(Math.floor(x * sx), Math.floor(y * sy), Math.ceil(sx) + 1, Math.ceil(sy) + 1); };
+    // 只画扩展区（LEFT/TOP 偏移外）：米色底 + 水 + 障碍 + 宅基地描边
+    // 原版区（LEFT/TOP 起 origW×origH）留透明，透出 pnlContent 原版羊皮纸美术
+    for (let y = 0; y < g.H; y++) for (let x = 0; x < g.W; x++) {
+      const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
+      if (inOrig) continue; // 原版区透明，透底
+      const i = y * g.W + x;
+      if (g.water[i]) fill(x, y, '#8fb0d8');
+      else if (g.blocked && g.blocked[i]) fill(x, y, '#b5a06e');
+    }
+    // 宅基地描边（只在扩展区画）
+    for (const h of (g.houses || [])) {
+      const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
+      if (inOrig) continue;
+      ctx.strokeStyle = '#9a7428';
+      ctx.lineWidth = Math.max(1, Math.round(cw / 220));
+      ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
+    }
+    const tex = new cc.Texture2D();
+    tex.initWithElement(cv);
+    tex.handleLoadedTexture();
+    const sf = new cc.SpriteFrame(tex);
+    sf.setRect(new cc.Rect(0, 0, cw, ch));
+    mapGridCache = g;
+    mapFrameCache = sf;
+    // 立即贴上
+    let bg = village.getChildByName('afMapBg');
+    if (!bg) {
+      bg = new cc.Node('afMapBg');
+      bg.addComponent(cc.Sprite);
+      village.addChild(bg, -1);
+    }
+    const sprite = bg.getComponent(cc.Sprite);
+    sprite.spriteFrame = sf;
+    sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+    bg.width = cw; bg.height = ch;
+    mapImgDone = true;
+    console.log('[AF] 村庄小地图底图已更新为扩展版 (' + g.W + 'x' + g.H + ')，原版区透明透出羊皮纸美术');
   }
 
   // ---------- 玩家间社交 UI（点击对方角色：对话/送礼/好感/关系；📜 任务面板） ----------
