@@ -1448,7 +1448,9 @@
   // 修复：①缓存 mapgrid 数据 + SpriteFrame，village 出现时同步贴图（零闪现）
   //        ②原版区（LEFT/TOP 内）留透明，透出 pnlContent 原版羊皮纸美术
   //        ③删除中央金点（原版羊皮纸自带村子图标）
+  //        ④cw/ch 首帧确定后固定，避免重复计算导致纹理尺寸抖动
   let mapGridCache = null, mapFrameCache = null, mapImgDone = false;
+  let mapGridSize = null; // 记录首次画布尺寸，后续复用避免尺寸抖动
   // 登录后预热：立即 fetch mapgrid，village 出现时直接同步贴（零网络延迟）
   function prewarmVillageMap() {
     fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token))
@@ -1456,6 +1458,8 @@
       .then((g) => {
         if (!g || !g.W) return;
         mapGridCache = g;
+        // 若 injectVillageMap 已执行过（mapImgDone=true），跳过，避免竞态覆盖
+        if (mapImgDone) return;
         // 若 village 已存在，立即画；否则等 injectVillageMap 首次触发时缓存已就绪
         const scene = cc.director && cc.director.getScene();
         if (!scene) return;
@@ -1475,10 +1479,11 @@
       let village = null;
       scene.walk(n => { if (!village && n.name === 'village' && n.parent && n.parent.name === 'pnlContent') village = n; });
       if (!village || !village.activeInHierarchy) { mapImgDone = false; return; }
-      // 有缓存 → 同步贴，无延迟
-      if (mapGridCache && mapFrameCache) {
-        const cw = Math.max(16, Math.round(village.width));
-        const ch = Math.max(16, Math.round(village.height));
+      // 有缓存数据 → 同步贴图（零网络延迟）
+      if (mapGridCache) {
+        const cw = (mapGridSize && mapGridSize.w) ? mapGridSize.w : Math.max(16, Math.round(village.width));
+        const ch = (mapGridSize && mapGridSize.h) ? mapGridSize.h : Math.max(16, Math.round(village.height));
+        if (!mapGridSize) mapGridSize = { w: cw, h: ch };
         let bg = village.getChildByName('afMapBg');
         if (!bg) {
           bg = new cc.Node('afMapBg');
@@ -1486,10 +1491,44 @@
           village.addChild(bg, -1);
         }
         const sprite = bg.getComponent(cc.Sprite);
-        sprite.spriteFrame = mapFrameCache;
+        if (mapFrameCache) {
+          // Texture2D 已就绪，直接应用缓存帧
+          sprite.spriteFrame = mapFrameCache;
+        } else {
+          // 首次：mapGridCache 已就绪但 Texture2D 还在异步加载，同步画 canvas 立即贴上
+          // （与 drawAndCache 同逻辑，避免首次打开时短暂闪原版）
+          const cv = document.createElement('canvas');
+          cv.width = cw; cv.height = ch;
+          const ctx = cv.getContext('2d');
+          const g = mapGridCache;
+          const sx = cw / g.W, sy = ch / g.H;
+          const fill = (x, y, style) => { ctx.fillStyle = style; ctx.fillRect(Math.floor(x * sx), Math.floor(y * sy), Math.ceil(sx) + 1, Math.ceil(sy) + 1); };
+          for (let y = 0; y < g.H; y++) for (let x = 0; x < g.W; x++) {
+            const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
+            if (inOrig) continue;
+            const i = y * g.W + x;
+            if (g.water[i]) fill(x, y, '#8fb0d8');
+            else if (g.blocked && g.blocked[i]) fill(x, y, '#b5a06e');
+          }
+          for (const h of (g.houses || [])) {
+            const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
+            if (inOrig) continue;
+            ctx.strokeStyle = '#9a7428';
+            ctx.lineWidth = Math.max(1, Math.round(cw / 220));
+            ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
+          }
+          const tex = new cc.Texture2D();
+          tex.initWithElement(cv);
+          tex.handleLoadedTexture();
+          const sf = new cc.SpriteFrame(tex);
+          sf.setRect(new cc.Rect(0, 0, cw, ch));
+          mapFrameCache = sf;
+          sprite.spriteFrame = sf;
+        }
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         bg.width = cw; bg.height = ch;
-        // 异步刷新缓存（宅基地变化时更新）
+        mapImgDone = true;
+        // 异步刷新缓存（宅基地变化时更新，不阻塞当前显示）
         if (!injectVillageMap._refreshing) {
           injectVillageMap._refreshing = true;
           fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token))
@@ -1521,7 +1560,7 @@
     const ctx = cv.getContext('2d');
     const sx = cw / g.W, sy = ch / g.H;
     const fill = (x, y, style) => { ctx.fillStyle = style; ctx.fillRect(Math.floor(x * sx), Math.floor(y * sy), Math.ceil(sx) + 1, Math.ceil(sy) + 1); };
-    // 只画扩展区（LEFT/TOP 偏移外）：米色底 + 水 + 障碍 + 宅基地描边
+    // 只画扩展区（LEFT/TOP 偏移外）：水 + 障碍 + 宅基地描边
     // 原版区（LEFT/TOP 起 origW×origH）留透明，透出 pnlContent 原版羊皮纸美术
     for (let y = 0; y < g.H; y++) for (let x = 0; x < g.W; x++) {
       const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
