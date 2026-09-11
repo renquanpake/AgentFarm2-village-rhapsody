@@ -1010,6 +1010,7 @@
     const button = document.createElement('button'); button.id = 'af-chat-btn';
     button.type = 'button'; button.textContent = '💬'; button.title = '聊天';
     input.placeholder = '聊天（Enter 发送，Esc 关闭）';
+    input.style.display = 'none'; // 显式内联初始态：toggle 依赖内联 display 判定开合，CSS 初始隐藏会使首点误判
     document.body.appendChild(box); document.body.appendChild(input); document.body.appendChild(button);
 
     const lines = [];
@@ -1022,6 +1023,7 @@
       const on = input.style.display === 'none';
       input.style.display = on ? 'block' : 'none';
       button.style.display = on ? 'none' : 'block';
+      cmdBar.style.display = on ? 'flex' : 'none';
       if (on) input.focus(); else input.blur();
     }
     button.addEventListener('click', toggle);
@@ -1051,8 +1053,6 @@
       cmdBar.appendChild(b);
     }
     document.body.appendChild(cmdBar);
-    const origToggle = toggle;
-    toggle = function () { origToggle(); cmdBar.style.display = input.style.display === 'none' ? 'none' : 'flex'; };
     function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
     window.__AF_CHAT_ADD__ = (n, t) => addLine('<span class="af-nick">' + esc(n) + '</span>: ' + esc(t));
   }
