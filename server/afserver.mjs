@@ -743,7 +743,8 @@ function gameConn(ws) {
         schedulePersist();
         // 玩家在游戏里做了操作（存档变化）→ 打断自己的 agent（指挥消息/聊天不打断，走收件箱/聊天记录）
         if (touchedWorld) notePlayerOp(uid, 'save', '玩家在游戏里活动（存档变化）');
-        for (const [k, p] of online) if (k !== uid) sendTo(p, { t: 'save_broadcast', kv: kvOut, by: uid });
+        // 广播走 500ms 合并（同 key 取最新值），防"1 人存档 → N 人各收 M 条"线性放大
+        for (const k of online.keys()) if (k !== uid) queueSaveBroadcast(k, kvOut, uid);
         break;
       }
       case 'move': {
@@ -929,6 +930,28 @@ function gameConn(ws) {
   });
 }
 function sendTo(p, obj) { if (p.ws && p.ws.readyState === 1) p.ws.send(JSON.stringify(obj)); }
+
+// save 广播合并：500ms 窗口内同 key 只保留最新值，每个观察者一次只发一条合并广播，
+// 消除"1 人存档 → N 人各收 M 条"的线性放大（客户端 save_broadcast 处理逻辑不变）
+const savePending = new Map(); // 目标 uid -> Map(key, value)
+const savePendingBy = new Map(); // 目标 uid -> 来源 uid
+let saveFlushTimer = null;
+function flushSavePending() {
+  saveFlushTimer = null;
+  for (const k of [...savePending.keys()]) {
+    const m = savePending.get(k);
+    const p = online.get(k);
+    if (p) sendTo(p, { t: 'save_broadcast', kv: [...m.entries()], by: savePendingBy.get(k) });
+    savePending.delete(k); savePendingBy.delete(k);
+  }
+}
+function queueSaveBroadcast(targetUid, kvPairs, byUid) {
+  let m = savePending.get(targetUid);
+  if (!m) { m = new Map(); savePending.set(targetUid, m); }
+  for (const [key, value] of kvPairs) m.set(key, value);
+  savePendingBy.set(targetUid, byUid);
+  if (!saveFlushTimer) saveFlushTimer = setTimeout(flushSavePending, 500);
+}
 
 // ============================================================
 // 玩家间社交：好感 / 送礼 / 关系绑定 / 伴侣传送 / 任务书

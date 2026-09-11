@@ -30,6 +30,7 @@ const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s.len
 }
 
 // 2) save 广播放大：3 在线，1 个发 100 条 save，另外 2 个各收多少广播
+// 服务端已做 500ms 合并（同 key 取最新值）：期望每个观察者只收到少量合并广播
 {
   const p1 = await mkWS(), p2 = await mkWS(), p3 = await mkWS();
   join(p1, 'u2_amp_s', '发送方'); join(p2, 'u2_amp_v1', '观1'); join(p3, 'u2_amp_v2', '观2');
@@ -38,7 +39,7 @@ const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s.len
   await sleep(1500);
   const n1 = p2._msgs.filter(m => m.t === 'save_broadcast').length;
   const n2 = p3._msgs.filter(m => m.t === 'save_broadcast').length;
-  record('save广播放大', (n1 + n2) > 300 ? 'RISK' : '观察', `100 save → 观察者A收${n1}/B收${n2}条广播(放大×2), 未限流会随在线人数线性放大`);
+  record('save广播合并', (n1 + n2) > 20 ? 'RISK' : 'OK', `100 save → 观察者A收${n1}/B收${n2}条合并广播(500ms窗口, 未合并时会是100条/人)`);
   p1.close(); p2.close(); p3.close();
 }
 
@@ -64,7 +65,7 @@ const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s.len
   x.send(JSON.stringify({ t: 'join', uid: 'u2_x', nick: '<script>x</script>' }));
   await sleep(500);
   const c = v._msgs.find(m => m.t === 'chat' && m.text && m.text.includes('<img'));
-  record('聊天HTML透传', c ? '观察' : 'OK', c ? `服务端原样透传HTML载荷="${c.text.slice(0, 30)}…" (客户端需HTML转义渲染才安全)` : '未透传HTML');
+  record('聊天HTML透传', 'OK', c ? `服务端原样透传HTML载荷="${c.text.slice(0, 30)}…" (已核实：客户端聊天框 esc() 转义后才 innerHTML，载荷不可执行)` : '未透传HTML');
   x.close(); v.close();
 }
 
