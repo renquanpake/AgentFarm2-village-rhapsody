@@ -681,6 +681,8 @@ function gameConn(ws) {
         }
         if (!playersDb.has(uid)) playersDb.set(uid, new Map());
         online.set(uid, { ws, uid, nick, scene: msg.scene ?? 0, x: msg.x ?? 0, y: msg.y ?? 0 });
+        // 跟踪同场景共处（自动 DM 解锁）
+        for (const [k, o] of online) if (k !== uid && o.scene === online.get(uid).scene) registerScenePeer(uid, k, o.scene);
         send({ t: 'welcome', uid, players: Array.from(online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })) });
         // 回传我的 Agent 托管状态（在线/离线）
         const myAgent = agentSockets.has(uid);
@@ -743,6 +745,8 @@ function gameConn(ws) {
         const cv = (v, d) => { const n = Number(v); return Number.isFinite(n) && Math.abs(n) <= 1e6 ? n : d; };
         p.scene = msg.scene === undefined ? p.scene : Math.round(cv(msg.scene, p.scene));
         p.x = cv(msg.x, p.x); p.y = cv(msg.y, p.y);
+        // 场景切换时刷新同场景共处跟踪
+        if (msg.scene !== undefined) trackSceneTogether(uid, p.scene);
         for (const [k, o] of online) if (k !== uid) sendTo(o, { t: 'move', uid, scene: p.scene, x: p.x, y: p.y });
         break;
       }
@@ -777,7 +781,17 @@ function gameConn(ws) {
         taskCount(target, 'talk');
         const firstMeet = dmUnlock(uid, target);
         if (firstMeet) {
-          for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${p.nick} 和 ${pB.nick} 见面了，可以开始私聊了` });
+          // 持久化双方 nick（离线也能显示名字）
+          const { p: pair } = pairOf(uid, target);
+          pair.dmNick = pB.nick;
+          pair.dmNickBy = p.nick;
+          // 3s 节流广播
+          const meetKey = [uid, target].sort().join('|');
+          const nowMs = Date.now();
+          if (nowMs - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
+            lastMeetBroadcast.set(meetKey, nowMs);
+            for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${p.nick} 和 ${pB.nick} 见面了，可以开始私聊了` });
+          }
         }
         // 首次见面时把私聊解锁状态实时推给双方（含 agent socket）
         if (firstMeet) {
@@ -814,6 +828,20 @@ function gameConn(ws) {
         taskCount(uid, 'give');
         for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🎁 ${p.nick} 送给了 ${pB.nick} ${it.name}×${num}，好感 +${g}` });
         sendTo(pB, { t: 'social_in', social: 'give', from: uid, nick: p.nick, itemId, num, fav });
+        // 送礼也解锁 DM（见面送东西 = 认识了）
+        const giveMeet = dmUnlock(uid, target);
+        if (giveMeet) {
+          const { p: pair } = pairOf(uid, target);
+          pair.dmNick = pB.nick;
+          pair.dmNickBy = p.nick;
+          const meetKey = [uid, target].sort().join('|');
+          if (Date.now() - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
+            lastMeetBroadcast.set(meetKey, Date.now());
+            for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${p.nick} 给 ${pB.nick} 送了礼物，可以开始私聊了` });
+          }
+          send({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
+          sendTo(pB, { t: 'dm_unlocked_list', peers: dmUnlockedList(target) });
+        }
         send({ t: 'social_result', social: 'give', ok: true, msg: `送礼成功，${pB.nick} 对你的好感 +${g}（现 ${fav}）` });
         console.log(`[social] ${p.nick} 送礼 ${pB.nick} ${it.name}x${num}`);
         break;
@@ -955,6 +983,7 @@ function gameConn(ws) {
     // 仅当关闭的是当前在线记录对应的连接时才移除（防止双开被顶掉的旧连接误删新连接）
     if (uid && online.get(uid)?.ws === ws) {
       online.delete(uid);
+      dropScenePeer(uid);
       for (const [k, p] of online) sendTo(p, { t: 'player_leave', uid });
       console.log(`[leave] ${uid} 在线:${online.size}`);
     }
@@ -1030,13 +1059,21 @@ function socialNear(aUid, bUid) {
 // ---------- 1:1 私聊（微信式，无距离限制）----------
 // 解锁：首次见面（social_talk 成功 或 social_give 成功）时标记 pair.dmUnlocked
 // 存储：data/dm-logs/{uidA}_{uidB}.json（cap 200 条）
+// 内存缓存：首次读取后缓存在内存，后续 dmPush 直接操作缓存数组 + 写盘，避免高频 readFileSync
+const dmLogCache = new Map(); // dmLogKey -> { file, arr }
 function dmLogKey(a, b) { return [a, b].sort().join('_'); }
 function dmLogPath(a, b) { return join(DATA_DIR, 'dm-logs', dmLogKey(a, b) + '.json'); }
 function dmLogOf(a, b) {
-  const f = dmLogPath(a, b);
-  let arr = loadJson(f, []);
-  if (!Array.isArray(arr)) arr = [];
-  return { file: f, arr };
+  const key = dmLogKey(a, b);
+  let cached = dmLogCache.get(key);
+  if (!cached) {
+    const f = dmLogPath(a, b);
+    let arr = loadJson(f, []);
+    if (!Array.isArray(arr)) arr = [];
+    cached = { file: f, arr };
+    dmLogCache.set(key, cached);
+  }
+  return cached;
 }
 function dmPush(a, b, entry) {
   const { file, arr } = dmLogOf(a, b);
@@ -1064,9 +1101,81 @@ function dmUnlockedList(uid) {
     const [a, b] = k.split('_');
     if (a !== uid && b !== uid) continue;
     const other = a === uid ? b : a;
-    out.push({ other, nick: online.get(other)?.nick || other.slice(0, 8) });
+    const onl = online.get(other);
+    out.push({ other, nick: onl?.nick || p.dmNick || p.dmNickBy || other.slice(0, 8) });
   }
   return out;
+}
+// 同场景在线 > 10 分钟自动解锁 DM（"在同一个村子待够了，算认识"）
+const DM_SCENE_COOLDOWN_MS = 10 * 60 * 1000; // 10 分钟
+const sceneTogether = new Map(); // uid -> Map<peerUid, {scene, since}>
+function checkAutoDmUnlock() {
+  const now = Date.now();
+  for (const [uid, peerMap] of sceneTogether) {
+    const myScene = online.get(uid)?.scene;
+    if (myScene === undefined) continue;
+    for (const [peer, rec] of peerMap) {
+      if (online.get(peer)?.scene !== myScene) { peerMap.set(peer, { scene: myScene, since: now }); continue; }
+      if (rec.scene !== myScene) { peerMap.set(peer, { scene: myScene, since: now }); continue; }
+      if (now - rec.since >= DM_SCENE_COOLDOWN_MS) {
+        const first = dmUnlock(uid, peer);
+        if (first) {
+          // 记录双方 nick 供离线展示
+          const { p } = pairOf(uid, peer);
+          p.dmNick = online.get(peer)?.nick;
+          p.dmNickBy = online.get(uid)?.nick;
+          const na = online.get(uid)?.nick || uid.slice(0, 8);
+          const nb = online.get(peer)?.nick || peer.slice(0, 8);
+          // 节流广播（和首次见面同一套 3s 窗口）
+          const meetKey = [uid, peer].sort().join('|');
+          if (now - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
+            lastMeetBroadcast.set(meetKey, now);
+            for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${na} 和 ${nb} 同村待够了，可以开始私聊了` });
+          }
+          // 双向清理：uid 的 map 删 peer，peer 的 map 删 uid（防内存泄漏）
+          peerMap.delete(peer);
+          const peerMap2 = sceneTogether.get(peer);
+          if (peerMap2) peerMap2.delete(uid);
+        }
+      }
+    }
+  }
+}
+// 跟踪同场景共处（每次 move/scene 变化时刷新）
+function trackSceneTogether(uid, scene) {
+  let m = sceneTogether.get(uid);
+  if (!m) { m = new Map(); sceneTogether.set(uid, m); }
+  for (const [peer, rec] of m) {
+    if (rec.scene !== scene) m.set(peer, { scene, since: Date.now() });
+  }
+}
+function registerScenePeer(uid, peerUid, scene) {
+  let m = sceneTogether.get(uid);
+  if (!m) { m = new Map(); sceneTogether.set(uid, m); }
+  if (!m.has(peerUid)) m.set(peerUid, { scene, since: Date.now() });
+  // 双向
+  let m2 = sceneTogether.get(peerUid);
+  if (!m2) { m2 = new Map(); sceneTogether.set(peerUid, m2); }
+  if (!m2.has(uid)) m2.set(uid, { scene, since: Date.now() });
+}
+function dropScenePeer(uid) {
+  sceneTogether.delete(uid);
+  // 同时从所有 peer 的 map 里移除自己
+  for (const [, m] of sceneTogether) m.delete(uid);
+}
+const lastMeetBroadcast = new Map(); // meetKey -> at（3s 节流）
+// 定期清理：lastMeetBroadcast 只保留最近 1000 条；sceneTogether 移除离线玩家的空壳
+function cleanupDmMaps() {
+  if (lastMeetBroadcast.size > 1000) {
+    const sorted = [...lastMeetBroadcast.entries()].sort((a, b) => a[1] - b[1]);
+    for (let i = 0; i < sorted.length - 1000; i++) lastMeetBroadcast.delete(sorted[i][0]);
+  }
+  for (const [uid, peerMap] of sceneTogether) {
+    if (!online.has(uid)) { sceneTogether.delete(uid); for (const [, m] of sceneTogether) m.delete(uid); continue; }
+    for (const [peer, rec] of peerMap) {
+      if (!online.has(peer) || rec.scene !== online.get(peer)?.scene) peerMap.delete(peer);
+    }
+  }
 }
 // 目标可以是 uid 或在线昵称
 function resolveOnlineUid(nameOrUid) {
@@ -1213,6 +1322,9 @@ const PLANT_CROPS = {
   56: { name: '辣椒', plantId: 11, cropItemId: 57, days: 3 },
   96: { name: '胡萝卜', plantId: 12, cropItemId: 97, days: 2 },
 };
+// 反向索引：plantId -> crop 定义（O(1) 查询，避免每次 Object.values().find）
+const CROP_BY_PLANT_ID = new Map(Object.values(PLANT_CROPS).map(c => [c.plantId, c]));
+function cropOf(plantId) { return CROP_BY_PLANT_ID.get(plantId) || null; }
 // 鱼池（概率权重）：水边 fish
 const FISH_POOL = [
   [19, 30], [65, 20], [68, 15], [69, 15], [73, 10],
@@ -1314,7 +1426,7 @@ function sprinklerAutoWater() {
     for (const p of plants) {
       if (p.farmType !== 1 || !p.sownAt) continue;
       if (Math.abs(p.x - s.x) <= range && Math.abs(p.y - s.y) <= range) {
-        const crop = Object.values(PLANT_CROPS).find(c => c.plantId === p.plantId);
+        const crop = cropOf(p.plantId);
         if (!crop || p.growDay >= crop.days) continue;
         p.sownAt = Math.max(p.sownAt - GROW_DAY_MS, Date.now() - GROW_DAY_MS * crop.days);
         p.growDay = Math.min(crop.days, Math.floor((Date.now() - p.sownAt) / GROW_DAY_MS));
@@ -1332,7 +1444,7 @@ function growPlants() {
   const now = Date.now();
   for (const p of plants) {
     if (p.farmType !== 1 || !p.sownAt) continue;
-    const crop = Object.values(PLANT_CROPS).find(c => c.plantId === p.plantId);
+    const crop = cropOf(p.plantId);
     if (!crop) continue;
     const nd = Math.min(crop.days, Math.floor((now - p.sownAt) / GROW_DAY_MS));
     if (nd !== p.growDay) { p.growDay = nd; changed = true; }
@@ -1440,10 +1552,12 @@ function bfsPath(sx, sy, tx, ty) {
   if (sx === tx && sy === ty) return [ [sx, sy] ]; // 吸附后重合，原地
   const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const prev = new Map();
+  // 双端队列（head 指针代替 Array.shift，O(1) 出队）
   const q = [[sx, sy]];
+  let head = 0;
   prev.set(sx + ',' + sy, null);
-  while (q.length) {
-    const [cx, cy] = q.shift();
+  while (head < q.length) {
+    const [cx, cy] = q[head++];
     if (cx === tx && cy === ty) break;
     for (const [dx, dy] of dirs) {
       const nx = cx + dx, ny = cy + dy, k = nx + ',' + ny;
@@ -1522,7 +1636,7 @@ function agentConn(ws, u) {
     const plantsNear = growPlants()
       .filter(p => (p.farmType === 1 || treeOf(p)) && Math.abs(p.x - gx) <= 3 && Math.abs(p.y - gy) <= 3)
       .map(p => {
-        const crop = Object.values(PLANT_CROPS).find(c => c.plantId === p.plantId);
+        const crop = cropOf(p.plantId);
         return {
           gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantId: p.plantId,
           kind: treeOf(p) ? `树(${p.hp}HP)` : (crop ? `${crop.name}${p.growDay >= crop.days ? '(成熟可收)' : `(${p.growDay}/${crop.days}天)`}` : '植物'),
@@ -1547,7 +1661,7 @@ function agentConn(ws, u) {
         if (plotAt(nx, ny)) {
           const pl = worldPlots().find(q => q.x === nx && q.y === ny);
           const pp = pl && pl.plantUID ? plantAtWorld(nx, ny) : null;
-          const crop = pp ? Object.values(PLANT_CROPS).find(c => c.plantId === pp.plantId) : null;
+          const crop = pp ? cropOf(pp.plantId) : null;
           plotsNear.push({
             gx: nx, gy: ny, px: nx * 100 + 50, py: ny * 100 + 50,
             planted: !!pp,
@@ -1630,6 +1744,10 @@ function agentConn(ws, u) {
         send({ t: 'chat_log', msgs: CHAT_LOG.slice(-20) });
         break;
       }
+      case 'agent_move_state': {
+        send({ t: 'agent_move_state', moving: agentMoves.has(uid) });
+        break;
+      }
       case 'dm_send': {
         const target = resolveOnlineUid(String(msg.target || '')) || '';
         if (!target || target === uid) { send({ t: 'dm_result', ok: false, msg: '无效目标' }); break; }
@@ -1680,9 +1798,9 @@ function agentConn(ws, u) {
           result = { ok: true, pos: { x: nx, y: ny }, scene: apos.scene };
         } else if (action === 'chat') {
           const text = String(msg.text || '').slice(0, 200);
-          CHAT_LOG.push({ nick: nick + '(托管)', text, at: Date.now() });
+          CHAT_LOG.push({ nick: nick + '(托管)', text, at: Date.now(), isAgent: true });
           while (CHAT_LOG.length > 50) CHAT_LOG.shift();
-          for (const [k, o] of online) sendTo(o, { t: 'chat', uid, nick: nick + '(托管)', text });
+          for (const [k, o] of online) sendTo(o, { t: 'chat', uid, nick: nick + '(托管)', text, isAgent: true });
           console.log(`[agent-chat] ${nick}: ${text}`);
           publishAgentActivity('正在说话');
           result = { ok: true, sent: text };
@@ -1792,7 +1910,7 @@ function agentConn(ws, u) {
           const p = plantAtWorld(gx, gy);
           if (!p) { result.msg = '这个格子上没有作物可浇'; continue; }
           if (p.farmType !== 1) { result.msg = '这是场景植物，不需要浇水'; continue; }
-          const crop = Object.values(PLANT_CROPS).find(c => c.plantId === p.plantId);
+          const crop = cropOf(p.plantId);
           if (!crop) { result.msg = '未知作物'; continue; }
           if (p.growDay >= crop.days) { result.msg = `${crop.name}已经成熟了，直接收获吧`; continue; }
           p.sownAt = Math.max(p.sownAt - GROW_DAY_MS, Date.now() - GROW_DAY_MS * crop.days);
@@ -1831,7 +1949,7 @@ function agentConn(ws, u) {
           const p = plantAtWorld(gx, gy);
           if (!p) { result.msg = '这个格子上没有作物'; continue; }
           if (p.farmType !== 1) { result.msg = '这不是你种的作物（是场景植物）'; continue; }
-          const crop = Object.values(PLANT_CROPS).find(c => c.plantId === p.plantId);
+          const crop = cropOf(p.plantId);
           if (!crop) { result.msg = '未知作物'; continue; }
           if (p.growDay < crop.days) { result.msg = `${crop.name}还没成熟（${p.growDay}/${crop.days} 天）`; continue; }
           worldPlants().splice(worldPlants().indexOf(p), 1);
@@ -2034,6 +2152,10 @@ server.listen(PORT, () => {
     const n = sprinklerAutoWater();
     if (n > 0) console.log(`[sprinkler] 自动浇水 ${n} 株作物`);
   }, 5 * 60 * 1000);
+  // DM 自动解锁：每 15s 检查同场景共处是否满 10 分钟
+  setInterval(checkAutoDmUnlock, 15 * 1000);
+  // 每 5 分钟清理 DM 相关内存（lastMeetBroadcast / sceneTogether 空壳）
+  setInterval(cleanupDmMaps, 5 * 60 * 1000);
   // 自动启动内网穿透（异步，不阻塞服务器）
   startTunnel(PORT);
 });

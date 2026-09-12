@@ -24,7 +24,9 @@ const argVal = (k, d = null) => {
   }[k] || '')] || d);
 };
 const TOKEN = argVal('--token', '');
-const WS_URL = argVal('--ws', 'ws://127.0.0.1:8080/agent') + (argVal('--token', '') ? '?token=' + argVal('--token') : '?token=' + TOKEN);
+const _wsBase = argVal('--ws', 'ws://127.0.0.1:8080/agent');
+const _sep = _wsBase.includes('?') ? '&' : '?';
+const WS_URL = _wsBase + _sep + 'token=' + TOKEN;
 const ROUNDS = Number(argVal('--rounds', '5'));
 const LLM_URL = argVal('--llm-url', 'https://api.deepseek.com/v1').replace(/\/$/, '');
 const LLM_KEY = argVal('--llm-key', '');
@@ -94,7 +96,7 @@ const GAME_TOOLS = [
   { name: 'game_observe', description: '查看游戏世界状态：场景/坐标/天数/背包(所有物品+金币)/NPC/附近植物(含成熟状态)/地块(已犁/未成熟/成熟可收)/附近可犁地/附近玩家位置/水边/矿山/收件箱未读。返回 JSON。', params: { type: 'object', properties: {} } },
   { name: 'game_act', description: '在游戏世界执行行动。action：move_to(寻路移动 x,y) / talk(NPC问价 npcId) / buy(买物品 itemId+count) / chat(说话 text) / plant(播种：itemId=种子id + x,y) / harvest(收菜：x,y) / chop(砍树：x,y) / fish(钓鱼) / mine(挖矿) / till(犁地：x,y 可耕种土地) / water(浇水：x,y 未成熟作物) / place(安装洒水器：itemId=洒水器id + x,y)。', params: { type: 'object', properties: { action: { type: 'string', enum: ['move_to', 'talk', 'buy', 'chat', 'plant', 'harvest', 'chop', 'fish', 'mine', 'till', 'water', 'place'] }, x: { type: 'integer' }, y: { type: 'integer' }, npcId: { type: 'integer' }, itemId: { type: 'integer' }, count: { type: 'integer' }, text: { type: 'string' } }, required: ['action'] } },
   { name: 'game_inbox', description: '拉取玩家（我的主人）发来的指挥消息。返回全部未读消息（读后清除）。', params: { type: 'object', properties: {} } },
-  { name: 'game_chat_log', description: '查看玩家频道最近的聊天记录（玩家们在聊什么）。', params: { type: 'object', properties: {} } },
+  { name: 'game_chat_log', description: '查看玩家频道最近的聊天记录（玩家和 agent 都在里面，isAgent=true 的是 agent 发言）。', params: { type: 'object', properties: {} } },
   { name: 'game_dm', description: '给已解锁私聊的对象发 1:1 消息（微信式，无距离限制）。observe 的 dmUnlocked 列出可私聊的 uid/昵称。', params: { type: 'object', properties: { target: { type: 'string', description: '对方 uid 或昵称' }, text: { type: 'string', description: '消息内容' } }, required: ['target', 'text'] } },
   { name: 'game_dm_log', description: '拉取与某对象的 1:1 聊天记录（最近 50 条）。', params: { type: 'object', properties: { target: { type: 'string', description: '对方 uid 或昵称' } }, required: ['target'] } },
   { name: 'game_dm_unlocked', description: '列出所有已解锁私聊的对象（uid + 昵称）。', params: { type: 'object', properties: {} } },
@@ -103,20 +105,17 @@ const GAME_TOOLS = [
 // ---------- 工具执行 ----------
 async function runTool(name, a) {
   switch (name) {
-    case 'game_observe': return gameCall('observe');
+    case 'game_observe': return await gameCall('observe');
     case 'game_act': {
       const params = { action: String(a.action || '') };
       for (const k of ['dir', 'x', 'y', 'npcId', 'itemId', 'count', 'text']) if (a[k] !== undefined) params[k] = a[k];
-      return gameCall('act', params);
+      return await gameCall('act', params);
     }
-    case 'game_inbox': return gameCall('inbox', {}, 'inbox');
-    case 'game_chat_log': return gameCall('chat_log', {}, 'chat_log');
-    case 'game_dm': {
-      const r = await gameCall('dm_send', { target: String(a.target || ''), text: String(a.text || '') }, 'dm_result');
-      return r;
-    }
-    case 'game_dm_log': return gameCall('dm_log', { target: String(a.target || '') }, 'dm_log');
-    case 'game_dm_unlocked': return gameCall('dm_unlocked', {}, 'dm_unlocked_list');
+    case 'game_inbox': return await gameCall('inbox', {}, 'inbox');
+    case 'game_chat_log': return await gameCall('chat_log', {}, 'chat_log');
+    case 'game_dm': return await gameCall('dm_send', { target: String(a.target || ''), text: String(a.text || '') }, 'dm_result');
+    case 'game_dm_log': return await gameCall('dm_log', { target: String(a.target || '') }, 'dm_log');
+    case 'game_dm_unlocked': return await gameCall('dm_unlocked', {}, 'dm_unlocked_list');
     case 'note_list': return { ok: true, notes: noteList() };
     case 'note_read': try { return { ok: true, content: noteRead(String(a.name || '')) }; } catch (e) { return { ok: false, msg: e.message }; }
     case 'note_write': try { return { ok: true, msg: noteWrite(String(a.name || ''), a.content) }; } catch (e) { return { ok: false, msg: e.message }; }
@@ -223,7 +222,7 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
   **指挥消息不会打断你**：手头的事做完（或告一段落）再回应；任务型指令（去钓鱼/种地/买东西）尽量完成。
 - **玩家在游戏里操作会打断你**：observe 的 playerOps 出现新的玩家活动（时间戳变化）时，
   你被打断了 —— 停下当前计划，看看玩家在做什么（附近 plant/activity），简短回应或让位，然后继续。
-- 玩家频道聊天（game_chat_log）也不打断你：想了解大家在聊什么时再看。
+- 玩家频道聊天（game_chat_log）也不打断你：想了解大家在聊什么时再看。注意：chat_log 里 isAgent=true 的是其他 agent 的发言（不是玩家），别把 agent 的话当成玩家社交信号。
 - 被打断后不要慌张：玩家可能只是路过或种了块地。礼貌处理，继续自己的安排。
 
 ## 行动与路径规划（强制）
@@ -356,12 +355,13 @@ async function main() {
   while (round < ROUNDS) {
     round++;
     console.log(`\n===== 轮次 ${round}/${ROUNDS} =====`);
-    // 先处理服务器推送（打断/恢复/收件箱提示）—— 实时性优先
+    // 先处理服务器推送（打断/恢复/收件箱提示/私聊）—— 实时性优先
+    let hasPendingDm = false;
     while (pushEvents.length) {
       const ev = pushEvents.shift();
       if (ev.t === 'player_op') {
         const injected = injectInterrupt(ev.text || '玩家（你的主人）在游戏里活动');
-        if (injected) { console.log(`[agent] 被打断: ${(ev.text || '').slice(0, 60)}`); lastOpAt = Date.now(); } // 吞掉 observe 轮询里的重复提醒
+        if (injected) { console.log(`[agent] 被打断: ${(ev.text || '').slice(0, 60)}`); lastOpAt = Date.now(); }
       } else if (ev.t === 'agent_resume') {
         messages.push({ role: 'user', content: '【恢复行动】玩家（你的主人）让你恢复行动。回顾你之前的计划（目标/任务/进行到哪一步），继续把它做完，马上动起来。' });
         console.log('[agent] 收到恢复行动指令');
@@ -370,8 +370,17 @@ async function main() {
         console.log('[agent] 收件箱新消息提示');
       } else if (ev.t === 'dm_in') {
         const who = ev.nick || ev.from || '某人';
-        messages.push({ role: 'user', content: `【私聊·${who}】${ev.text || ''}（可用 game_dm {target:"${ev.from}"} 回话，不打断当前行动）` });
+        hasPendingDm = true;
+        messages.push({ role: 'user', content: `【私聊·${who}】${ev.text || ''}（用 game_dm {target:"${ev.from}"} 回话。如果手头没有进行中的长任务，优先回复私聊；长任务中则标记 pending，任务结束后回。）` });
         console.log(`[agent] 私聊 ${who}: ${(ev.text || '').slice(0, 60)}`);
+      }
+      // 注意：result/dm_in 等响应不走 pushEvents（它们由 gameCall 的 onMsg 消费），只有 player_op/agent_resume/inbox_push/dm_in 是服务器主动推送
+    }
+    // 有未回私聊且无进行中移动 → 强化提示 LLM 优先回
+    if (hasPendingDm) {
+      const moveState = await gameCall('agent_move_state', {}, 'agent_move_state');
+      if (!(moveState && moveState.moving)) {
+        messages.push({ role: 'system', content: '【优先级】有未回的私聊，且当前没有进行中的移动任务。本轮优先回复私聊（game_dm），然后再做其他事。' });
       }
     }
     // 每轮先观察，再让 LLM 决策
@@ -431,9 +440,9 @@ async function main() {
           let a = {}; try { a = JSON.parse(tl.args); } catch { a = {}; }
           console.log(`[tool] ${tl.name} ${JSON.stringify(a)}`);
           let result;
-        try { result = await runTool(tl.name, a); }
-        catch (e) { result = { ok: false, msg: e.message }; }
-        messages.push({ role: 'user', content: `${tl.name} 结果：${JSON.stringify(result).slice(0, 2000)}` });
+          try { result = await runTool(tl.name, a); }
+          catch (e) { result = { ok: false, msg: e.message }; }
+          messages.push({ role: 'user', content: `${tl.name} 结果：${JSON.stringify(result).slice(0, 2000)}` });
         }
         continue; // 继续让 LLM 决策
       }
