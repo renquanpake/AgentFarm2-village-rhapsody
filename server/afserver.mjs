@@ -726,7 +726,7 @@ function gameConn(ws) {
         }
         schedulePersist();
         // 玩家在游戏里做了操作（存档变化）→ 打断自己的 agent（指挥消息/聊天不打断，走收件箱/聊天记录）
-        if (touchedWorld) notePlayerOp(uid, 'save', '玩家在游戏里活动（存档变化）');
+        if (touchedWorld) notePlayerOp(uid, 'save', '你（玩家）在游戏里活动，Agent 已让位等你');
         // 广播走 500ms 合并（同 key 取最新值），防"1 人存档 → N 人各收 M 条"线性放大
         for (const k of online.keys()) if (k !== uid) queueSaveBroadcast(k, kvOut, uid);
         break;
@@ -890,7 +890,7 @@ function gameConn(ws) {
       case 'agent_interrupt': {
         // 显式打断：立即打断 agent 当前行动（等同玩家游戏操作）
         const p = online.get(uid); if (!p) break;
-        notePlayerOp(uid, 'interrupt', `${p.nick} 要求你立刻停下`);
+        notePlayerOp(uid, 'interrupt', '你手动按了 ⏸，Agent 已停手等你指挥');
         break;
       }
       case 'agent_resume': {
@@ -898,6 +898,7 @@ function gameConn(ws) {
         const s = agentSockets.get(uid);
         if (s && s.size) {
           for (const w of s) if (w.readyState === 1) w.send(JSON.stringify({ t: 'agent_resume' }));
+          publishAgentActivityGlobal(uid, '恢复行动，继续原计划');
           console.log(`[agent-resume] 玩家 ${uid} 要求 Agent 恢复行动`);
         }
         break;
@@ -1278,6 +1279,16 @@ function nextPlantUid() {
 const playerOps = new Map(); // uid -> [{at, kind, text}...]
 const lastOpPush = new Map(); // uid -> at（push 节流：玩家频繁存档时每 5s 最多推一次）
 const CHAT_LOG = []; // 玩家频道聊天记录（cap 50）
+// 玩家可见的 Agent 活动状态（模块级，供 resume 等 handler 直接推送）
+const actState = new Map(); // uid -> {at, text}
+function publishAgentActivityGlobal(uid, text) {
+  const s = actState.get(uid) || { at: 0, text: '' };
+  const now = Date.now();
+  if (text === s.text && now - s.at < 3000) return;
+  s.at = now; s.text = text; actState.set(uid, s);
+  const p = online.get(uid);
+  if (p) sendTo(p, { t: 'agent_activity', activity: text });
+}
 function notePlayerOp(uid, kind, text) {
   const arr = playerOps.get(uid) || [];
   arr.push({ at: Date.now(), kind, text });
@@ -1290,6 +1301,8 @@ function notePlayerOp(uid, kind, text) {
   // agent 在线 → 实时推送打断信号（指挥消息/聊天不推送，走收件箱/聊天记录）
   const s = agentSockets.get(uid);
   if (s) for (const w of s) if (w.readyState === 1) w.send(JSON.stringify({ t: 'player_op', kind, text }));
+  // 同时让状态条切到"已让位"（仅当 agent 在线时才需要，离线时无意义）
+  if (s && s.size) publishAgentActivityGlobal(uid, text || '你（玩家）在游戏里活动，Agent 已让位等你');
 }
 // agent 收件箱（玩家指挥消息；持久化，agent 不在线也不丢）
 function inboxOf(acc) {

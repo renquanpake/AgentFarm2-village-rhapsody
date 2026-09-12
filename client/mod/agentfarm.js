@@ -529,11 +529,9 @@
         case 'task_done': if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', msg.msg); break;
         case 'task_list': onTaskList(msg); break;
         case 'agent_activity': {
-          const st = document.getElementById('af-agent-status');
-          if (msg.activity) agentActivity = msg.activity;
-          if (st && msg.activity) {
-            st.textContent = '🤖 托管中' + (agentNick ? ' · ' + agentNick : '') + ' · ' + msg.activity;
-            st.className = 'on';
+          if (msg.activity && window.__AF_AGENT_ACTIVITY__) {
+            const waiting = msg.activity.includes('让位') || msg.activity.includes('停下') || msg.activity.includes('等你');
+            window.__AF_AGENT_ACTIVITY__(msg.activity, waiting);
           }
           if (window.__AF_CHAT_ADD__ && msg.activity) window.__AF_CHAT_ADD__('Agent', msg.activity);
           break;
@@ -1248,8 +1246,9 @@
       #af-agent-btn:hover, #af-interrupt-btn:hover, #af-resume-btn:hover { background: rgba(52,60,70,.95); }
       #af-agent-status { position: fixed; top: 166px; right: 10px; z-index: 99990; cursor: default;
         padding: 5px 12px; border-radius: 6px; font: 12px "Microsoft YaHei", sans-serif;
-        box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+        box-shadow: 0 2px 6px rgba(0,0,0,.4); max-width: 320px; }
       #af-agent-status.on { background: rgba(26,52,34,.92); color: #9ae87a; border: 1px solid #3a7a4a; }
+      #af-agent-status.waiting { background: rgba(70,46,20,.92); color: #ffb87a; border: 1px solid #8a5a2a; }
       #af-agent-status.off { background: rgba(38,44,52,.92); color: #7a8490; border: 1px solid #3a4450; }
       #af-agent { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 420px; max-width: 92vw; display: none; flex-direction: column;
@@ -1293,12 +1292,19 @@
     document.body.appendChild(status);
 
     // 托管状态更新（agent_status 推送 / 轮询兜底）
-    let agentOnline = false, agentNick = '', agentActivity = '';
+    let agentOnline = false, agentNick = '', agentActivity = '', agentWaiting = false;
     window.addEventListener('keydown', (e) => {
       if (!agentOnline || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) return;
       e.preventDefault();
       e.stopImmediatePropagation();
     }, true);
+    function renderAgentStatus() {
+      const st = document.getElementById('af-agent-status');
+      if (!st) return;
+      if (!agentOnline) { st.textContent = '🤖 Agent 未连接'; st.className = 'off'; return; }
+      if (agentWaiting) { st.textContent = '⏸ Agent 已让位 · ' + (agentActivity || '等你指挥'); st.className = 'waiting'; }
+      else { st.textContent = '🤖 自动执行 · ' + (agentActivity || '运行中'); st.className = 'on'; }
+    }
     function updateAgentStatus(online, nick) {
       agentOnline = online;
       hostedAgentOnline = online;
@@ -1306,19 +1312,17 @@
       const toggle = document.getElementById('af-agent-toggle');
       if (toggle) toggle.textContent = online ? '停止托管' : '启动托管';
       if (nick) agentNick = nick;
-      const st = document.getElementById('af-agent-status');
-      if (st) {
-        if (online) {
-          st.textContent = '🤖 托管中' + (agentNick ? ' · ' + agentNick : '') + (agentActivity ? ' · ' + agentActivity : '');
-          st.className = 'on';
-        } else {
-          st.textContent = '🤖 Agent 未连接';
-          st.className = 'off';
-        }
-      }
+      if (!online) { agentWaiting = false; agentActivity = ''; }
+      renderAgentStatus();
       intBtn.style.display = online ? 'block' : 'none';
       resBtn.style.display = online ? 'block' : 'none';
     }
+    function setAgentActivity(text, waiting) {
+      if (text) agentActivity = text;
+      if (waiting !== undefined) agentWaiting = waiting;
+      renderAgentStatus();
+    }
+    window.__AF_AGENT_ACTIVITY__ = setAgentActivity;
     // 轮询兜底（WS 推送丢失时）
     setInterval(() => {
       fetch(SERVER + '/af/agent-status?token=' + encodeURIComponent(token))
@@ -1415,10 +1419,12 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     intBtn.onclick = () => {
       if (connected) ws.send(JSON.stringify({ t: 'agent_interrupt' }));
+      if (window.__AF_AGENT_ACTIVITY__) window.__AF_AGENT_ACTIVITY__('你手动按了 ⏸，Agent 已停手等你指挥', true);
       if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '已发送打断指令');
     };
     resBtn.onclick = () => {
       if (connected) ws.send(JSON.stringify({ t: 'agent_resume' }));
+      if (window.__AF_AGENT_ACTIVITY__) window.__AF_AGENT_ACTIVITY__('恢复行动，继续原计划', false);
       if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '已发送恢复指令');
     };
     window.__AF_AGENT_STATUS__ = updateAgentStatus;
