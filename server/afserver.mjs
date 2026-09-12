@@ -1474,6 +1474,13 @@ function agentConn(ws, u) {
     const playersNear = Array.from(online.values())
       .filter(o => o.uid !== uid && o.scene === (apos.scene ?? pd.sceneType ?? 0) && Math.abs(o.x - (apos.x ?? 0)) + Math.abs(o.y - (apos.y ?? 0)) <= 800)
       .map(o => ({ nick: o.nick, dist: Math.round((Math.abs(o.x - (apos.x ?? 0)) + Math.abs(o.y - (apos.y ?? 0))) / 100) }));
+    // 与所有在线玩家的好友度/关系
+    const social = Array.from(online.values())
+      .filter(o => o.uid !== uid)
+      .map(o => {
+        const f = favBetween(uid, o.uid);
+        return { nick: o.nick, favToOther: f.aToB, favFromOther: f.bToA, relation: f.relation };
+      });
     const { arr: inboxArr } = inboxOf(acc);
     const ops = (playerOps.get(uid) || []).map(o => ({ kind: o.kind, text: o.text, at: o.at }));
     return {
@@ -1491,6 +1498,7 @@ function agentConn(ws, u) {
       tillableNear,
       plotsNear,
       playersNear,
+      social,
       farm: { plots: worldPlots().map(p => ({ gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantUID: p.plantUID })).slice(0, 12), mineSpots },
       sprinklers: worldSprinklers().map(s => ({ gx: s.x, gy: s.y, level: s.level, range: SPRINKLER_RANGE[s.level] })),
       waterNear: (() => { let n = false; for (let dy = -1; dy <= 1 && !n; dy++) for (let dx = -1; dx <= 1; dx++) if (waterAt(gx + dx, gy + dy)) { n = true; break; } return n; })(),
