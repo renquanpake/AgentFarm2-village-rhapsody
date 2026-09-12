@@ -772,10 +772,24 @@ function gameConn(ws) {
         if (!nr.ok) { send({ t: 'social_result', social: 'talk', ok: false, msg: nr.msg }); break; }
         const text = String(msg.text || '').slice(0, 200);
         if (text) sendTo(pB, { t: 'social_in', social: 'talk', from: uid, nick: p.nick, text });
-        const fav = addFav(uid, target, 2); // 对话 +2 好感（主动方）
+        const fav = addFav(uid, target, 2);
         taskCount(uid, 'talk');
         taskCount(target, 'talk');
-        send({ t: 'social_result', social: 'talk', ok: true, msg: `已对话，${pB.nick} 对你的好感 +2（现 ${fav}）` });
+        const firstMeet = dmUnlock(uid, target);
+        if (firstMeet) {
+          for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${p.nick} 和 ${pB.nick} 见面了，可以开始私聊了` });
+        }
+        // 首次见面时把私聊解锁状态实时推给双方（含 agent socket）
+        if (firstMeet) {
+          send({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
+          const pB_ws = online.get(target);
+          if (pB_ws) sendTo(pB_ws, { t: 'dm_unlocked_list', peers: dmUnlockedList(target) });
+          const agA = agentSockets.get(uid);
+          if (agA) for (const w of agA) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) }));
+          const agB = agentSockets.get(target);
+          if (agB) for (const w of agB) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_unlocked_list', peers: dmUnlockedList(target) }));
+        }
+        send({ t: 'social_result', social: 'talk', ok: true, msg: firstMeet ? `首次见面，已解锁私聊！好感 +2（现 ${fav}）` : `已对话，${pB.nick} 对你的好感 +2（现 ${fav}）` });
         console.log(`[social] ${p.nick} 对话 ${pB.nick}`);
         break;
       }
@@ -887,6 +901,38 @@ function gameConn(ws) {
         if (acc) pushInbox(acc, p.nick, text);
         break;
       }
+      case 'dm_send': {
+        const p = online.get(uid); if (!p) break;
+        const target = resolveOnlineUid(String(msg.target || '')) || '';
+        if (!target || target === uid) { send({ t: 'dm_result', ok: false, msg: '无效目标' }); break; }
+        if (!dmUnlocked(uid, target)) { send({ t: 'dm_result', ok: false, msg: '还没和 TA 见过面，先去打招呼吧' }); break; }
+        const text = String(msg.text || '').slice(0, 500);
+        if (!text) { send({ t: 'dm_result', ok: false, msg: '消息为空' }); break; }
+        const entry = { from: uid, nick: p.nick, text, at: Date.now() };
+        dmPush(uid, target, entry);
+        // 实时推送给对方（若在线）
+        const pB = online.get(target);
+        if (pB) sendTo(pB, { t: 'dm_in', from: uid, nick: p.nick, text });
+        // 若对方是 agent，推给 agent socket（agent 能看到玩家私聊）
+        const agSock = agentSockets.get(target);
+        if (agSock) for (const w of agSock) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_in', from: uid, nick: p.nick, text }));
+        // 若自己是 agent 且对方在线玩家，也推对方
+        send({ t: 'dm_result', ok: true });
+        break;
+      }
+      case 'dm_log': {
+        const p = online.get(uid); if (!p) break;
+        const target = resolveOnlineUid(String(msg.target || '')) || '';
+        if (!target) { send({ t: 'dm_log', msgs: [] }); break; }
+        const { arr } = dmLogOf(uid, target);
+        send({ t: 'dm_log', msgs: arr.slice(-50) });
+        break;
+      }
+      case 'dm_unlocked': {
+        const p = online.get(uid); if (!p) break;
+        send({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
+        break;
+      }
       case 'agent_interrupt': {
         // 显式打断：立即打断 agent 当前行动（等同玩家游戏操作）
         const p = online.get(uid); if (!p) break;
@@ -980,6 +1026,47 @@ function socialNear(aUid, bUid) {
   const d = Math.abs(A.x - B.x) + Math.abs(A.y - B.y);
   if (d > 520) return { ok: false, msg: `离对方太远（距离 ${Math.round(d / 100)} 格，需要 5 格内）` };
   return { ok: true };
+}
+// ---------- 1:1 私聊（微信式，无距离限制）----------
+// 解锁：首次见面（social_talk 成功 或 social_give 成功）时标记 pair.dmUnlocked
+// 存储：data/dm-logs/{uidA}_{uidB}.json（cap 200 条）
+function dmLogKey(a, b) { return [a, b].sort().join('_'); }
+function dmLogPath(a, b) { return join(DATA_DIR, 'dm-logs', dmLogKey(a, b) + '.json'); }
+function dmLogOf(a, b) {
+  const f = dmLogPath(a, b);
+  let arr = loadJson(f, []);
+  if (!Array.isArray(arr)) arr = [];
+  return { file: f, arr };
+}
+function dmPush(a, b, entry) {
+  const { file, arr } = dmLogOf(a, b);
+  arr.push(entry);
+  while (arr.length > 200) arr.shift();
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(arr, null, 1));
+}
+function dmUnlocked(a, b) {
+  const { p } = pairOf(a, b);
+  return p.dmUnlocked === true;
+}
+function dmUnlock(a, b) {
+  const { p } = pairOf(a, b);
+  if (p.dmUnlocked) return false;
+  p.dmUnlocked = true;
+  schedulePersist();
+  return true;
+}
+function dmUnlockedList(uid) {
+  const s = socialData();
+  const out = [];
+  for (const [k, p] of Object.entries(s.pairs || {})) {
+    if (!p.dmUnlocked) continue;
+    const [a, b] = k.split('_');
+    if (a !== uid && b !== uid) continue;
+    const other = a === uid ? b : a;
+    out.push({ other, nick: online.get(other)?.nick || other.slice(0, 8) });
+  }
+  return out;
 }
 // 目标可以是 uid 或在线昵称
 function resolveOnlineUid(nameOrUid) {
@@ -1499,6 +1586,7 @@ function agentConn(ws, u) {
       plotsNear,
       playersNear,
       social,
+      dmUnlocked: dmUnlockedList(uid),
       farm: { plots: worldPlots().map(p => ({ gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantUID: p.plantUID })).slice(0, 12), mineSpots },
       sprinklers: worldSprinklers().map(s => ({ gx: s.x, gy: s.y, level: s.level, range: SPRINKLER_RANGE[s.level] })),
       waterNear: (() => { let n = false; for (let dy = -1; dy <= 1 && !n; dy++) for (let dx = -1; dx <= 1; dx++) if (waterAt(gx + dx, gy + dy)) { n = true; break; } return n; })(),
@@ -1525,14 +1613,13 @@ function agentConn(ws, u) {
 
   ws.on('message', (raw) => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
-    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return; // 非对象消息（null/数组/基本类型）忽略，防 null.t 崩溃
+    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return;
     switch (msg.t) {
       case 'observe': {
         send({ t: 'state', ...observeState() });
         break;
       }
       case 'inbox': {
-        // 拉取玩家指挥消息（读后清空；不打断 —— 属于"聊天类"操作）
         const { file, arr } = inboxOf(acc);
         const msgs = arr.map(m => ({ from: m.from, text: m.text, at: m.at }));
         if (arr.length) { writeFileSync(file, '[]'); }
@@ -1540,8 +1627,33 @@ function agentConn(ws, u) {
         break;
       }
       case 'chat_log': {
-        // 玩家频道聊天记录（不打断）
         send({ t: 'chat_log', msgs: CHAT_LOG.slice(-20) });
+        break;
+      }
+      case 'dm_send': {
+        const target = resolveOnlineUid(String(msg.target || '')) || '';
+        if (!target || target === uid) { send({ t: 'dm_result', ok: false, msg: '无效目标' }); break; }
+        if (!dmUnlocked(uid, target)) { send({ t: 'dm_result', ok: false, msg: '还没和 TA 见过面' }); break; }
+        const text = String(msg.text || '').slice(0, 500);
+        if (!text) { send({ t: 'dm_result', ok: false, msg: '消息为空' }); break; }
+        const entry = { from: uid, nick: nick, text, at: Date.now(), agent: true };
+        dmPush(uid, target, entry);
+        const pB = online.get(target);
+        if (pB) sendTo(pB, { t: 'dm_in', from: uid, nick: nick, text });
+        const agSock = agentSockets.get(target);
+        if (agSock) for (const w of agSock) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_in', from: uid, nick, text, agent: true }));
+        send({ t: 'dm_result', ok: true });
+        break;
+      }
+      case 'dm_log': {
+        const target = resolveOnlineUid(String(msg.target || '')) || '';
+        if (!target) { send({ t: 'dm_log', msgs: [] }); break; }
+        const { arr } = dmLogOf(uid, target);
+        send({ t: 'dm_log', msgs: arr.slice(-50) });
+        break;
+      }
+      case 'dm_unlocked': {
+        send({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
         break;
       }
       case 'act': {
@@ -1568,6 +1680,8 @@ function agentConn(ws, u) {
           result = { ok: true, pos: { x: nx, y: ny }, scene: apos.scene };
         } else if (action === 'chat') {
           const text = String(msg.text || '').slice(0, 200);
+          CHAT_LOG.push({ nick: nick + '(托管)', text, at: Date.now() });
+          while (CHAT_LOG.length > 50) CHAT_LOG.shift();
           for (const [k, o] of online) sendTo(o, { t: 'chat', uid, nick: nick + '(托管)', text });
           console.log(`[agent-chat] ${nick}: ${text}`);
           publishAgentActivity('正在说话');

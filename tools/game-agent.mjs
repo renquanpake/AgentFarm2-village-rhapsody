@@ -95,6 +95,9 @@ const GAME_TOOLS = [
   { name: 'game_act', description: '在游戏世界执行行动。action：move_to(寻路移动 x,y) / talk(NPC问价 npcId) / buy(买物品 itemId+count) / chat(说话 text) / plant(播种：itemId=种子id + x,y) / harvest(收菜：x,y) / chop(砍树：x,y) / fish(钓鱼) / mine(挖矿) / till(犁地：x,y 可耕种土地) / water(浇水：x,y 未成熟作物) / place(安装洒水器：itemId=洒水器id + x,y)。', params: { type: 'object', properties: { action: { type: 'string', enum: ['move_to', 'talk', 'buy', 'chat', 'plant', 'harvest', 'chop', 'fish', 'mine', 'till', 'water', 'place'] }, x: { type: 'integer' }, y: { type: 'integer' }, npcId: { type: 'integer' }, itemId: { type: 'integer' }, count: { type: 'integer' }, text: { type: 'string' } }, required: ['action'] } },
   { name: 'game_inbox', description: '拉取玩家（我的主人）发来的指挥消息。返回全部未读消息（读后清除）。', params: { type: 'object', properties: {} } },
   { name: 'game_chat_log', description: '查看玩家频道最近的聊天记录（玩家们在聊什么）。', params: { type: 'object', properties: {} } },
+  { name: 'game_dm', description: '给已解锁私聊的对象发 1:1 消息（微信式，无距离限制）。observe 的 dmUnlocked 列出可私聊的 uid/昵称。', params: { type: 'object', properties: { target: { type: 'string', description: '对方 uid 或昵称' }, text: { type: 'string', description: '消息内容' } }, required: ['target', 'text'] } },
+  { name: 'game_dm_log', description: '拉取与某对象的 1:1 聊天记录（最近 50 条）。', params: { type: 'object', properties: { target: { type: 'string', description: '对方 uid 或昵称' } }, required: ['target'] } },
+  { name: 'game_dm_unlocked', description: '列出所有已解锁私聊的对象（uid + 昵称）。', params: { type: 'object', properties: {} } },
 ];
 
 // ---------- 工具执行 ----------
@@ -108,6 +111,12 @@ async function runTool(name, a) {
     }
     case 'game_inbox': return gameCall('inbox', {}, 'inbox');
     case 'game_chat_log': return gameCall('chat_log', {}, 'chat_log');
+    case 'game_dm': {
+      const r = await gameCall('dm_send', { target: String(a.target || ''), text: String(a.text || '') }, 'dm_result');
+      return r;
+    }
+    case 'game_dm_log': return gameCall('dm_log', { target: String(a.target || '') }, 'dm_log');
+    case 'game_dm_unlocked': return gameCall('dm_unlocked', {}, 'dm_unlocked_list');
     case 'note_list': return { ok: true, notes: noteList() };
     case 'note_read': try { return { ok: true, content: noteRead(String(a.name || '')) }; } catch (e) { return { ok: false, msg: e.message }; }
     case 'note_write': try { return { ok: true, msg: noteWrite(String(a.name || ''), a.content) }; } catch (e) { return { ok: false, msg: e.message }; }
@@ -200,6 +209,15 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
 - **好感提升**：聊天 +2/次，送礼 +5~15，一起种地/钓鱼 +3。关系升级会在游戏里广播
 - **读心**：玩家跟你说"我们关系怎么样"时，直接查 social 数组回答，别编
 
+## 私聊（1:1 微信式，无距离限制）
+- observe 的 dmUnlocked 列出你已解锁私聊的对象（uid + 昵称）。**只有见过面（同场景 5 格内 social_talk 或 social_give）才能私聊**
+- 见面后双方自动解锁：game_dm_unlocked 可随时查已解锁对象
+- **发私聊**：game_dm {target, text}，target 填 uid 或昵称，内容符合你的人设和当前关系风格
+- **看私聊历史**：game_dm_log {target}，拉最近 50 条
+- **agent 间也能互聊**：其他 agent 的 uid 在 dmUnlocked 里，target 填对方 uid 即可
+- **收到私聊**：玩家或 agent 给你发的私聊会实时推送到 agent socket（t:'dm_in'），在 LLM 对话里能看到并回应
+- 私聊不打断你当前行动，属于"聊天类"操作
+
 ## 玩家指挥与打断（重要）
 - 你的主人（玩家）会通过"指挥"给你发消息：observe 的 inbox.unread > 0 时用 game_inbox 拉取消息。
   **指挥消息不会打断你**：手头的事做完（或告一段落）再回应；任务型指令（去钓鱼/种地/买东西）尽量完成。
@@ -227,6 +245,7 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
   TOOL:note_read {"name":"agent.md"}
   TOOL:note_write {"name":"日记/第2天.md","content":"..."}
 - 收件箱与聊天记录也是独立工具：TOOL:game_inbox / TOOL:game_chat_log
+- 私聊也是独立工具：TOOL:game_dm {"target":"uid或昵称","text":"..."} / TOOL:game_dm_log {"target":"..."} / TOOL:game_dm_unlocked
 - 一次只输出一行工具调用；执行完拿到结果再决定下一步。
 
 ## 笔记（长期记忆）
@@ -313,11 +332,11 @@ async function main() {
     const h = () => { if (++got >= 2) { ws.off('message', h); res(); } };
     ws.on('message', h);
   });
-  // 服务器主动推送（打断 / 恢复行动 / 收件箱提示）—— 独立监听，与请求响应共存
+  // 服务器主动推送（打断 / 恢复行动 / 收件箱提示 / 私聊消息）—— 独立监听，与请求响应共存
   const pushEvents = [];
   ws.on('message', (raw) => {
     let m; try { m = JSON.parse(raw.toString()); } catch { return; }
-    if (m.t === 'player_op' || m.t === 'agent_resume' || m.t === 'inbox_push') {
+    if (m.t === 'player_op' || m.t === 'agent_resume' || m.t === 'inbox_push' || m.t === 'dm_in') {
       pushEvents.push(m);
     }
   });
@@ -349,6 +368,10 @@ async function main() {
       } else if (ev.t === 'inbox_push') {
         messages.push({ role: 'user', content: '【提示】收件箱有新消息（指挥消息，不打断）。本轮可以用 game_inbox 查看。' });
         console.log('[agent] 收件箱新消息提示');
+      } else if (ev.t === 'dm_in') {
+        const who = ev.nick || ev.from || '某人';
+        messages.push({ role: 'user', content: `【私聊·${who}】${ev.text || ''}（可用 game_dm {target:"${ev.from}"} 回话，不打断当前行动）` });
+        console.log(`[agent] 私聊 ${who}: ${(ev.text || '').slice(0, 60)}`);
       }
     }
     // 每轮先观察，再让 LLM 决策
