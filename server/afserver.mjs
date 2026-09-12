@@ -440,9 +440,21 @@ const server = http.createServer((req, res) => {
       // 为了简单，我们直接返回让前端重新连接到新端口的服务器
       // 更好的方案：动态重载数据
       const oldSlot = CURRENT_SLOT;
-      // 重置内存
-      world.clear(); globals.clear(); playersDb.clear(); playerOps.clear(); lastOpPush.clear();
+      // 重置内存：清所有档相关的运行时状态，防止旧档数据串到新档
+      world.clear(); globals.clear(); playersDb.clear();
+      playerOps.clear(); lastOpPush.clear();
       houseAssign.clear(); spawnCount = 0;
+      // 清社交/DM/agent 相关 Map（uid 是账号级跨档共享，但运行时状态必须重置）
+      sceneTogether.clear(); lastMeetBroadcast.clear();
+      agentMoves.clear(); agentPos.clear();
+      // agentSockets 连接保留（agent 进程可继续服务新档），但清 agent_pos 防止旧坐标
+      for (const [au] of agentSockets) { /* 保留连接，agent 下次 observe 会拿新档数据 */ }
+      // 踢掉所有在线玩家连接，强制重连（重连时按新档重新 join）
+      for (const [k, p] of online) {
+        try { p.ws.send(JSON.stringify({ t: 'kicked', msg: '存档切换中，请刷新页面重新进入' })); } catch {}
+        setTimeout(() => { try { p.ws.terminate(); } catch {} }, 300);
+      }
+      online.clear();
       // 更新文件路径（通过重新赋值模块级变量）
       // 注意：SAVE_FILE 和 SLOT_DIR 是 const，不能直接改。我们需要用动态查找
       // 方案：用一个 slotDirMap 来管理
@@ -1607,15 +1619,8 @@ function agentConn(ws, u) {
   const send = (obj) => { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); };
   const pm = playersDb.get(uid);
 
-  // 玩家可见的 Agent 活动状态（"正在种地/赶路中…"），同文本 3 秒节流
-  let lastActAt = 0, lastActText = '';
-  function publishAgentActivity(text) {
-    const now = Date.now();
-    if (text === lastActText && now - lastActAt < 3000) return;
-    lastActAt = now; lastActText = text;
-    const p = online.get(uid);
-    if (p) sendTo(p, { t: 'agent_activity', activity: text });
-  }
+  // 玩家可见的 Agent 活动状态（"正在种地/赶路中…"），统一走模块级节流（防 agentConn 局部 + 模块级双套节流不一致导致重复推送）
+  function publishAgentActivity(text) { publishAgentActivityGlobal(uid, text); }
 
   // 可观察世界状态（给 agent 的 LLM 看）
   function observeState() {
