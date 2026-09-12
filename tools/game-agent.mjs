@@ -3,15 +3,11 @@
 // AgentFarm2 独立游戏 Agent
 // 连接游戏服务器 /agent 通道，用 LLM 驱动角色在《乡村狂想曲》联机世界里活动。
 //
-// 两类模式：
-//   --mode text    纯文本（非多模态模型也能玩）：全靠 game_observe 的文本状态决策
-//   --mode vision  多模态：可调 game_screenshot 拿游戏截图（视觉模型看图）
-//
 // 笔记权限沙箱：agent 的笔记读写只允许在 --notes 指定的子目录内（防路径逃逸），
 //   用于长期记忆/任务板/日记。其余文件一律不可读写。
 //
 // 用法：
-//   node game-agent.mjs --token <接入码> [--mode text|vision] [--rounds 5]
+//   node game-agent.mjs --token <接入码> [--rounds 5]
 //        [--llm-url https://api.deepseek.com/v1 --llm-key sk-xxx --llm-model deepseek-chat]
 //        [--notes D:\agent社区\AgentFarm2\data\agent-notes\我的Agent]
 //   环境变量兜底：AGENTFARM_TOKEN / AGENTFARM_WS / LLM_URL / LLM_KEY / LLM_MODEL
@@ -29,13 +25,11 @@ const argVal = (k, d = null) => {
 };
 const TOKEN = argVal('--token', '');
 const WS_URL = argVal('--ws', 'ws://127.0.0.1:8080/agent') + (argVal('--token', '') ? '?token=' + argVal('--token') : '?token=' + TOKEN);
-const MODE = argVal('--mode', 'text');
 const ROUNDS = Number(argVal('--rounds', '5'));
 const LLM_URL = argVal('--llm-url', 'https://api.deepseek.com/v1').replace(/\/$/, '');
 const LLM_KEY = argVal('--llm-key', '');
 const LLM_MODEL = argVal('--llm-model', 'deepseek-v4-flash');
 const NOTES_ROOT = resolve(argVal('--notes', join(process.cwd(), 'data', 'agent-notes', 'default')));
-const SHOTS_DIR = resolve(argVal('--shots', join(process.cwd(), '..', 'data', 'screenshots')));
 
 // ---------- 笔记沙箱（只允许 NOTES_ROOT 内读写） ----------
 function safeNotePath(name) {
@@ -102,9 +96,6 @@ const GAME_TOOLS = [
   { name: 'game_inbox', description: '拉取玩家（我的主人）发来的指挥消息。返回全部未读消息（读后清除）。', params: { type: 'object', properties: {} } },
   { name: 'game_chat_log', description: '查看玩家频道最近的聊天记录（玩家们在聊什么）。', params: { type: 'object', properties: {} } },
 ];
-const VISION_TOOLS = [
-  { name: 'game_screenshot', description: '获取游戏当前画面截图（读取玩家客户端最近上传的画面）。多模态模式下可用。', params: { type: 'object', properties: {} } },
-];
 
 // ---------- 工具执行 ----------
 async function runTool(name, a) {
@@ -120,11 +111,6 @@ async function runTool(name, a) {
     case 'note_list': return { ok: true, notes: noteList() };
     case 'note_read': try { return { ok: true, content: noteRead(String(a.name || '')) }; } catch (e) { return { ok: false, msg: e.message }; }
     case 'note_write': try { return { ok: true, msg: noteWrite(String(a.name || ''), a.content) }; } catch (e) { return { ok: false, msg: e.message }; }
-    case 'game_screenshot': {
-      const p = join(SHOTS_DIR, 'latest.png');
-      if (!existsSync(p)) return { ok: false, msg: '暂无截图（玩家未在线或尚未上传）。可先用 game_observe 用文本感知世界。' };
-      return { ok: true, image: readFileSync(p).toString('base64'), path: p };
-    }
     default: return { ok: false, msg: '未知工具 ' + name };
   }
 }
@@ -161,12 +147,9 @@ function getPersonalityBlock() {
 // ---------- System Prompt ----------
 function systemPrompt() {
   loadPersonalities();
-  const vision = MODE === 'vision'
-    ? '- 你是多模态模型，可以调用 game_screenshot 获取游戏画面截图看图。画面和文本状态结合决策。'
-    : '- 你是纯文本模型，看不到画面：一切感知来自 game_observe 的文本 JSON。不要编造画面/颜色/长相。';
   return `你是《乡村狂想曲》联机版里的一名村民 Agent，以玩家身份在村庄里生活。
 
-${vision}
+- 你是纯文本模型，看不到画面：一切感知来自 game_observe 的文本 JSON。不要编造画面/颜色/长相。
 
 ${getPersonalityBlock()}
 
@@ -297,16 +280,14 @@ async function executeInboxRules(text) {
 
 // ---------- 主循环 ----------
 function toolsForMode() {
-  const t = [...GAME_TOOLS, ...NOTE_TOOLS];
-  if (MODE === 'vision') t.push(...VISION_TOOLS);
-  return t.map(x => ({ type: 'function', function: { name: x.name, description: x.description, parameters: x.params } }));
+  return [...GAME_TOOLS, ...NOTE_TOOLS]
+    .map(x => ({ type: 'function', function: { name: x.name, description: x.description, parameters: x.params } }));
 }
 
 async function main() {
-  console.log(`[agent] 模式=${MODE} 轮数=${ROUNDS} 笔记目录=${NOTES_ROOT}`);
+  console.log(`[agent] 轮数=${ROUNDS} 笔记目录=${NOTES_ROOT}`);
   if (!TOKEN) { console.error('[agent] 缺少 --token（接入码）'); process.exit(1); }
   mkdirSync(NOTES_ROOT, { recursive: true });
-  mkdirSync(SHOTS_DIR, { recursive: true });
 
   await new Promise((res, rej) => {
     ws = new WebSocket(WS_URL);
@@ -416,15 +397,9 @@ async function main() {
           let a = {}; try { a = JSON.parse(tl.args); } catch { a = {}; }
           console.log(`[tool] ${tl.name} ${JSON.stringify(a)}`);
           let result;
-          try { result = await runTool(tl.name, a); }
-          catch (e) { result = { ok: false, msg: e.message }; }
-          if (tl.name === 'game_screenshot' && result.ok && result.image) {
-            messages.push({ role: 'user', content: '画面截图已附：' });
-            messages.push({ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,' + result.image } }] });
-            delete result.image;
-          } else {
-            messages.push({ role: 'user', content: `${tl.name} 结果：${JSON.stringify(result).slice(0, 2000)}` });
-          }
+        try { result = await runTool(tl.name, a); }
+        catch (e) { result = { ok: false, msg: e.message }; }
+        messages.push({ role: 'user', content: `${tl.name} 结果：${JSON.stringify(result).slice(0, 2000)}` });
         }
         continue; // 继续让 LLM 决策
       }
@@ -438,19 +413,7 @@ async function main() {
         try { result = await runTool(fn.name, a); }
         catch (e) { result = { ok: false, msg: e.message }; }
         console.log(`[tool] ${fn.name} ${JSON.stringify(a)} -> ${JSON.stringify(result).slice(0, 200)}`);
-        // 多模态：截图以 image_url 注入
-        if (fn.name === 'game_screenshot' && result.ok && result.image) {
-          messages.push({
-            role: 'tool', tool_call_id: c.id,
-            content: [
-              { type: 'text', text: '画面截图（base64）已附上，请看图。' },
-              { type: 'image_url', image_url: { url: 'data:image/png;base64,' + result.image } },
-            ],
-          });
-          delete result.image;
-        } else {
-          messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(result, null, 1).slice(0, 3000) });
-        }
+        messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(result, null, 1).slice(0, 3000) });
       }
     }
     await new Promise(r => setTimeout(r, 1000)); // 每轮间隔

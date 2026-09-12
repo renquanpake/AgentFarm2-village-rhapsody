@@ -291,7 +291,7 @@ export function pushObserve(w: World, a: Actor) {
   const msg = {
     type: 'observe',
     actorId: a.id,
-    turn: cfg.vision ? 'vision' : 'text',
+    turn: 'text',
     at: Date.now(),
     you: {
       x: a.x, y: a.y, dir: a.dir,

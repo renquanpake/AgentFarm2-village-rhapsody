@@ -66,7 +66,7 @@ function startManagedAgent(acc) {
   if (!acc.agentToken) { acc.agentToken = genToken(); saveAccounts(); }
   const username = Object.keys(accounts).find(k => accounts[k] === acc) || acc.nick || acc.uid;
   const child = spawn(process.execPath, [join(__dirname, '..', 'tools', 'game-agent.mjs'), '--token', acc.agentToken,
-    '--mode', 'text', '--rounds', '999999', '--notes', join(DATA_DIR, 'agent-notes', username)], {
+    '--rounds', '999999', '--notes', join(DATA_DIR, 'agent-notes', username)], {
     cwd: join(__dirname, '..'), windowsHide: true, stdio: 'ignore',
     env: { ...process.env, LLM_URL: AGENT_LLM_URL, LLM_KEY: AGENT_LLM_KEY, LLM_MODEL: AGENT_LLM_MODEL },
   });
@@ -595,22 +595,6 @@ const server = http.createServer((req, res) => {
     } : null;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(JSON.stringify(g));
-    return;
-  }
-  // 客户端画面上传（多模态 agent 的"眼睛"：存 data/screenshots/latest.png）
-  if (u.pathname === '/af/upload-shot' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (c) => { body += c; if (body.length > 6 * 1024 * 1024) req.destroy(); });
-    req.on('end', () => {
-      try {
-        const buf = Buffer.from(body.trim(), 'base64');
-        if (!buf.length || buf.length > 5 * 1024 * 1024) { res.writeHead(400); return res.end('bad'); }
-        const dir = join(DATA_DIR, 'screenshots');
-        mkdirSync(dir, { recursive: true });
-        writeFileSync(join(dir, 'latest.png'), buf);
-        res.end('ok');
-      } catch (e) { res.writeHead(400); res.end('bad'); }
-    });
     return;
   }
   // agent 日记（只读）：返回该账号 agent 的日记列表与内容（读 data/agent-notes/<username>/日记/）

@@ -219,12 +219,12 @@ export class World {
     }
   }
 
-  /** 玩家级 Agent 接入配置（档1 自带模型 / 档2 外部程序 token） */
+  /** 玩家级 Agent 接入配置（档1 自带模型 / 档2 外部程序 token；多模态已移除，vision 恒为 false） */
   onAgentConfig(a: Actor, msg: any) {
     const cfg = a.brainCfg!;
+    cfg.vision = false;
     if (msg.mode === 'external') {
       cfg.mode = 'external';
-      cfg.vision = !!msg.vision;
       if (msg.regenerateToken) cfg.token = this.randToken();
     } else {
       cfg.mode = 'builtin';
@@ -232,7 +232,6 @@ export class World {
       cfg.key = String(msg.key || '').trim() || undefined;
       cfg.model = String(msg.model || '').trim() || undefined;
       cfg.temperature = msg.temperature != null ? +msg.temperature : 0.7;
-      cfg.vision = !!msg.vision;
     }
     const reply = { mode: cfg.mode, vision: cfg.vision, token: cfg.token, baseUrl: cfg.baseUrl, model: cfg.model };
     for (const [ws, c] of this.clients) if (c.actorId === a.id) this.send(ws, { type: 'agent_config_ok', cfg: reply });

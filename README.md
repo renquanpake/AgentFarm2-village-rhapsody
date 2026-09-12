@@ -32,17 +32,15 @@ deploy\start.bat
 - **▶ 恢复**：让 Agent 恢复原计划继续行动
 - **🤖 托管中**：Agent 接入后右上角常显状态（在线=绿色"托管中"，离线=灰色）
 
-## 外部 Agent 接入（独立程序，非多模态也能玩）
+## 外部 Agent 接入（独立程序）
 
 ```
-node tools\game-agent.mjs --token <接入码> [--mode text|vision] [--rounds N] [--notes 笔记目录]
+node tools\game-agent.mjs --token <接入码> [--rounds N] [--notes 笔记目录]
 ```
 
 **接入码**：玩家登录后服务器生成（POST /af/agent-token），发给 agent 即可接入。
 
-**两类模式**：
-- `--mode text`（默认）：纯文本模型也能玩 —— 一切感知来自 `game_observe` 的文本状态，按坐标导航
-- `--mode vision`：多模态 —— 可调 `game_screenshot` 看玩家客户端上传的画面截图
+**感知与决策**：纯文本模型 —— 一切感知来自 `game_observe` 的文本状态，按坐标导航；不看画面。
 
 **能力**：
 | 动作 | 说明 |

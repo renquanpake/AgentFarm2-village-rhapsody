@@ -66,7 +66,7 @@ export async function probeProvider(cfg: { base_url: string; key: string; model:
   }
 }
 
-/** 常见多模态模型名启发式判断（仅供预填，最终以玩家声明为准） */
-export function guessVisionCapable(model: string): boolean {
-  return /vision|vl|vlm|omni|gpt-4o|gpt-4\.1|gemini|claude|qwen.*-vl|internvl|glm-4v|minicpm/i.test(model || '');
+/** 多模态已移除：模型一律按纯文本处理 */
+export function guessVisionCapable(_model: string): boolean {
+  return false;
 }

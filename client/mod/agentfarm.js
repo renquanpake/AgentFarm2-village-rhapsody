@@ -614,7 +614,6 @@
       try { autoClosePopups(); } catch (e) { console.warn('[AF] autoClosePopups err:', e.message); }
       try { if (window.__AF_BLOCK_BOXES__) startBlockWatch(); } catch (e) {}
       try { hideExtraSlots(); } catch (e) { console.warn('[AF] hideExtraSlots err:', e.message); }
-      try { uploadShot(); } catch (e) { console.warn('[AF] uploadShot err:', e.message); }
       try { injectVillageMap(); } catch (e) { console.warn('[AF] injectVillageMap err:', e.message); }
     }, 1000);
   }
@@ -1233,21 +1232,6 @@
     function close() { panel.style.display = 'none'; }
     btn.onclick = open;
     panel.querySelector('#af-diary-x').onclick = close;
-  }
-
-  // ---------- 画面截图上传（多模态 agent 的眼睛；30s 节流） ----------
-  let lastShotAt = 0;
-  function uploadShot() {
-    try {
-      const canvas = document.getElementById('GameCanvas');
-      if (!canvas) return;
-      const now = Date.now();
-      if (now - lastShotAt < 30000) return;
-      lastShotAt = now;
-      const dataUrl = canvas.toDataURL('image/png');
-      const b64 = dataUrl.split(',')[1];
-      fetch(SERVER + '/af/upload-shot', { method: 'POST', body: b64 }).catch(() => {});
-    } catch (e) {}
   }
 
   // ---------- Agent 指挥 UI（📮 实时指挥 + ⏸ 打断 + ▶ 恢复 + 🤖 托管中状态） ----------
