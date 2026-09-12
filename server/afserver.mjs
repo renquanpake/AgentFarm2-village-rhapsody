@@ -145,7 +145,7 @@ let heroTemplate = null;
 if (playersDb.has(SEED_PLAYER_UID)) {
   heroTemplate = new Map();
   for (const [name, val] of playersDb.get(SEED_PLAYER_UID)) {
-    heroTemplate.set(name, JSON.parse(JSON.stringify(val)));
+    heroTemplate.set(name, structuredClone(val));
   }
 }
 
@@ -189,7 +189,7 @@ function ensurePlayerData(uid) {
   if (!playersDb.has(uid)) playersDb.set(uid, new Map());
   const pm = playersDb.get(uid);
   if (pm.size === 0 && heroTemplate) {
-    for (const [name, val] of heroTemplate) pm.set(name, JSON.parse(JSON.stringify(val)));
+    for (const [name, val] of heroTemplate) pm.set(name, structuredClone(val));
     // 每个玩家一份自己的 uid 与昵称
     const pd = pm.get('playerData');
     if (pd) { pd.uID = uid; pd.nickName = pd.nickName || ('玩家' + String(uid).slice(-4)); }
@@ -455,7 +455,7 @@ const server = http.createServer((req, res) => {
       heroTemplate = null;
       if (playersDb.has(SEED_PLAYER_UID)) {
         heroTemplate = new Map();
-        for (const [n, v] of playersDb.get(SEED_PLAYER_UID)) heroTemplate.set(n, JSON.parse(JSON.stringify(v)));
+        for (const [n, v] of playersDb.get(SEED_PLAYER_UID)) heroTemplate.set(n, structuredClone(v));
       }
       // 迁移检查
       if (!(globals.get(MIGRATED_KEY) || {}).val) migrateWorldCoords();
