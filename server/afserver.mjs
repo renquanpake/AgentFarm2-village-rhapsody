@@ -2163,6 +2163,16 @@ server.listen(PORT, () => {
   setInterval(checkAutoDmUnlock, 15 * 1000);
   // 每 5 分钟清理 DM 相关内存（lastMeetBroadcast / sceneTogether 空壳）
   setInterval(cleanupDmMaps, 5 * 60 * 1000);
+  // 存档自动备份：每 10 分钟 git commit + push（无凭据时仅本地 commit，不阻塞游戏）
+  const BACKUP_SCRIPT = join(__dirname, '..', 'tools', 'backup-saves.mjs');
+  setInterval(() => {
+    try {
+      if (existsSync(BACKUP_SCRIPT)) {
+        spawn(process.execPath, [BACKUP_SCRIPT], { stdio: ['ignore', 'pipe', 'pipe'] })
+          .on('close', (code) => { if (code !== 0 && process.env.AF_DEBUG) console.warn('[backup] exit', code); });
+      }
+    } catch {}
+  }, 10 * 60 * 1000);
   // 自动启动内网穿透（异步，不阻塞服务器；AF_NO_TUNNEL=1 时跳过，避免隧道抢占 8080 本地连接干扰测试）
   if (!process.env.AF_NO_TUNNEL) startTunnel(PORT);
 });

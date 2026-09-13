@@ -198,55 +198,28 @@
 
     // ---------- 第二步A：我是房主 → 选存档 ----------
     function viewHost() {
+      // 无感化：不选存档位，直接进登录；服务端固定 slot1
       setView(`
-        <div class="box">
+        <div class="box" style="text-align:center;">
           <a class="back" data-act="back">← 返回</a>
           <h2>🏠 我是房主</h2>
-          <p class="sub">选择一个存档开房间。服务器启动后会自动获取穿透地址。</p>
-          <div class="saves" id="af-saves"><div class="err">加载存档中…</div></div>
-          <div id="af-room-info" style="margin-top:14px;display:none;"></div>
+          <p class="sub">服务器已就绪，登录即可开始游戏</p>
+          <div id="af-room-info" style="margin-top:8px;"></div>
+          <button class="btn btn-primary" id="af-host-login" style="width:100%;margin-top:12px;">登录并进入</button>
         </div>`);
       d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
-      const saveBox = d.querySelector('#af-saves');
-      const roomInfo = d.querySelector('#af-room-info');
-      // 尝试获取房间码
+      d.querySelector('#af-host-login').addEventListener('click', () => viewLogin(() => SERVER));
+      // 房间码 + 地址展示（供朋友手动输入或 Tailscale 直连）
       fetch('/af/room').then(r => r.json()).then(data => {
-        if (data.roomCode) {
-          roomInfo.style.display = 'block';
-          roomInfo.innerHTML = `<div style="background:#1a1f26;border:1px solid #e0a63c;border-radius:8px;padding:12px;text-align:center;">
-            <div style="color:#ffd97a;font-size:12px;">你的房间码</div>
-            <div style="color:#ffd97a;font-size:28px;font-weight:bold;letter-spacing:6px;margin:6px 0;">${esc(data.roomCode)}</div>
-            <div style="color:#9aa4b0;font-size:11px;">朋友选"加入房间"输入这个码即可</div>
-            <div style="color:#6b7684;font-size:10px;margin-top:4px;">穿透地址: ${esc(data.tunnelUrl || '获取中...')}</div>
-          </div>`;
-        }
+        const el = d.querySelector('#af-room-info');
+        if (!el) return;
+        const lines = [];
+        if (data.tunnelUrl) lines.push(`<div style="color:#ffd97a;font-size:11px;margin-top:8px;">穿透地址<br>${esc(data.tunnelUrl)}</div>`);
+        if (data.roomCode) lines.push(`<div style="color:#9aa4b0;font-size:11px;margin-top:4px;">房间码：${esc(data.roomCode)}（6位，朋友"加入房间"时输入）</div>`);
+        lines.push(`<div style="color:#6b7684;font-size:10px;margin-top:4px;">本地地址：${esc(data.localUrl)}（Tailscale 内网朋友直接访问）</div>`);
+        el.innerHTML = lines.join('');
       }).catch(() => {});
-      fetch(SERVER + '/af/saves').then((r) => r.json()).then((data) => {
-        const saves = data.saves || [];
-        saveBox.innerHTML = '';
-        if (!saves.length) { saveBox.innerHTML = '<div class="err">暂无存档信息</div>'; return; }
-        const isCur = (slot) => !!data.currentSlot && Number(data.currentSlot) === Number(slot);
-        for (const s of saves) {
-          const card = document.createElement('div');
-          card.className = 'save' + (s.exists ? '' : ' empty');
-          const lastPlayed = s.lastPlayed ? fmtTime(s.lastPlayed) : '从未游玩';
-          const playerInfo = s.exists
-            ? (s.playerCount > 0 ? s.playerCount + ' 位玩家' : '空档')
-            : '空位 · 点击创建新档';
-          card.innerHTML = `
-            <div class="sn">${esc(s.name || ('存档' + s.slot))}${isCur(s.slot) ? '<span class="cur">● 当前</span>' : ''}</div>
-            <div class="sm">👥 ${playerInfo} · 🕒 ${lastPlayed}</div>`;
-          if (s.exists) {
-            card.addEventListener('click', () => {
-              try { localStorage.setItem('af_selected_slot', String(s.slot)); } catch (e) {}
-              viewLogin(function () { return SERVER; }); // 房主：用当前地址
-            });
-          }
-          saveBox.appendChild(card);
-        }
-      }).catch(() => {
-        saveBox.innerHTML = '<div class="err">无法连接服务器 ' + esc(SERVER) + '，请确认服务器已启动</div>';
-      });
+    }
     }
 
     // ---------- 第二步B：加入房间 → 房间码或地址 ----------
