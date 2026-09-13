@@ -487,9 +487,12 @@ const server = http.createServer((req, res) => {
   // ★ 房间码 API：获取当前房间码和穿透地址
   if (u.pathname === '/af/room') {
     res.setHeader('Content-Type', 'application/json');
-    // localUrl 反映当前请求实际到达的 host（容器/域名/隧道场景下是外部地址，本地开发是 127.0.0.1）
+    // 跟随反代头取协议：Caddy/nginx 终止 TLS 后，afserver 侧 req.socket.encrypted 恒为 false，
+    // 会误报 http://域名。优先取 X-Forwarded-Proto，缺失才 fallback 到 socket 加密状态。
+    const fwdProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+    const proto = (fwdProto === 'https' || fwdProto === 'http') ? fwdProto : (req.socket.encrypted ? 'https' : 'http');
+    // host 也优先取 X-Forwarded-Host（反代场景下 headers.host 可能已是目标域名；直接用 host 即可）
     const host = req.headers.host || `127.0.0.1:${PORT}`;
-    const proto = req.socket.encrypted ? 'https' : 'http';
     res.end(JSON.stringify({
       ok: true,
       roomCode: roomCode || null,
@@ -2063,10 +2066,8 @@ let tunnelProc = null; // cloudflared 子进程
 let roomCode = null;   // 6位房间码
 
 function genRoomCode() {
-  // 6位数字码（用时间戳+随机生成，防碰撞）
-  const now = Date.now().toString(36).slice(-3);
-  const rnd = randomBytes(2).toString('hex').slice(0, 3);
-  return (now + rnd).replace(/[a-f]/g, c => (c.charCodeAt(0) - 87)).slice(0, 6);
+  // 6位纯数字码（0-9），与 /af/join-room 和客户端 /^\d+$/ 校验对齐
+  return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
 }
 
 function findCloudflaredBin() {

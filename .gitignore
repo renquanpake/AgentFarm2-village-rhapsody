@@ -3,9 +3,12 @@
 
 # 运行时数据（不进仓库；存档/账号走 Fly 卷或本地 git 备份脚本管理）
 /data/accounts.json
+/data/accounts.json.bak
+/data/world.json.bak
 /data/agent-notes/
 /data/screenshots/
 /data/dm-logs/
+/data/saves/
 
 # 依赖（本机/容器 node_modules，勿提交）
 node_modules/

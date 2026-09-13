@@ -83,4 +83,4 @@ tools/            地图扩展/碰撞生成/测试脚本/原版代码定位报�
 - `docs/出生地方案.md` — 宅基地/出生点方案
 - `tools/原版代码定位报告.md` — 原版系统注入点全集
 - `tools/tile-classification.md` — 村地图 tile 分类（纯地面/路/杂物白名单）
-- `D:\skills\agentfarm-game\SKILL.md` — 给 Agent 框架用的游戏玩法技能（含非多模态玩法心法）
+- `D:\skills\agentfarm-game\SKILL.md`（本机开发环境路径，非仓库文件）— 给 Agent 框架用的游戏玩法技能（含非多模态玩法心法）

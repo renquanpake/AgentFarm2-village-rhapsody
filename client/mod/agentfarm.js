@@ -209,28 +209,7 @@
       }).catch(() => {});
     }
 
-    // ---------- 第二步A：房主查看房间信息（手动连接场景下展示）----------
-    function viewHost() {
-      setView(`
-        <div class="box" style="text-align:center;">
-          <a class="back" data-act="back">← 返回</a>
-          <h2>🏠 我的房间</h2>
-          <div id="af-room-info" style="margin-top:8px;"></div>
-          <button class="btn btn-primary" id="af-host-login" style="width:100%;margin-top:12px;">登录并进入</button>
-        </div>`);
-      d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
-      d.querySelector('#af-host-login').addEventListener('click', () => viewLogin(() => SERVER));
-      // 房间信息：仅本地 localtunnel 隧道场景显示可复制地址；
-      // 容器部署（Fly/无隧道）tunnel/roomCode 为 null，整块隐藏，避免展示无意义内容
-      fetch(SERVER + '/af/room').then(r => r.json()).then(data => {
-        const el = d.querySelector('#af-room-info');
-        if (!el || !data || (!data.tunnelUrl && !data.roomCode)) return;
-        const lines = [];
-        if (data.tunnelUrl) lines.push(`<div style="color:#ffd97a;font-size:12px;margin-top:8px;">穿透地址<br>${esc(data.tunnelUrl)}</div>`);
-        if (data.roomCode) lines.push(`<div style="color:#9aa4b0;font-size:12px;margin-top:4px;">房间码：${esc(data.roomCode)}（朋友"手动连接"输入）</div>`);
-        el.innerHTML = lines.join('');
-      }).catch(() => {});
-    }
+
 
     // ---------- 第二步B：加入房间 → 房间码或地址 ----------
     function viewJoin() {
@@ -392,6 +371,7 @@
     injectDiaryUI();
     injectAgentUI();
     injectSocialUI();
+    injectDmUI();
   }
 
   // ---------- key 翻译 ----------
@@ -524,6 +504,10 @@
         case 'agent_move': onAgentMove(msg); break;
         case 'agent_move_done': onAgentMoveDone(msg); break;
         case 'agent_status': if (window.__AF_AGENT_STATUS__) window.__AF_AGENT_STATUS__(!!msg.online, msg.nick); break;
+        case 'dm_in': onDmIn(msg); break;
+        case 'dm_result': onDmResult(msg); break;
+        case 'dm_log': onDmLog(msg); break;
+        case 'dm_unlocked_list': onDmUnlockedList(msg); break;
       }
     };
     ws.onclose = function () {
@@ -1060,6 +1044,105 @@
       else window.__AF_CHAT_ADD__('系统', (msg.ok ? '✅ ' : '❌ ') + msg.msg);
     } catch (e) {}
   }
+  // ---------- 1:1 私聊（微信式，无距离限制）----------
+  // 服务器消息：dm_in（收到私聊）、dm_result（发送结果）、dm_log（历史，msgs 数组）、dm_unlocked_list（已解锁对象）
+  // 已解锁的私聊对象：首次见面（打招呼/送礼）后服务器标记 pair.dmUnlocked
+  let dmUnlockedPeers = new Map(); // uid -> nick
+  const dmCache = { logs: new Map(), target: '', lastSent: '' }; // logs: targetUid -> 最近私聊历史数组
+  function renderDmLog() {
+    const box = document.getElementById('af-dm-log');
+    if (!box) return;
+    box.innerHTML = '';
+    const entries = dmCache.logs.get(dmCache.target) || [];
+    if (entries.length === 0) { box.innerHTML = '<div class="dm-empty">暂无私聊记录</div>'; return; }
+    for (const m of entries.slice(-30)) {
+      const div = document.createElement('div');
+      div.className = 'dm-line' + (m.from === uid ? ' me' : '');
+      const t = new Date(m.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+      div.innerHTML = '<span class="dm-at">' + t + '</span> <b class="dm-nick">' + esc(m.nick || m.from) + '</b>：' + esc(m.text);
+      box.appendChild(div);
+    }
+    box.scrollTop = box.scrollHeight;
+  }
+  function onDmUnlockedList(msg) {
+    dmUnlockedPeers = new Map();
+    for (const p of (msg.peers || [])) dmUnlockedPeers.set(p.other, p.nick);
+    refreshDmPeerList();
+  }
+  function onDmIn(msg) {
+    if (msg.from === uid) return;
+    const log = dmCache.logs.get(msg.from);
+    if (log) log.push({ from: msg.from, nick: msg.nick, text: msg.text, at: Date.now() });
+    if (dmCache.target === msg.from) renderDmLog();
+    if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('私聊·' + msg.nick, msg.text + '（点 💬 打开私聊面板回复）');
+  }
+  function onDmResult(msg) {
+    if (!window.__AF_CHAT_ADD__) return;
+    if (msg.ok) {
+      const log = dmCache.logs.get(dmCache.target);
+      if (log && dmCache.lastSent) log.push({ from: uid, nick, text: dmCache.lastSent, at: Date.now() });
+      dmCache.lastSent = '';
+      if (dmPanelOpen()) renderDmLog();
+    } else {
+      window.__AF_CHAT_ADD__('系统', '❌ 私聊失败：' + msg.msg);
+    }
+  }
+  function onDmLog(msg) {
+    dmCache.logs.set(dmCache.target, msg.msgs || []);
+    if (dmPanelOpen()) renderDmLog();
+  }
+  function sendDm(targetUid, text) {
+    if (!connected) return;
+    dmCache.lastSent = text;
+    dmCache.target = targetUid;
+    ws.send(JSON.stringify({ t: 'dm_send', target: targetUid, text }));
+  }
+  function requestDmLog(targetUid) {
+    if (!connected) return;
+    dmCache.target = targetUid;
+    ws.send(JSON.stringify({ t: 'dm_log', target: targetUid }));
+  }
+  function requestDmUnlockedList() {
+    if (connected) ws.send(JSON.stringify({ t: 'dm_unlocked' }));
+  }
+  function dmPanelOpen() {
+    const p = document.getElementById('af-dm-panel');
+    return p && p.style.display === 'flex';
+  }
+  function openDmPanel(peerUid) {
+    const panel = document.getElementById('af-dm-panel');
+    if (panel) panel.style.display = 'flex';
+    refreshDmPeerList();
+    if (peerUid && dmUnlockedPeers.has(peerUid)) selectDmPeer(peerUid);
+    else {
+      document.getElementById('af-dm-name').textContent = '未选择';
+      document.getElementById('af-dm-status').textContent = '';
+      document.getElementById('af-dm-log').innerHTML = '<div class="dm-empty">左侧选择一位已解锁的私聊对象</div>';
+    }
+  }
+  function selectDmPeer(peerUid) {
+    const peer = dmUnlockedPeers.get(peerUid);
+    if (!peer) return;
+    dmCache.target = peerUid;
+    document.getElementById('af-dm-name').textContent = peer;
+    document.getElementById('af-dm-status').textContent = '已解锁 · ' + peer;
+    document.getElementById('af-dm-input').focus();
+    document.getElementById('af-dm-log').innerHTML = '<div class="dm-empty">加载中…</div>';
+    requestDmLog(peerUid);
+  }
+  function refreshDmPeerList() {
+    const list = document.getElementById('af-dm-peers');
+    if (!list) return;
+    list.innerHTML = '';
+    if (dmUnlockedPeers.size === 0) { list.innerHTML = '<div class="dm-empty">暂无已解锁对象</div>'; return; }
+    for (const [pu, pn] of dmUnlockedPeers) {
+      const div = document.createElement('div');
+      div.className = 'dm-peer';
+      div.textContent = '💬 ' + pn;
+      div.onclick = () => selectDmPeer(pu);
+      list.appendChild(div);
+    }
+  }
   let taskPanelTasks = null;
   function onTaskList(msg) {
     taskPanelTasks = msg.tasks || [];
@@ -1128,8 +1211,17 @@
         }
         return true;
       }
+      case 'dm': {
+        const target = a(0);
+        const rest = parts.slice(2).join(' ');
+        if (!target || !rest) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '用法：/dm 昵称 私聊内容（需已解锁）'); return true; }
+        const targetUid = dmUnlockedPeers.size ? [...dmUnlockedPeers.entries()].find(([, n]) => n === target)?.[0] : null;
+        if (!targetUid) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '未找到该私聊对象，先点 💬 打开面板解锁'); return true; }
+        sendDm(targetUid, rest);
+        return true;
+      }
       case 'help': {
-        if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '命令：/give 昵称 物品id 数量 · /fav 昵称 · /bind 昵称 关系 · /tp 昵称 · /task · 对话请点对方角色');
+        if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '命令：/give 昵称 物品id 数量 · /fav 昵称 · /bind 昵称 关系 · /tp 昵称 · /task · /dm 昵称 消息（私聊）· 对话请点对方角色');
         return true;
       }
     }
@@ -1679,6 +1771,83 @@
       const p = remotePlayers.get(uid2);
       window.__AF_OPEN_SOCIAL__(uid2, p ? p.nick : uid2);
     } catch (e) {}
+  }
+
+  // ---------- 1:1 私聊面板（💬 按钮 + 左侧已解锁列表 + 右侧聊天框）----------
+  function injectDmUI() {
+    if (document.getElementById('af-dm-btn')) return;
+    const css = document.createElement('style');
+    css.textContent = `
+      #af-dm-btn { position: fixed; top: 46px; left: 56px; z-index: 99990; cursor: pointer;
+        background: rgba(38,44,52,.9); color: #ffd97a; border: 1px solid #5a6b3a; border-radius: 6px;
+        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+      #af-dm-btn:hover { background: rgba(52,60,70,.95); }
+      #af-dm-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
+        width: 540px; max-width: 94vw; display: none; flex-direction: column;
+        background: linear-gradient(180deg,#2c3138,#20242a); border: 2px solid #7a6a4a; border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,.7); font: 13px "Microsoft YaHei", sans-serif; }
+      #af-dm-panel .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+        border-bottom: 1px solid #3a4450; }
+      #af-dm-panel .hd b { color: #ffd97a; font-size: 15px; }
+      #af-dm-panel .hd .x { cursor: pointer; color: #9aa4b0; font-size: 16px; padding: 0 6px; }
+      #af-dm-panel .hd .x:hover { color: #ff7a7a; }
+      #af-dm-panel .bd { display: flex; flex: 1; min-height: 340px; }
+      #af-dm-panel .list { width: 170px; border-right: 1px solid #3a4450; overflow-y: auto; padding: 8px 0; }
+      #af-dm-panel .list .dm-peer { padding: 7px 14px; color: #c8d0da; cursor: pointer; }
+      #af-dm-panel .list .dm-peer:hover { background: rgba(255,217,122,.08); }
+      #af-dm-panel .list .dm-empty { color: #6b7684; padding: 10px 14px; font-size: 12px; }
+      #af-dm-panel .chat-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      #af-dm-panel .chat-name { padding: 8px 14px; color: #c8d0da; font-size: 12px; border-bottom: 1px solid #2c333c; }
+      #af-dm-panel .chat-name b { color: #ffd97a; font-size: 14px; }
+      #af-dm-panel .chat-name .st { color: #8a94a0; font-size: 11px; margin-left: 8px; }
+      #af-dm-panel #af-dm-log { flex: 1; overflow-y: auto; padding: 10px 14px; color: #dde3ea; line-height: 1.7; }
+      #af-dm-panel #af-dm-log .dm-line { margin-bottom: 6px; }
+      #af-dm-panel #af-dm-log .dm-line.me { color: #7ad0ff; }
+      #af-dm-panel #af-dm-log .dm-at { color: #6b7684; font-size: 11px; margin-right: 6px; }
+      #af-dm-panel #af-dm-log .dm-nick { color: #ffe27a; font-size: 12px; }
+      #af-dm-panel #af-dm-log .dm-empty { color: #6b7684; text-align: center; margin-top: 40px; }
+      #af-dm-panel .chat-input { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid #3a4450; }
+      #af-dm-panel .chat-input input { flex: 1; background: #1a1f26; color: #eee; border: 1px solid #3a4450;
+        border-radius: 6px; padding: 7px 9px; font: 13px "Microsoft YaHei", sans-serif; outline: none; }
+      #af-dm-panel .chat-input button { background: #e0a63c; border: 0; border-radius: 6px; padding: 7px 14px;
+        cursor: pointer; font: 13px "Microsoft YaHei", sans-serif; }
+      #af-dm-panel .chat-input button:hover { background: #f0b850; }
+    `;
+    document.head.appendChild(css);
+    const btn = document.createElement('div');
+    btn.id = 'af-dm-btn';
+    btn.textContent = '💬 私聊';
+    btn.onclick = () => openDmPanel(null);
+    document.body.appendChild(btn);
+    const panel = document.createElement('div');
+    panel.id = 'af-dm-panel';
+    panel.innerHTML = `
+      <div class="hd"><b>💬 我的私聊</b><span class="x" id="af-dm-x">✕</span></div>
+      <div class="bd">
+        <div class="list" id="af-dm-peers"></div>
+        <div class="chat-col">
+          <div class="chat-name"><b id="af-dm-name">未选择</b><span class="st" id="af-dm-status"></span></div>
+          <div id="af-dm-log"><div class="dm-empty">左侧选择一位已解锁的私聊对象</div></div>
+          <div class="chat-input">
+            <input id="af-dm-input" placeholder="输入消息，Enter 发送" maxlength="500">
+            <button id="af-dm-send">发送</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(panel);
+    panel.querySelector('#af-dm-x').onclick = () => { panel.style.display = 'none'; };
+    const inp = panel.querySelector('#af-dm-input');
+    const send = () => {
+      const t = inp.value.trim();
+      const targetUid = dmCache.target;
+      if (!targetUid) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '先选一位已解锁对象'); return; }
+      if (!t) return;
+      sendDm(targetUid, t);
+      inp.value = '';
+    };
+    panel.querySelector('#af-dm-send').onclick = send;
+    inp.onkeydown = (e) => { if (e.key === 'Enter') send(); };
+    requestDmUnlockedList();
   }
 
   // ---------- 隐藏原版多存档槽（只留槽位 1 作为唯一入口） ----------
