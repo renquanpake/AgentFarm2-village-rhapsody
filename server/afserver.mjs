@@ -757,8 +757,12 @@ function gameConn(ws) {
         const cv = (v, d) => { const n = Number(v); return Number.isFinite(n) && Math.abs(n) <= 1e6 ? n : d; };
         p.scene = msg.scene === undefined ? p.scene : Math.round(cv(msg.scene, p.scene));
         p.x = cv(msg.x, p.x); p.y = cv(msg.y, p.y);
-        // 场景切换时刷新同场景共处跟踪
-        if (msg.scene !== undefined) trackSceneTogether(uid, p.scene);
+        // 场景切换时刷新同场景共处跟踪（注册进 sceneTogether + 重置计时起点）
+        if (msg.scene !== undefined) {
+          trackSceneTogether(uid, p.scene);
+          // 补注册：move 进场景的新玩家也要建立双向共处条目，否则自动解锁漏判
+          for (const [k, o] of online) if (k !== uid && o.scene === p.scene) registerScenePeer(uid, k, p.scene);
+        }
         for (const [k, o] of online) if (k !== uid) sendTo(o, { t: 'move', uid, scene: p.scene, x: p.x, y: p.y });
         break;
       }
@@ -793,27 +797,8 @@ function gameConn(ws) {
         taskCount(target, 'talk');
         const firstMeet = dmUnlock(uid, target);
         if (firstMeet) {
-          // 持久化双方 nick（离线也能显示名字）
-          const { p: pair } = pairOf(uid, target);
-          pair.dmNick = pB.nick;
-          pair.dmNickBy = p.nick;
-          // 3s 节流广播
-          const meetKey = [uid, target].sort().join('|');
-          const nowMs = Date.now();
-          if (nowMs - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
-            lastMeetBroadcast.set(meetKey, nowMs);
-            for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${p.nick} 和 ${pB.nick} 见面了，可以开始私聊了` });
-          }
-        }
-        // 首次见面时把私聊解锁状态实时推给双方（含 agent socket）
-        if (firstMeet) {
-          send({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
-          const pB_ws = online.get(target);
-          if (pB_ws) sendTo(pB_ws, { t: 'dm_unlocked_list', peers: dmUnlockedList(target) });
-          const agA = agentSockets.get(uid);
-          if (agA) for (const w of agA) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) }));
-          const agB = agentSockets.get(target);
-          if (agB) for (const w of agB) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_unlocked_list', peers: dmUnlockedList(target) }));
+          announceDmUnlock(uid, target, `🤝 ${p.nick} 和 ${pB.nick} 见面了，可以开始私聊了`);
+          pushDmUnlockedLists(uid, target);
         }
         send({ t: 'social_result', social: 'talk', ok: true, msg: firstMeet ? `首次见面，已解锁私聊！好感 +2（现 ${fav}）` : `已对话，${pB.nick} 对你的好感 +2（现 ${fav}）` });
         console.log(`[social] ${p.nick} 对话 ${pB.nick}`);
@@ -843,16 +828,8 @@ function gameConn(ws) {
         // 送礼也解锁 DM（见面送东西 = 认识了）
         const giveMeet = dmUnlock(uid, target);
         if (giveMeet) {
-          const { p: pair } = pairOf(uid, target);
-          pair.dmNick = pB.nick;
-          pair.dmNickBy = p.nick;
-          const meetKey = [uid, target].sort().join('|');
-          if (Date.now() - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
-            lastMeetBroadcast.set(meetKey, Date.now());
-            for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${p.nick} 给 ${pB.nick} 送了礼物，可以开始私聊了` });
-          }
-          send({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
-          sendTo(pB, { t: 'dm_unlocked_list', peers: dmUnlockedList(target) });
+          announceDmUnlock(uid, target, `🤝 ${p.nick} 给 ${pB.nick} 送了礼物，可以开始私聊了`);
+          pushDmUnlockedLists(uid, target);
         }
         send({ t: 'social_result', social: 'give', ok: true, msg: `送礼成功，${pB.nick} 对你的好感 +${g}（现 ${fav}）` });
         console.log(`[social] ${p.nick} 送礼 ${pB.nick} ${it.name}x${num}`);
@@ -1118,6 +1095,30 @@ function dmUnlockedList(uid) {
   }
   return out;
 }
+// 公共辅助：首次见面/送礼/自动解锁 DM 时统一记录双端 nick + 3s 节流系统广播
+function announceDmUnlock(aUid, bUid, text) {
+  const { p } = pairOf(aUid, bUid);
+  const na = online.get(aUid)?.nick || aUid.slice(0, 8);
+  const nb = online.get(bUid)?.nick || bUid.slice(0, 8);
+  p.dmNick = nb; p.dmNickBy = na;
+  const meetKey = [aUid, bUid].sort().join('|');
+  const nowMs = Date.now();
+  if (nowMs - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
+    lastMeetBroadcast.set(meetKey, nowMs);
+    for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text });
+  }
+}
+// 公共辅助：把 dm_unlocked_list 实时推给两个 uid 的玩家连接 + agent socket
+function pushDmUnlockedLists(aUid, bUid) {
+  sendDmUnlockedTo(aUid);
+  sendDmUnlockedTo(bUid);
+}
+function sendDmUnlockedTo(uid) {
+  const p = online.get(uid);
+  if (p) sendTo(p, { t: 'dm_unlocked_list', peers: dmUnlockedList(uid) });
+  const ag = agentSockets.get(uid);
+  if (ag) for (const w of ag) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_unlocked_list', peers: dmUnlockedList(uid) }));
+}
 // 同场景在线 > 10 分钟自动解锁 DM（"在同一个村子待够了，算认识"）
 const DM_SCENE_COOLDOWN_MS = 10 * 60 * 1000; // 10 分钟
 const sceneTogether = new Map(); // uid -> Map<peerUid, {scene, since}>
@@ -1132,18 +1133,10 @@ function checkAutoDmUnlock() {
       if (now - rec.since >= DM_SCENE_COOLDOWN_MS) {
         const first = dmUnlock(uid, peer);
         if (first) {
-          // 记录双方 nick 供离线展示
-          const { p } = pairOf(uid, peer);
-          p.dmNick = online.get(peer)?.nick;
-          p.dmNickBy = online.get(uid)?.nick;
           const na = online.get(uid)?.nick || uid.slice(0, 8);
           const nb = online.get(peer)?.nick || peer.slice(0, 8);
-          // 节流广播（和首次见面同一套 3s 窗口）
-          const meetKey = [uid, peer].sort().join('|');
-          if (now - (lastMeetBroadcast.get(meetKey) || 0) >= 3000) {
-            lastMeetBroadcast.set(meetKey, now);
-            for (const [, o] of online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🤝 ${na} 和 ${nb} 同村待够了，可以开始私聊了` });
-          }
+          announceDmUnlock(uid, peer, `🤝 ${na} 和 ${nb} 同村待够了，可以开始私聊了`);
+          pushDmUnlockedLists(uid, peer);
           // 双向清理：uid 的 map 删 peer，peer 的 map 删 uid（防内存泄漏）
           peerMap.delete(peer);
           const peerMap2 = sceneTogether.get(peer);
@@ -1194,6 +1187,14 @@ function resolveOnlineUid(nameOrUid) {
   if (!nameOrUid) return null;
   if (online.has(nameOrUid)) return nameOrUid;
   for (const [k, o] of online) if (o.nick === nameOrUid) return k;
+  return null;
+}
+// agent 端 dm_send 允许离线目标：先查在线玩家，再查账号库（离线玩家 uid 也在账号库里）
+function resolveAnyUid(nameOrUid) {
+  const r = resolveOnlineUid(nameOrUid);
+  if (r) return r;
+  // 离线：按 uid 直接查 accounts
+  if (findAccountByUid(nameOrUid)) return nameOrUid;
   return null;
 }
 function giftFavGain(aUid, bUid, itemId) {
@@ -1754,18 +1755,19 @@ function agentConn(ws, u) {
         break;
       }
       case 'dm_send': {
-        const target = resolveOnlineUid(String(msg.target || '')) || '';
+        const target = resolveAnyUid(String(msg.target || '')) || '';
         if (!target || target === uid) { send({ t: 'dm_result', ok: false, msg: '无效目标' }); break; }
         if (!dmUnlocked(uid, target)) { send({ t: 'dm_result', ok: false, msg: '还没和 TA 见过面' }); break; }
         const text = String(msg.text || '').slice(0, 500);
         if (!text) { send({ t: 'dm_result', ok: false, msg: '消息为空' }); break; }
         const entry = { from: uid, nick: nick, text, at: Date.now(), agent: true };
         dmPush(uid, target, entry);
+        // 在线时实时推送；离线时消息已入持久化日志，对方上线后查 dm_log 可见
         const pB = online.get(target);
         if (pB) sendTo(pB, { t: 'dm_in', from: uid, nick: nick, text });
         const agSock = agentSockets.get(target);
         if (agSock) for (const w of agSock) if (w.readyState === 1) w.send(JSON.stringify({ t: 'dm_in', from: uid, nick, text, agent: true }));
-        send({ t: 'dm_result', ok: true });
+        send({ t: 'dm_result', ok: true, delivered: !!pB });
         break;
       }
       case 'dm_log': {
@@ -2161,6 +2163,6 @@ server.listen(PORT, () => {
   setInterval(checkAutoDmUnlock, 15 * 1000);
   // 每 5 分钟清理 DM 相关内存（lastMeetBroadcast / sceneTogether 空壳）
   setInterval(cleanupDmMaps, 5 * 60 * 1000);
-  // 自动启动内网穿透（异步，不阻塞服务器）
-  startTunnel(PORT);
+  // 自动启动内网穿透（异步，不阻塞服务器；AF_NO_TUNNEL=1 时跳过，避免隧道抢占 8080 本地连接干扰测试）
+  if (!process.env.AF_NO_TUNNEL) startTunnel(PORT);
 });
