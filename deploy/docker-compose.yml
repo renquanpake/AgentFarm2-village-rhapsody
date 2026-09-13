@@ -16,12 +16,14 @@ services:
       - AF_DATA_DIR=/data
       - AF_CLIENT_DIR=/app/client
     volumes:
-      # 存档 + 账号 + agent-notes 持久化
+      # 运行时生成数据（存档/账号/agent-notes）持久化；
+      # 配置数据（items.json 等）已 COPY 进镜像 /data/，挂载会遮蔽，故不在此挂
       - ./data:/data
     # Fly.io 部署时改用 volume（不映射端口）：
     # 见 deploy/FLY.md
 
   # HTTPS 反向代理 + 自动证书 + WebSocket 透传
+  # 域名通过 CADDY_DOMAIN 环境变量注入（.env 里设 CADDY_DOMAIN=game.example.com）
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -30,6 +32,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN:?请在 .env 中设 CADDY_DOMAIN=你的域名}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

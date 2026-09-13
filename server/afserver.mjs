@@ -487,11 +487,14 @@ const server = http.createServer((req, res) => {
   // ★ 房间码 API：获取当前房间码和穿透地址
   if (u.pathname === '/af/room') {
     res.setHeader('Content-Type', 'application/json');
+    // localUrl 反映当前请求实际到达的 host（容器/域名/隧道场景下是外部地址，本地开发是 127.0.0.1）
+    const host = req.headers.host || `127.0.0.1:${PORT}`;
+    const proto = req.socket.encrypted ? 'https' : 'http';
     res.end(JSON.stringify({
       ok: true,
       roomCode: roomCode || null,
       tunnelUrl: tunnelUrl || null,
-      localUrl: `http://127.0.0.1:${PORT}`,
+      localUrl: `${proto}://${host}`,
     }));
     return;
   }

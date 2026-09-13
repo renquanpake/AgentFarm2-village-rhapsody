@@ -33,7 +33,7 @@ API + WS 全指向当前页面所在的服务器。你部署到哪个域名，�
 
 **存档安全**：
 - 主存 = Fly 持久卷（`/data`），`flyctl` 重启/升级不丢
-- 备份 = 每小时自动 `git commit + push` 到 GitHub（`backup-saves.mjs`），双重保险
+- 备份 = 每 10 分钟自动 `git commit + push` 到 GitHub（`backup-saves.mjs`），双重保险
 
 **内存**：单实例 256MB 能跑 afserver + 2~5 个玩家并发。超了再升 512MB（付费 $5/月）。
 
@@ -44,12 +44,17 @@ API + WS 全指向当前页面所在的服务器。你部署到哪个域名，�
 适合"我电脑一直开着，朋友在我家局域网 / 同一 Tailscale 组"的场景。
 
 ```bash
-# 1. 在 repo 根目录（含 client/ + server/ + data/）起服务
-docker compose -f deploy/docker-compose.yml up -d
-# 只起 afserver，不挂域名/HTTPS（内网用）
+# 0. 在 repo 根目录起服务前，先建 .env 给 caddy 域名（只起 afserver 可跳过 caddy）
+echo "CADDY_DOMAIN=你的域名.com" > .env
+
+# 1. 只起游戏服（内网用，不挂 HTTPS）
+docker compose -f deploy/docker-compose.yml up -d afserver
 # 本地访问 http://127.0.0.1:8080/
 
-# 2. 同网段朋友访问 http://你的内网IP:8080/
+# 2. 全起（含 caddy HTTPS，需已配 .env）
+docker compose -f deploy/docker-compose.yml up -d
+
+# 3. 同网段朋友访问 http://你的内网IP:8080/
 # 不同网段：装 Tailscale，用 http://你的tailscaleIP:8080/
 ```
 
@@ -59,7 +64,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## 备份机制说明
 
-`server/afserver.mjs` 每小时调 `tools/backup-saves.mjs`：
+`server/afserver.mjs` 每 10 分钟调 `tools/backup-saves.mjs`：
 
 | 场景 | 行为 |
 |------|------|

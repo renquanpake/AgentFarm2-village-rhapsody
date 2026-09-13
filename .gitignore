@@ -1,13 +1,11 @@
-# 排除不需要的
-_release/
-*.zip
-data/accounts.json
-data/agent-provider.json
-data/agent-notes/
-data/screenshots/
-data/world.json
-_review_*/
-_decrypted/
-_dbg_*/
-_backup/
-_tiles_*/
+# 备份锁文件（临时，勿提交）
+.backup-lock
+
+# 运行时数据（不进仓库；存档/账号走 Fly 卷或本地 git 备份脚本管理）
+/data/accounts.json
+/data/agent-notes/
+/data/screenshots/
+/data/dm-logs/
+
+# 依赖（本机/容器 node_modules，勿提交）
+node_modules/

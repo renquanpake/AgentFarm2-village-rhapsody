@@ -13,45 +13,28 @@ curl -L https://fly.io/get.sh | sh -s
 flyctl login
 ```
 
-## 2. 建持久卷（存存档，VPS 重启不丢）
+## 2. 初始化 app（基于仓库里的 fly.toml，不部署）
 
 ```bash
-flyctl launch
-# 一路回车，服务名填 agentfarm2，region 选你离你最近（如 szx 深圳 / hk 港）
-flyctl volumes create saves -s agentfarm2 -n 10   # 10GB 够用
+flyctl launch --no-deploy   # 服务名 agentfarm2，region 选离你最近（szx 深圳 / hk 港）
+```
+
+（`flyctl launch` 读仓库里的 `fly.toml` 建 app；`--no-deploy` 只建 app 不部署，
+避免卷还没建就部署失败。`fly.toml` 已含配置，无需再写）
+
+## 3. 建持久卷（存存档，VPS 重启不丢）
+
+```bash
+flyctl volumes create saves -s agentfarm2 -n 3   # 免费层上限 3GB
 flyctl volumes list
 ```
 
-## 3. 写 fly.toml
+## 4. 确认 fly.toml
 
-在项目根目录建 `fly.toml`：
+仓库根目录的 `fly.toml` 已写好配置（`AF_DATA_DIR=/data` 挂载卷、`AF_NO_GIT=1` 跳过 git、
+`AF_NO_TUNNEL=1` 不启动内网穿透、`force_https=true` 自动证书）。确认 `primary_region` 是你选的 region 即可，无需改动。
 
-```toml
-app = "agentfarm2"
-primary_region = "szx"
-
-[build]
-
-[http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = false
-  auto_start_machines = true
-
-[[mounts]]
-  source = "saves"
-  destination = "/data"
-
-[env]
-  PORT = "8080"
-  AF_SLOT = "1"
-  AF_NO_TUNNEL = "1"
-  AF_NO_GIT = "1"
-  AF_DATA_DIR = "/data"
-  AF_CLIENT_DIR = "/app/client"
-```
-
-## 4. 部署
+## 5. 部署
 
 ```bash
 flyctl deploy
@@ -59,10 +42,9 @@ flyctl deploy
 
 第一次约 2-3 分钟（build 镜像 + 装依赖 + 拷 386M 前端资源）。
 
-## 5. 绑域名
+## 6. 绑域名
 
 ```bash
-flyctl apps cert create 你的域名.com
 flyctl certificates add 你的域名.com
 ```
 
@@ -72,7 +54,7 @@ DNS（在 Cloudflare 或你的注册商）：
 - A 记录 `你的域名.com` → 加 Fly 给你的公网 IP（`flyctl apps list` 查）
 - 或 CNAME `你的域名.com` → `你的域名.com.fly.dev`
 
-## 6. 验证
+## 7. 验证
 
 ```bash
 flyctl curl https://你的域名.com/af/status

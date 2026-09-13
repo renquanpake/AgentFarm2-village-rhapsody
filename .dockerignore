@@ -1,0 +1,13 @@
+# 排除大文件/凭据，加快 Docker build。
+# 注意：Dockerfile COPY 的路径必须保留在 context 里，
+# data/ 与 client/ 与 server/ 都是 Dockerfile 引用的，不能排除。
+.git
+# server 只要 afserver.mjs + package.json，依赖走 npm install 重装
+server/src/
+server/examples/
+server/node_modules/
+*.md
+联机教程.md
+deploy/
+fly.toml
+tools/

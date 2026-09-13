@@ -159,7 +159,7 @@
       const srv = getServer();
       setView(`
         <div class="box">
-          <a class="back" data-act="back">← 返回选模式</a>
+          <a class="back" data-act="back">← 返回</a>
           <h2>乡村狂想曲 · 联机版</h2>
           <p class="sub">一个账号一个家。输入账号密码，没有账号会自动注册。</p>
           <input id="af-user" placeholder="账号（2-16 个字符）" maxlength="16">
@@ -195,12 +195,13 @@
         location.reload();
       });
       d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
-      // 房主房间信息（隧道地址/房间码/本地地址），供朋友一键复制连接
-      fetch('/af/room').then(r => r.json()).then(data => {
+      // 房间信息（穿透地址/房间码）：打到 SERVER 即房主服。容器部署（Fly/无隧道）
+      // 下 tunnel/roomCode 为 null，整块隐藏；仅本地 localtunnel 隧道场景才显示。
+      fetch(SERVER + '/af/room').then(r => r.json()).then(data => {
+        if (!data || (!data.tunnelUrl && !data.roomCode)) return;
         const lines = [];
         if (data.tunnelUrl) lines.push(`<br>穿透地址：<span style="color:#ffd97a;">${esc(data.tunnelUrl)}</span>`);
         if (data.roomCode) lines.push(`房间码：<span style="color:#9aa4b0;">${esc(data.roomCode)}</span>`);
-        if (data.localUrl) lines.push(`本地：<span style="color:#6b7684;">${esc(data.localUrl)}</span>`);
         if (lines.length) {
           const el = d.querySelector('.misc');
           if (el) el.innerHTML += lines.join('');
@@ -219,13 +220,14 @@
         </div>`);
       d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
       d.querySelector('#af-host-login').addEventListener('click', () => viewLogin(() => SERVER));
-      fetch('/af/room').then(r => r.json()).then(data => {
+      // 房间信息：仅本地 localtunnel 隧道场景显示可复制地址；
+      // 容器部署（Fly/无隧道）tunnel/roomCode 为 null，整块隐藏，避免展示无意义内容
+      fetch(SERVER + '/af/room').then(r => r.json()).then(data => {
         const el = d.querySelector('#af-room-info');
-        if (!el) return;
+        if (!el || !data || (!data.tunnelUrl && !data.roomCode)) return;
         const lines = [];
         if (data.tunnelUrl) lines.push(`<div style="color:#ffd97a;font-size:12px;margin-top:8px;">穿透地址<br>${esc(data.tunnelUrl)}</div>`);
         if (data.roomCode) lines.push(`<div style="color:#9aa4b0;font-size:12px;margin-top:4px;">房间码：${esc(data.roomCode)}（朋友"手动连接"输入）</div>`);
-        lines.push(`<div style="color:#6b7684;font-size:10px;margin-top:4px;">本地：${esc(data.localUrl || '')}（内网朋友直接访问）</div>`);
         el.innerHTML = lines.join('');
       }).catch(() => {});
     }
@@ -249,11 +251,11 @@
       const srvInput = d.querySelector('#af-srv');
       const errEl = d.querySelector('#af-err');
       const doJoin = async () => {
-        // 优先用房间码
+        // 优先用房间码（打到 SERVER 即房主服查 roomCodes）
         const code = codeInput.value.trim();
         if (code.length === 6 && /^\d+$/.test(code)) {
           try {
-            const r = await fetch('/af/join-room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+            const r = await fetch(SERVER + '/af/join-room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
             const data = await r.json();
             if (data.ok && data.url) {
               SERVER = data.url;
