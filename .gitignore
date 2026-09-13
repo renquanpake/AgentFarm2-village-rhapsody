@@ -10,5 +10,6 @@
 /data/dm-logs/
 /data/saves/
 
-# 依赖（本机/容器 node_modules，勿提交）
+# 依赖（本机/容器 node_modules，勿提交；克隆后需运行 npm install）
 node_modules/
+server/node_modules/
