@@ -13,9 +13,10 @@
   window.__AF_MOD__ = true;
 
   const HOST = location.hostname || '127.0.0.1';
-  // 房间模式：服务器地址可在登录界面配置（默认跟随页面域名）。
-  // 静态资源可来自任意来源（本地启动器/房主），API+WS 连这里填的房间服务器。
-  let SERVER = window.__AF_SERVER__ || (typeof localStorage !== 'undefined' && localStorage.getItem('af_server')) || ('http://' + HOST + ':8080');
+  // 朋友打开 https://你的域名 进游戏，无感连房主服。本地开发/内网才需手动改地址。
+  // 静态资源可来自任意来源（本地启动器/房主/CDN），API+WS 连这里填的房间服务器。
+  let SERVER = window.__AF_SERVER__ || (typeof localStorage !== 'undefined' && localStorage.getItem('af_server'))
+    || ((location.protocol === 'https:' ? 'https://' : 'http://') + (location.hostname || '127.0.0.1') + (location.port ? ':' + location.port : ''));
   SERVER = SERVER.replace(/\/+$/, '');
   const WS_URL = window.__AF_WS__ || (SERVER.replace(/^http/, 'ws') + '/ws');
   const CLIENT_SUFFIX = '100001'; // 原版浏览器 fallback 使用的 key 后缀（uid 10000 + "1"）
@@ -194,32 +195,39 @@
         location.reload();
       });
       d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
+      // 房主房间信息（隧道地址/房间码/本地地址），供朋友一键复制连接
+      fetch('/af/room').then(r => r.json()).then(data => {
+        const lines = [];
+        if (data.tunnelUrl) lines.push(`<br>穿透地址：<span style="color:#ffd97a;">${esc(data.tunnelUrl)}</span>`);
+        if (data.roomCode) lines.push(`房间码：<span style="color:#9aa4b0;">${esc(data.roomCode)}</span>`);
+        if (data.localUrl) lines.push(`本地：<span style="color:#6b7684;">${esc(data.localUrl)}</span>`);
+        if (lines.length) {
+          const el = d.querySelector('.misc');
+          if (el) el.innerHTML += lines.join('');
+        }
+      }).catch(() => {});
     }
 
-    // ---------- 第二步A：我是房主 → 选存档 ----------
+    // ---------- 第二步A：房主查看房间信息（手动连接场景下展示）----------
     function viewHost() {
-      // 无感化：不选存档位，直接进登录；服务端固定 slot1
       setView(`
         <div class="box" style="text-align:center;">
           <a class="back" data-act="back">← 返回</a>
-          <h2>🏠 我是房主</h2>
-          <p class="sub">服务器已就绪，登录即可开始游戏</p>
+          <h2>🏠 我的房间</h2>
           <div id="af-room-info" style="margin-top:8px;"></div>
           <button class="btn btn-primary" id="af-host-login" style="width:100%;margin-top:12px;">登录并进入</button>
         </div>`);
       d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
       d.querySelector('#af-host-login').addEventListener('click', () => viewLogin(() => SERVER));
-      // 房间码 + 地址展示（供朋友手动输入或 Tailscale 直连）
       fetch('/af/room').then(r => r.json()).then(data => {
         const el = d.querySelector('#af-room-info');
         if (!el) return;
         const lines = [];
-        if (data.tunnelUrl) lines.push(`<div style="color:#ffd97a;font-size:11px;margin-top:8px;">穿透地址<br>${esc(data.tunnelUrl)}</div>`);
-        if (data.roomCode) lines.push(`<div style="color:#9aa4b0;font-size:11px;margin-top:4px;">房间码：${esc(data.roomCode)}（6位，朋友"加入房间"时输入）</div>`);
-        lines.push(`<div style="color:#6b7684;font-size:10px;margin-top:4px;">本地地址：${esc(data.localUrl)}（Tailscale 内网朋友直接访问）</div>`);
+        if (data.tunnelUrl) lines.push(`<div style="color:#ffd97a;font-size:12px;margin-top:8px;">穿透地址<br>${esc(data.tunnelUrl)}</div>`);
+        if (data.roomCode) lines.push(`<div style="color:#9aa4b0;font-size:12px;margin-top:4px;">房间码：${esc(data.roomCode)}（朋友"手动连接"输入）</div>`);
+        lines.push(`<div style="color:#6b7684;font-size:10px;margin-top:4px;">本地：${esc(data.localUrl || '')}（内网朋友直接访问）</div>`);
         el.innerHTML = lines.join('');
       }).catch(() => {});
-    }
     }
 
     // ---------- 第二步B：加入房间 → 房间码或地址 ----------
@@ -275,18 +283,20 @@
       codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
     }
 
-    // ---------- 第一步：选模式 ----------
+    // ---------- 第一步：直接进登录（无感化：跟随页面域名自动连服，无需输地址）----------
+    // 朋友打开 https://你的域名 → SERVER 自动 = 该域名 → API/WS 全指向它
+    // 仅本地开发/内网场景才需要手动改地址（viewJoin 保留作备选）
     function viewMode() {
       setView(`
         <div class="box" style="text-align:center;">
           <h2>🏡 乡村狂想曲 · 联机版</h2>
-          <p class="sub">选择你要进入房间的方式</p>
-          <button class="btn btn-host" id="af-host-btn">🏠 我是房主</button>
-          <button class="btn btn-join" id="af-join-btn">🚪 加入房间</button>
-          <div class="foot-hint">房主 = 在你的电脑上开服务器，其他人连接进来</div>
+          <p class="sub">点击下方登录或注册，直接进入游戏</p>
+          <button class="btn btn-primary" id="af-enter-btn" style="width:100%;font-size:16px;">进入</button>
+          <a class="back" id="af-join-link" style="display:inline-block;margin-top:12px;">🚪 手动连接其他房间</a>
+          <div class="foot-hint">默认连接你当前打开的地址所在服务器</div>
         </div>`);
-      d.querySelector('#af-host-btn').addEventListener('click', viewHost);
-      d.querySelector('#af-join-btn').addEventListener('click', viewJoin);
+      d.querySelector('#af-enter-btn').addEventListener('click', () => viewLogin(() => SERVER));
+      d.querySelector('#af-join-link').addEventListener('click', viewJoin);
     }
 
     // 带错误/提示消息（如登录过期、服务器重试）直接进账号登录页，用当前服务器地址

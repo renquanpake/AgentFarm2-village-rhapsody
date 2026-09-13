@@ -1,0 +1,24 @@
+# Caddy 配置：自动 Let's Encrypt 证书 + HTTPS + WebSocket 透传
+# 用法：VPS 上 caddy 容器挂载本文件，80/443 映射到宿主
+# 域名替换成你的实际域名（A 记录已指向 VPS，且经过 Cloudflare 代管或直连）
+
+:80, :443 {
+    # 你的域名（Cloudflare 代管时把 proxy 关闭，DNS 用 full 模式）
+    @http {
+        header Host {
+            www.你的域名.com 你的域名.com
+        }
+    }
+
+    # 静态前端（client/ 目录，含 386M 资源）
+    root * /srv/agentfarm/client
+    file_server
+
+    # API + WebSocket 反代到 afserver 容器
+    reverse_proxy /af/* localhost:8080
+    reverse_proxy /ws localhost:8080
+    reverse_proxy /agent localhost:8080
+
+    # 自动 HTTPS（Caddy 默认申请 Let's Encrypt）
+    encode gzip zstd
+}

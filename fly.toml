@@ -1,0 +1,22 @@
+app = "agentfarm2"
+primary_region = "szx"   # 改成离你最近的 region：szx 深圳 / hk 港 / nrt 东京 / ams 阿姆斯特丹
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+
+[[mounts]]
+  source = "saves"
+  destination = "/data"
+
+[env]
+  PORT = "8080"
+  AF_SLOT = "1"
+  AF_NO_TUNNEL = "1"
+  AF_NO_GIT = "1"
+  AF_DATA_DIR = "/data"
+  AF_CLIENT_DIR = "/app/client"

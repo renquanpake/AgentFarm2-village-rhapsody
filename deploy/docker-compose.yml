@@ -1,0 +1,42 @@
+services:
+  # 游戏服务端（权威节点 + 静态前端 + API + WS 全走 8080）
+  afserver:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: agentfarm2:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - AF_SLOT=1
+      - AF_NO_TUNNEL=1
+      - AF_NO_GIT=1
+      - AF_DATA_DIR=/data
+      - AF_CLIENT_DIR=/app/client
+    volumes:
+      # 存档 + 账号 + agent-notes 持久化
+      - ./data:/data
+    # Fly.io 部署时改用 volume（不映射端口）：
+    # 见 deploy/FLY.md
+
+  # HTTPS 反向代理 + 自动证书 + WebSocket 透传
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - afserver
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      # 把前端静态文件挂给 caddy（与 afserver 同一套，避免双份）
+      - ../client:/srv/agentfarm/client:ro
+
+volumes:
+  caddy_data:
+  caddy_config:

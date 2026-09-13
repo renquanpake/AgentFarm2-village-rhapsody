@@ -17,7 +17,9 @@ import { spawn } from 'node:child_process';
 import localtunnel from 'localtunnel';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, '..', 'data');
+// 支持容器/云部署：AF_DATA_DIR 可把数据目录指到持久卷（如 Fly.io volume /data）
+const DATA_DIR = process.env.AF_DATA_DIR || join(__dirname, '..', 'data');
+const CLIENT_ROOT = process.env.AF_CLIENT_DIR || join(__dirname, '..', 'client');
 const SAVES_DIR = join(DATA_DIR, 'saves');
 const SEED_FILE = join(DATA_DIR, 'seed-villagedb.json');
 const ACCOUNTS_FILE = join(DATA_DIR, 'accounts.json');
@@ -225,7 +227,6 @@ function ensurePlayerData(uid) {
 }
 
 // ---------- HTTP ----------
-const CLIENT_ROOT = join(__dirname, '..', 'client');
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.mp3': 'audio/mpeg',
@@ -2164,15 +2165,18 @@ server.listen(PORT, () => {
   // 每 5 分钟清理 DM 相关内存（lastMeetBroadcast / sceneTogether 空壳）
   setInterval(cleanupDmMaps, 5 * 60 * 1000);
   // 存档自动备份：每 10 分钟 git commit + push（无凭据时仅本地 commit，不阻塞游戏）
+  // 容器部署（Fly.io volume 持久盘）设 AF_NO_GIT=1 跳过，存档直接落卷无需 git
   const BACKUP_SCRIPT = join(__dirname, '..', 'tools', 'backup-saves.mjs');
-  setInterval(() => {
-    try {
-      if (existsSync(BACKUP_SCRIPT)) {
-        spawn(process.execPath, [BACKUP_SCRIPT], { stdio: ['ignore', 'pipe', 'pipe'] })
-          .on('close', (code) => { if (code !== 0 && process.env.AF_DEBUG) console.warn('[backup] exit', code); });
-      }
-    } catch {}
-  }, 10 * 60 * 1000);
+  if (!process.env.AF_NO_GIT) {
+    setInterval(() => {
+      try {
+        if (existsSync(BACKUP_SCRIPT)) {
+          spawn(process.execPath, [BACKUP_SCRIPT], { stdio: ['ignore', 'pipe', 'pipe'] })
+            .on('close', (code) => { if (code !== 0 && process.env.AF_DEBUG) console.warn('[backup] exit', code); });
+        }
+      } catch {}
+    }, 10 * 60 * 1000);
+  }
   // 自动启动内网穿透（异步，不阻塞服务器；AF_NO_TUNNEL=1 时跳过，避免隧道抢占 8080 本地连接干扰测试）
   if (!process.env.AF_NO_TUNNEL) startTunnel(PORT);
 });

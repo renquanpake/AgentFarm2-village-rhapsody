@@ -3,10 +3,15 @@
 // 无 token / push 失败时只 commit 不 push（本地始终有最新存档，不阻塞游戏）
 // 用法：node tools/backup-saves.mjs [--push]  由 afserver.mjs 定时或手动调用
 // 本仓库是 sparse-checkout，git add 必须带 --sparse
+// 容器部署：设置 AF_NO_GIT=1 跳过 git 操作（存档走 Fly.io volume，不依赖 git）
 import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+if (process.env.AF_NO_GIT) {
+  console.log('[backup] AF_NO_GIT=1，跳过 git 备份（容器环境存档走持久卷）');
+  process.exit(0);
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
