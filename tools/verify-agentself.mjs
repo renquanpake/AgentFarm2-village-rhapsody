@@ -1,3 +1,4 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // verify-agentself.mjs —— 验证 agent 托管驱动"唯一主角"，不创建第二个化身
 import { connect } from './cdp.mjs';
 import { spawn } from 'node:child_process';
@@ -19,7 +20,7 @@ async function main() {
 
   // 启动 agent
   const agentTok = (await (await fetch('http://127.0.0.1:8080/af/agent-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:login.token})})).json()).agentToken;
-  const agent = spawn('node', ['D:/agent社区/AgentFarm2/tools/game-agent.mjs','--token',agentTok,'--mode','text','--rounds','10','--notes','D:/agent社区/AgentFarm2/data/agent-notes/test3','--llm-url','https://api.deepseek.com/v1','--llm-key','sk-44ef3dcb50264ca2981bc206bc94297b','--llm-model','deepseek-v4-flash'], { stdio: 'ignore' });
+  const agent = spawn('node', ['D:/agent社区/AgentFarm2/tools/game-agent.mjs','--token',agentTok,'--mode','text','--rounds','10','--notes','D:/agent社区/AgentFarm2/data/agent-notes/test3','--llm-url','https://api.deepseek.com/v1','--llm-key',process.env.DEEPSEEK_API_KEY,'--llm-model','deepseek-v4-flash'], { stdio: 'ignore' });
   console.log('agent pid:', agent.pid);
   await wait(25000);
 

@@ -1,6 +1,7 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // 描述水塘截图
 import { readFileSync } from 'node:fs';
-const KEY = 'sk-vWFx8Ifrpvn4Zqe48FiUSKstxwdEu2yFo6hktUjzHRoGPaJa';
+const KEY = process.env.AGNES_API_KEY;
 const b64 = readFileSync('D:/agent社区/AgentFarm2/_dbg_pond.png').toString('base64');
 const r = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
   method: 'POST',

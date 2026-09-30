@@ -1,0 +1,194 @@
+{
+  "version": "v1",
+  "count": 16,
+  "palette": [
+    {
+      "hex": "#fadec9",
+      "rgb": [
+        250,
+        222,
+        201
+      ],
+      "freq": 0.03736
+    },
+    {
+      "hex": "#2e1008",
+      "rgb": [
+        46,
+        16,
+        8
+      ],
+      "freq": 0.03231
+    },
+    {
+      "hex": "#d29272",
+      "rgb": [
+        210,
+        146,
+        114
+      ],
+      "freq": 0.01132
+    },
+    {
+      "hex": "#434b54",
+      "rgb": [
+        67,
+        75,
+        84
+      ],
+      "freq": 0.01085
+    },
+    {
+      "hex": "#b25c32",
+      "rgb": [
+        178,
+        92,
+        50
+      ],
+      "freq": 0.01024
+    },
+    {
+      "hex": "#363766",
+      "rgb": [
+        54,
+        55,
+        102
+      ],
+      "freq": 0.00734
+    },
+    {
+      "hex": "#fac78c",
+      "rgb": [
+        250,
+        199,
+        140
+      ],
+      "freq": 0.00556
+    },
+    {
+      "hex": "#db8854",
+      "rgb": [
+        219,
+        136,
+        84
+      ],
+      "freq": 0.00486
+    },
+    {
+      "hex": "#684949",
+      "rgb": [
+        104,
+        73,
+        73
+      ],
+      "freq": 0.00472
+    },
+    {
+      "hex": "#93899c",
+      "rgb": [
+        147,
+        137,
+        156
+      ],
+      "freq": 0.00337
+    },
+    {
+      "hex": "#baa397",
+      "rgb": [
+        186,
+        163,
+        151
+      ],
+      "freq": 0.00313
+    },
+    {
+      "hex": "#dad7dd",
+      "rgb": [
+        218,
+        215,
+        221
+      ],
+      "freq": 0.00234
+    },
+    {
+      "hex": "#3a7d8d",
+      "rgb": [
+        58,
+        125,
+        141
+      ],
+      "freq": 0.00224
+    },
+    {
+      "hex": "#473e33",
+      "rgb": [
+        71,
+        62,
+        51
+      ],
+      "freq": 0.0021
+    },
+    {
+      "hex": "#81618d",
+      "rgb": [
+        129,
+        97,
+        141
+      ],
+      "freq": 0.00187
+    },
+    {
+      "hex": "#4596a9",
+      "rgb": [
+        69,
+        150,
+        169
+      ],
+      "freq": 0.00187
+    }
+  ],
+  "sources": [
+    "client/assets/resources/native/00/0019db5f-173a-4fa5-a168-5f3b70af1bbd.1f082.png",
+    "client/assets/resources/native/0a/0a92207d-5f5d-4963-bcb9-9295f9f8df90.fbf70.png",
+    "client/assets/resources/native/14/14071742-8523-40d5-a87c-34b125289d22.d545a.png",
+    "client/assets/resources/native/1d/1d7cf07a-51a0-42aa-92db-1430a9ccdc42.0de92.png",
+    "client/assets/resources/native/2b/2b364c11-d85b-4030-88fc-25e04585ee1a.6fd44.png",
+    "client/assets/resources/native/33/33dcae8f-27e2-4b7c-bf9e-d21fbbc3350c.acc7d.png",
+    "client/assets/resources/native/3e/3e9c4599-38a6-455a-a435-49a35191cef4.c3cfe.png",
+    "client/assets/resources/native/46/46f478df-520d-43bb-a974-8644dea5fe50.b9802.png",
+    "client/assets/resources/native/52/525b21c9-6087-41e0-8d58-264a41abaa29.19910.png",
+    "client/assets/resources/native/5b/5bb21387-2ecd-49eb-ad1c-cc191f1f849e.45362.png",
+    "client/assets/resources/native/64/6494dbd8-daa8-4590-b6ee-83034700e86c.a00ac.png",
+    "client/assets/resources/native/70/702bdb26-0b68-444f-9842-065450bb630b.13405.png",
+    "client/assets/resources/native/79/79723e56-4250-4cc7-9855-cf96ab3b8205.f176e.png",
+    "client/assets/resources/native/82/8252dff7-7634-430e-a583-71bf26217816.15934.png",
+    "client/assets/resources/native/8a/8a240bcb-4ae6-43cb-b0ef-f0b24b794dcf.36606.png",
+    "client/assets/resources/native/93/933f74e0-8292-4d56-9563-d743b157fe94.6032a.png",
+    "client/assets/resources/native/9d/9dc29626-d187-430d-924b-352763a66631.298c2.png",
+    "client/assets/resources/native/a6/a61385a4-b1b5-4f63-ba21-0e99a86ec1cb.7b3cf.png",
+    "client/assets/resources/native/af/afd0b785-f0b3-4a61-93fd-f3531a00305b.f5488.png",
+    "client/assets/resources/native/b6/b6d15359-d0b8-4fba-aae3-c13cb9f4192b.bbfc5.png",
+    "client/assets/resources/native/bf/bff40c74-921f-4e43-86a8-0bc98d26a4cb.9f48e.png",
+    "client/assets/resources/native/c8/c8a1196e-ffe6-4a2d-b734-39881ef8b120.b4afa.png",
+    "client/assets/resources/native/d3/d3032cc0-057a-4489-b9da-83a005b12510.3e65d.png",
+    "client/assets/resources/native/da/dab0dc6b-e812-4a30-a332-880ecf51855f.24dfa.png",
+    "client/assets/resources/native/e1/e1d5ff48-5821-49e7-aa4a-c9739e8bb39a.e950f.png",
+    "client/assets/resources/native/ea/ea8741e8-92c0-47e8-adfb-9a3065d77e87.cd56b.png",
+    "client/assets/resources/native/f3/f306b737-cc24-4e9f-b765-670c9d85588a.7f3a1.png",
+    "client/assets/resources/native/fc/fca41c7d-91ca-416d-b587-3daa79689746.004b1.png",
+    "server/public/client/sprites/cdilde4.png",
+    "server/public/client/sprites/feifei63.png",
+    "server/public/client/sprites/hh_hua1.png",
+    "server/public/client/sprites/hyl_sanns6.png",
+    "server/public/client/sprites/lv11.png",
+    "server/public/client/sprites/sex_small_huli_1.png",
+    "server/public/client/sprites/tjzz_cyzheng.png",
+    "server/public/client/sprites/wp_futou3.png",
+    "server/public/client/sprites/wp_siwa1.png",
+    "server/public/client/sprites/wq_baolong2.png",
+    "server/public/client/sprites/wq_hh5.png",
+    "server/public/client/sprites/wq_zhaoguafu2.png"
+  ],
+  "total_samples": 21386,
+  "note": "从原版精灵提取的 16 色锚定调色板（去重相近色后）；生图 prompt 必须引用本清单 hex"
+}

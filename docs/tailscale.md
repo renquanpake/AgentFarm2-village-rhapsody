@@ -51,3 +51,39 @@ node tools/backup-saves.mjs --push
 ```
 
 之后服务端定时器会自动推送。没配 token 时仅本地 commit，不影响游戏。
+
+## 4. 部署验收清单（F4）
+
+本机/内网验收按序执行，全过即 F4 达标：
+
+### 4.1 本地单机（先做）
+
+```bash
+# 房主机器
+cd AgentFarm2-village-rhapsody
+AF_NO_TUNNEL=1 PORT=8080 node server/afserver.mjs
+```
+
+浏览器开 `http://localhost:8080/`，逐条确认：
+
+| # | 项 | 预期 |
+|---|----|------|
+| 1 | 登录进游戏 | 村景可移动（导航寻路正常） |
+| 2 | 交易 | `/af/economy`（feeMultiplier/inflationIndex）+ `/af/market/{id}`（订单簿 7 日 OHLC）可用 |
+| 3 | 画报 | `/af/daily-report` 返回当日聚合（eventCount/byType/players 榜/highlights 定位点/reportHash） |
+| 4 | 影子 | `/af/shadow` 返回影子实例指标（前 14 日观察期内数据逐日增长） |
+| 5 | NPC/动物/天气 | `/af/npc-schedule` 返回当前时刻全 NPC 决策快照（快时钟下幂等不换位属正常；生产日钟下换位时推 `npc_move`）+ `/af/animals` 可用 + `/af/calendar` 天气/节日 |
+| 6 | LLM（配了 Key 时） | `POST /af/llm-key` 保存 Key；`/af/llm-usage` 有计量记录；玩家对话/规划走 Key |
+
+### 4.2 双机联机（Tailscale）
+
+1. 两台机器均装 Tailscale 且同账号，`tailscale ip` 各取 `100.x.x.x`
+2. 房主按第 2 节启动（`AF_NO_TUNNEL=1`），把自己的 `100.x.x.x:8080` 给玩家
+3. 玩家浏览器直接访问该地址（无需端口映射/公网），完成 4.1 的 1-4 项
+4. 双向操作可见（玩家动作物/交易，房主侧世界同步步推进）
+
+### 4.3 回退与排障
+
+- 玩家连不上：先 `tailscale ping 100.x.x.x` 验证隧道；再检查房主是否加了 `AF_NO_TUNNEL=1`（cloudflared 抢 8080 会干扰）
+- 企业网阻断 WireGuard：换手机热点验证；仍失败属 4.1 网络要求一节，非代码问题
+- 存档核对：`git -C . log --oneline -5 data/saves` 应见自动 commit

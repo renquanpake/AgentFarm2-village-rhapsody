@@ -1,0 +1,101 @@
+{
+  "at": "2026-09-29T07:45:42.248Z",
+  "gates": {
+    "selfDirectedMin": 0.3,
+    "entropyMinNorm": 0.6
+  },
+  "brain": "cognition-rules(无LLM基线)",
+  "scenarios": [
+    {
+      "scenario": "rainy-village",
+      "ticks": 20,
+      "selfDirected": 0.85,
+      "entropyNorm": 0.781,
+      "entropySelfNorm": 0.695,
+      "actions": [
+        "送礼社交",
+        "砍树泄愤",
+        "送礼社交",
+        "water",
+        "送礼社交",
+        "送礼社交",
+        "浇地耕作",
+        "送礼社交",
+        "gift",
+        "water",
+        "送礼社交",
+        "talk",
+        "送礼社交",
+        "砍树泄愤",
+        "talk",
+        "送礼社交",
+        "送礼社交",
+        "送礼社交",
+        "浇地耕作",
+        "送礼社交"
+      ],
+      "pass": true
+    },
+    {
+      "scenario": "festival-day",
+      "ticks": 20,
+      "selfDirected": 0.9,
+      "entropyNorm": 0.787,
+      "entropySelfNorm": 0.77,
+      "actions": [
+        "浇地耕作",
+        "trade",
+        "送礼社交",
+        "砍树泄愤",
+        "送礼社交",
+        "gift",
+        "送礼社交",
+        "送礼社交",
+        "浇地耕作",
+        "送礼社交",
+        "water",
+        "送礼社交",
+        "talk",
+        "farm",
+        "送礼社交",
+        "trade",
+        "送礼社交",
+        "砍树泄愤",
+        "送礼社交",
+        "送礼社交"
+      ],
+      "pass": true
+    },
+    {
+      "scenario": "quiet-morning",
+      "ticks": 20,
+      "selfDirected": 0.9,
+      "entropyNorm": 0.755,
+      "entropySelfNorm": 0.742,
+      "actions": [
+        "送礼社交",
+        "砍树泄愤",
+        "送礼社交",
+        "送礼社交",
+        "送礼社交",
+        "浇地耕作",
+        "fish",
+        "送礼社交",
+        "water",
+        "送礼社交",
+        "farm",
+        "送礼社交",
+        "砍树泄愤",
+        "送礼社交",
+        "送礼社交",
+        "rest",
+        "送礼社交",
+        "浇地耕作",
+        "送礼社交",
+        "water"
+      ],
+      "pass": true
+    }
+  ],
+  "pass": true
+}

@@ -1,17 +1,26 @@
 {
   "name": "agentfarm-server",
   "private": true,
-  "version": "1.0.0",
-  "description": "AgentFarm 服务端（Node 原生 TS + 自研 WebSocket）",
+  "version": "2.0.0",
+  "description": "AgentFarm 服务端（TypeScript 七模块架构：gateway/world/market/navigation/cognition/narrative/persistence）",
   "type": "module",
   "scripts": {
     "start": "node src/index.ts",
-    "dev": "node --watch src/index.ts"
+    "dev": "node --watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:ws": "node ws-test.mjs"
   },
   "dependencies": {
-    "easystarjs": "^0.4.4",
     "localtunnel": "^2.0.2",
-    "rot-js": "^2.2.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/localtunnel": "^2.0.3",
+    "@types/node": "^22.15.0",
+    "@types/ws": "^8.5.12",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
   }
 }

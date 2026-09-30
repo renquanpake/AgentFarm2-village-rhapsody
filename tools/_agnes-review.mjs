@@ -1,6 +1,7 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // _agnes-review.mjs —— 用 Agnes 视觉模型逐张审查截图（含重试）
 import { readFileSync } from 'node:fs';
-const KEY = 'sk-vWFx8Ifrpvn4Zqe48FiUSKstxwdEu2yFo6hktUjzHRoGPaJa';
+const KEY = process.env.AGNES_API_KEY;
 const URL = 'https://apihub.agnes-ai.com/v1/chat/completions';
 const DIR = 'D:/agent社区/AgentFarm2/';
 const targets = process.argv.slice(2).map(t => t.startsWith('_') ? { name: t, file: t } : { name: t, file: '_v3_' + t + '.jpg' });

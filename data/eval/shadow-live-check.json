@@ -1,0 +1,55 @@
+{
+  "at": "2026-09-29T14:36:42.960Z",
+  "startedAt": "2026-09-29T14:33:31.472Z",
+  "base": "http://127.0.0.1:8127",
+  "drivers": [
+    {
+      "uid": "ued6f8ee80206",
+      "orders": 14,
+      "fills": 1
+    },
+    {
+      "uid": "u99d7228b412c",
+      "orders": 14,
+      "fills": 1
+    },
+    {
+      "uid": "ucdc021f23c58",
+      "orders": 15,
+      "fills": 1
+    }
+  ],
+  "durationMs": 180000,
+  "shadow": {
+    "ok": true,
+    "days": 1,
+    "items": [
+      {
+        "item": 1,
+        "liveVolume": 7,
+        "shadowVolume": 7,
+        "volumeDeviation": 0,
+        "livePriceMean": 51.285714285714285,
+        "shadowPriceMean": 51.714285714285715,
+        "priceSpreadPct": 0.8356545961002826
+      },
+      {
+        "item": 2,
+        "liveVolume": 6,
+        "shadowVolume": 0,
+        "volumeDeviation": 1,
+        "livePriceMean": 53,
+        "shadowPriceMean": null,
+        "priceSpreadPct": null
+      }
+    ]
+  },
+  "economy": {
+    "feeMultiplier": 1,
+    "inflationIndex": null
+  },
+  "mB1": {
+    "criterion": "14 真实日窗口内 实盘 vs 影子：价差分布收敛（priceSpreadPct 中位 < 15%）且成交量偏差可解释（volumeDeviation < 0.5）；超阈值则调影子 spread/makerQty 后重启观察",
+    "status": "引擎活体验证通过（1/2 件实盘+影子双边成交）；14 日观察期起点 2026-09-29T14:33:31.472Z，到期后重跑本脚本复查 /af/shadow?days=14"
+  }
+}

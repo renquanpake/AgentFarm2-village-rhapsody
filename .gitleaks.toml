@@ -1,0 +1,14 @@
+# gitleaks 配置（CI 门4 秘密扫描）
+# 原则：全仓扫描；豁免仅限"非文本二进制"与"纯哈希清单"。
+# P0 现状：17 个 tools/ 调试脚本的明文密钥已改读 env（tools/env.mjs + .env.local，均不入库），
+# 代码侧豁免已全部移除；真实密钥仍在 git 历史与 .env.local 中——需用户轮换 AGNES/DEEPSEEK 密钥后
+# 更新 .env.local，轮换前 .env.local（gitignored）是唯一活跃凭据载体。
+title = "AgentFarm2 gitleaks policy"
+
+[allowlist]
+  description = "非文本二进制 + 纯哈希清单（不含密钥）"
+  paths = [
+    'server/cloudflared',
+    'server/cloudflared\\.exe',
+    'client/original-hash\\.json',
+  ]

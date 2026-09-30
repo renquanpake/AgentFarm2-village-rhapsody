@@ -3,7 +3,7 @@ const { createRequire } = await import('node:module');
 const require = createRequire(import.meta.url);
 const { WebSocket } = require('D:\\agent社区\\AgentFarm2\\tools\\node_modules\\ws');
 
-const token = '1d57b638c25c3deade3e5ec744c06949';
+const token = process.env.AF_AGENT_TOKEN || '';
 const url = `ws://127.0.0.1:8080/agent?token=${token}`;
 console.log('connecting', url);
 const ws = new WebSocket(url, { handshakeTimeout: 5000 });

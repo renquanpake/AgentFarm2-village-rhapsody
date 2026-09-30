@@ -1,4 +1,7 @@
 // AgentFarm2 同步服务器 —— 原版外壳联机版
+// ⚠️ LEGACY（2026-09-28 起）：单文件旧实现，仅留作行为基准与回滚兜底。
+// 正式服务端为 src/（七模块 TypeScript 架构，npm start 指向 src/index.ts）。
+// 行为等价性以 src/ 为准；本文件冻结不再改动。
 // 职责（P0）：
 //   HTTP  GET  /af/save        返回权威存档 JSON（按客户端 uid 重组 key：世界数据共享一份，玩家数据按 uid 分）
 //   HTTP  GET  /af/players     在线玩家列表

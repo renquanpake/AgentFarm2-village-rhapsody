@@ -1,5 +1,8 @@
 # AgentFarm2 当前待办
 
+> **状态说明（2026-09-28）**：本文件为升级规划前的历史待办，其中未完成项（跨场景移动、小地图标记、断线恢复、凭据安全）已被新规划吸收。
+> 当前唯一有效施工计划：`.monkeycode/specs/agentfarm2-playability-upgrade/`（requirements / design / tasklist），进度以其中 tasklist.md 为准。
+
 ## 已修复
 
 - [x] 托管模型：Agent 接管玩家本体，不再创建 `uid@agent` 第二个角色。

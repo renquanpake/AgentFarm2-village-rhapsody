@@ -1,0 +1,24 @@
+# 夜间任务：导航回放矩阵（设计 M6.4 门6 的夜间完整版）
+# M3（B5 导航数据生产 + B6 分层寻路）落地 tools/nav-replay.mjs 后自动启用；此前跳过。
+name: nav-replay-nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 每日 03:00
+  workflow_dispatch:
+
+jobs:
+  nav-replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 导航路线回放 x10 场景矩阵（M3/B6 落地前占位）
+        run: |
+          if [ -f tools/nav-replay.mjs ]; then
+            node tools/nav-replay.mjs --matrix
+          else
+            echo "tools/nav-replay.mjs 尚未落地（M3 B5/B6 交付前跳过）；验收标准见 design.md F3。"
+          fi

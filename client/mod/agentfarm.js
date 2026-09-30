@@ -96,6 +96,7 @@
       startNetwork();
       // 登录成功后立即预热小地图数据，首次打开时直接同步贴图零闪现
       if (token) prewarmVillageMap();
+      toast('已进入游戏 · ' + nick, 'ok');
     }
   }
 
@@ -105,38 +106,38 @@
     const css = document.createElement('style');
     css.textContent = `
       #af-login { position: fixed; inset: 0; z-index: 200000; display: flex; align-items: center; justify-content: center;
-        background: rgba(8,10,14,.88); font: 14px "Microsoft YaHei", sans-serif; }
-      #af-login .box { width: 460px; max-width: 92vw; box-sizing: border-box; background: #262c34; border: 1px solid #3a4450;
-        border-radius: 12px; padding: 26px 26px; box-shadow: 0 12px 44px rgba(0,0,0,.6); }
-      #af-login h2 { margin: 0 0 4px; color: #ffd97a; font-size: 22px; letter-spacing: 1px; }
-      #af-login p.sub, #af-login .sub { color: #9aa4b0; margin: 0 0 22px; font-size: 12px; line-height: 1.7; }
-      #af-login .back { cursor: pointer; color: #9aa4b0; font-size: 12px; margin: 0 0 14px; display: inline-block; }
-      #af-login .back:hover { color: #ffd97a; }
+        background: var(--af-c-glass-bg-deep); font: 14px "Microsoft YaHei", sans-serif; }
+      #af-login .box { width: 460px; max-width: 92vw; box-sizing: border-box; background: var(--af-c-panel-deep); border: 1px solid var(--af-c-panel);
+        border-radius: 12px; padding: 26px 26px; box-shadow: 0 12px 44px var(--af-c-black-60); }
+      #af-login h2 { margin: 0 0 4px; color: var(--af-c-gold); font-size: 22px; letter-spacing: 1px; }
+      #af-login p.sub, #af-login .sub { color: var(--af-c-text-dim); margin: 0 0 22px; font-size: 12px; line-height: 1.7; }
+      #af-login .back { cursor: pointer; color: var(--af-c-text-dim); font-size: 12px; margin: 0 0 14px; display: inline-block; }
+      #af-login .back:hover { color: var(--af-c-gold); }
       #af-login input { display: block; width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px 10px;
-        background: #1a1f26; color: #eee; border: 1px solid #3a4450; border-radius: 6px; outline: none; font-size: 14px; }
+        background: var(--af-c-bg); color: var(--af-c-light-soft); border: 1px solid var(--af-c-panel); border-radius: 6px; outline: none; font-size: 14px; }
       #af-login .btn { width: 100%; padding: 12px; border: 0; border-radius: 8px; font-size: 15px; cursor: pointer;
         margin-bottom: 12px; box-sizing: border-box; }
       #af-login .btn:active { transform: translateY(1px); }
-      #af-login .btn-host { background: linear-gradient(180deg,#ef9a3c,#d97e24); color: #1a1f26; font-weight: bold;
+      #af-login .btn-host { background: linear-gradient(180deg,var(--af-c-amber),var(--af-c-amber)); color: var(--af-c-bg); font-weight: bold;
         font-size: 18px; padding: 16px; }
-      #af-login .btn-host:hover { background: linear-gradient(180deg,#f7a845,#e48a2c); }
-      #af-login .btn-join { background: #3a4450; color: #e8ecf1; font-size: 18px; padding: 16px; }
-      #af-login .btn-join:hover { background: #48535f; }
-      #af-login .btn-primary { background: #e0a63c; color: #1a1f26; font-weight: bold; }
-      #af-login .btn-primary:hover { background: #f0b64c; }
-      #af-login .btn-ghost { background: transparent; color: #9aa4b0; border: 1px solid #3a4450; font-size: 14px; }
-      #af-login .err { color: #ff7a7a; font-size: 12px; min-height: 16px; margin: 0 0 8px; }
-      #af-login .foot-hint { color: #6b7684; font-size: 11px; margin-top: 4px; text-align: center; }
-      #af-login .misc { color: #6b7684; font-size: 11px; margin-top: 14px; text-align: center; line-height: 1.7; }
+      #af-login .btn-host:hover { background: linear-gradient(180deg,var(--af-c-amber),var(--af-c-amber)); }
+      #af-login .btn-join { background: var(--af-c-panel); color: var(--af-c-paper-hud); font-size: 18px; padding: 16px; }
+      #af-login .btn-join:hover { background: var(--af-c-edge); }
+      #af-login .btn-primary { background: var(--af-c-amber); color: var(--af-c-bg); font-weight: bold; }
+      #af-login .btn-primary:hover { background: var(--af-c-amber); }
+      #af-login .btn-ghost { background: transparent; color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); font-size: 14px; }
+      #af-login .err { color: var(--af-c-danger); font-size: 12px; min-height: 16px; margin: 0 0 8px; }
+      #af-login .foot-hint { color: var(--af-c-text-dim); font-size: 11px; margin-top: 4px; text-align: center; }
+      #af-login .misc { color: var(--af-c-text-dim); font-size: 11px; margin-top: 14px; text-align: center; line-height: 1.7; }
       #af-login .saves { display: flex; flex-direction: column; gap: 10px; }
-      #af-login .save { background: #1a1f26; border: 1px solid #3a4450; border-radius: 8px; padding: 12px 14px;
+      #af-login .save { background: var(--af-c-bg); border: 1px solid var(--af-c-panel); border-radius: 8px; padding: 12px 14px;
         cursor: pointer; text-align: left; }
-      #af-login .save:hover { border-color: #ffd97a; background: #20262e; }
-      #af-login .save .sn { color: #ffd97a; font-size: 15px; font-weight: bold; margin-bottom: 4px; }
-      #af-login .save .sm { color: #9aa4b0; font-size: 12px; }
-      #af-login .save .cur { color: #e0a63c; font-size: 11px; margin-left: 6px; }
+      #af-login .save:hover { border-color: var(--af-c-gold); background: var(--af-c-panel-deep); }
+      #af-login .save .sn { color: var(--af-c-gold); font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+      #af-login .save .sm { color: var(--af-c-text-dim); font-size: 12px; }
+      #af-login .save .cur { color: var(--af-c-amber); font-size: 11px; margin-left: 6px; }
       #af-login .save.empty { opacity: .55; cursor: default; }
-      #af-login .warn { color: #ffd97a; font-size: 12px; margin: 0 0 8px; }
+      #af-login .warn { color: var(--af-c-gold); font-size: 12px; margin: 0 0 8px; }
     `;
     document.head.appendChild(css);
 
@@ -188,20 +189,20 @@
           onLoginOk(await r.json());
         } catch (e) { err.textContent = '无法连接服务器 ' + s + '，请检查地址'; }
       };
-      d.querySelector('#af-login-btn').addEventListener('click', doAuth);
+      AFUNI.on(d.querySelector('#af-login-btn'), doAuth);
       d.querySelector('#af-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAuth(); });
-      d.querySelector('#af-clear-btn').addEventListener('click', () => {
+      AFUNI.on(d.querySelector('#af-clear-btn'), () => {
         LS.removeItem('af_token'); LS.removeItem('af_uid'); LS.removeItem('af_nick');
         location.reload();
       });
-      d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
+      AFUNI.on(d.querySelector('[data-act="back"]'), viewMode, { cls: false });
       // 房间信息（穿透地址/房间码）：打到 SERVER 即房主服。容器部署（Fly/无隧道）
       // 下 tunnel/roomCode 为 null，整块隐藏；仅本地 localtunnel 隧道场景才显示。
       fetch(SERVER + '/af/room').then(r => r.json()).then(data => {
         if (!data || (!data.tunnelUrl && !data.roomCode)) return;
         const lines = [];
-        if (data.tunnelUrl) lines.push(`<br>穿透地址：<span style="color:#ffd97a;">${esc(data.tunnelUrl)}</span>`);
-        if (data.roomCode) lines.push(`房间码：<span style="color:#9aa4b0;">${esc(data.roomCode)}</span>`);
+        if (data.tunnelUrl) lines.push(`<br>穿透地址：<span style="color:var(--af-c-gold);">${esc(data.tunnelUrl)}</span>`);
+        if (data.roomCode) lines.push(`房间码：<span style="color:var(--af-c-text-dim);">${esc(data.roomCode)}</span>`);
         if (lines.length) {
           const el = d.querySelector('.misc');
           if (el) el.innerHTML += lines.join('');
@@ -219,13 +220,13 @@
           <h2>🚪 加入房间</h2>
           <p class="sub">输入房主给你的6位房间码，或直接输入地址</p>
           <input id="af-roomcode" placeholder="6位房间码（如 382915）" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px;font-weight:bold;">
-          <div style="text-align:center;color:#6b7684;font-size:12px;margin:8px 0">—— 或手动输入地址 ——</div>
+          <div style="text-align:center;color:var(--af-c-text-dim);font-size:12px;margin:8px 0">—— 或手动输入地址 ——</div>
           <input id="af-srv" placeholder="如 http://192.168.1.5:8080" value="${esc(SERVER)}" maxlength="120">
           <div class="err" id="af-err"></div>
           <button class="btn btn-primary" id="af-join-btn">连接</button>
           <div class="foot-hint">让房主告诉你他的房间码或地址。</div>
         </div>`);
-      d.querySelector('[data-act="back"]').addEventListener('click', viewMode);
+      AFUNI.on(d.querySelector('[data-act="back"]'), viewMode, { cls: false });
       const codeInput = d.querySelector('#af-roomcode');
       const srvInput = d.querySelector('#af-srv');
       const errEl = d.querySelector('#af-err');
@@ -259,7 +260,7 @@
         if (ws) { try { ws.close(); } catch (e) {} }
         viewLogin(function () { return SERVER; });
       };
-      d.querySelector('#af-join-btn').addEventListener('click', doJoin);
+      AFUNI.on(d.querySelector('#af-join-btn'), doJoin);
       srvInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
       codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
     }
@@ -276,8 +277,8 @@
           <a class="back" id="af-join-link" style="display:inline-block;margin-top:12px;">🚪 手动连接其他房间</a>
           <div class="foot-hint">默认连接你当前打开的地址所在服务器</div>
         </div>`);
-      d.querySelector('#af-enter-btn').addEventListener('click', () => viewLogin(() => SERVER));
-      d.querySelector('#af-join-link').addEventListener('click', viewJoin);
+      AFUNI.on(d.querySelector('#af-enter-btn'), () => viewLogin(() => SERVER));
+      AFUNI.on(d.querySelector('#af-join-link'), viewJoin, { cls: false });
     }
 
     // 带错误/提示消息（如登录过期、服务器重试）直接进账号登录页，用当前服务器地址
@@ -365,13 +366,55 @@
     } catch (e) {}
   }
 
+  function injectHudUI() {
+    // M2：四分区 HUD（TL 金币滚动 / TR 历法胶囊 / BR 托管状态）+ toast 统一入口（P3 隔离：AFUNI 缺失静默）
+    let hud = null;
+    try { hud = window.AFUNI && window.AFUNI.hud ? window.AFUNI.hud : null; } catch (e) {}
+    if (!hud) return;
+    hud.ensure();
+    // TL 金币：读 LS 同步缓存 knapData（服务端 save_broadcast 已回灌），30s 轮询兜底
+    const readCoins = () => {
+      try {
+        const raw = LS.getItem('knapData_100001');
+        if (!raw) return 0;
+        const kn = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const c = (kn && kn.props || []).find(p => p && p.id === 1);
+        return c && Number.isFinite(c.num) ? Math.round(c.num) : 0;
+      } catch (e) { return 0; }
+    };
+    try { hud.setCoins(readCoins()); setInterval(() => hud.setCoins(readCoins()), 30000); } catch (e) {}
+    // BR 托管状态胶囊（承接原 #af-agent-status；agent_status 推送经 renderAgentStatus 双写）
+    const brZone = hud.zone('br');
+    if (brZone && !document.getElementById('af-hud-agent')) {
+      const chip = document.createElement('div');
+      chip.id = 'af-hud-agent';
+      chip.className = 'af-hud-agent off';
+      chip.style.cssText = 'display:inline-block;padding:4px 10px;';
+      chip.textContent = '🤖 Agent 未连接';
+      brZone.appendChild(chip);
+    }
+    window.__AF_HUD__ = hud;
+  }
+
   function startNetwork() {
     connect();
+    injectHudUI();
     injectChatUI();
     injectDiaryUI();
     injectAgentUI();
     injectSocialUI();
     injectDmUI();
+  }
+
+  // M2 toast 统一入口（AFUNI 缺失/异常静默降级；同屏上限 3 由 AFUNI 内建；M5：伴随 SFX）
+  function toast(msg, type) {
+    try {
+      if (window.AFUNI && window.AFUNI.toast) window.AFUNI.toast(msg, type || 'info');
+      if (window.AFAUD && window.AFAUD.play) {
+        const cue = type === 'ok' ? 'ok' : type === 'err' ? 'err' : type === 'coin' ? 'coin' : 'click';
+        window.AFAUD.play(cue);
+      }
+    } catch (e) {}
   }
 
   // ---------- key 翻译 ----------
@@ -451,6 +494,7 @@
       ws.send(JSON.stringify({ t: 'join', uid, nick, token: token || '' }));
       if (pending.size) flush();
       startPosSync();
+      toast('已连接 · ' + (nick || uid), 'ok');
     };
     ws.onmessage = function (ev) {
       let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
@@ -477,7 +521,7 @@
           // 被服务器拒绝（同账号别处上线 / 账号校验失败）：停止自动重连，提示用户
           afKicked = true; connected = false;
           try { ws.close(); } catch (e) {}
-          alert(msg.msg || '连接已被服务器断开，请刷新页面重新登录');
+          toast(msg.msg || '连接已被服务器断开，请刷新页面重新登录', 'err', 5000);
           break;
         }
         case 'move': onRemoteMove(msg); break;
@@ -504,6 +548,8 @@
         case 'agent_move': onAgentMove(msg); break;
         case 'agent_move_done': onAgentMoveDone(msg); break;
         case 'agent_status': if (window.__AF_AGENT_STATUS__) window.__AF_AGENT_STATUS__(!!msg.online, msg.nick); break;
+        case 'npc_move': if (window.__AF_NPC_TICK__ && msg.npc) window.__AF_NPC_TICK__(msg.npc, msg.hour); break;
+        case 'camera': if (window.__AF_CAM__) window.__AF_CAM__(msg.shot, msg.watch); break;
         case 'dm_in': onDmIn(msg); break;
         case 'dm_result': onDmResult(msg); break;
         case 'dm_log': onDmLog(msg); break;
@@ -561,6 +607,16 @@
       if (pos && connected && !hostedAgentOnline) {
         if (pos.scene !== lastScene) { lastScene = pos.scene; sceneChangeAt = Date.now(); spawnFixed = false; }
         try { ws.send(JSON.stringify({ t: 'move', scene: pos.scene, x: pos.x, y: pos.y })); } catch (e) {}
+      }
+      // D1 执行确认闭环：托管期间到达航点即回报实际落点（服务端校验/重规划）
+      if (pos && connected && hostedAgentOnline && agentMoveTarget && !agentArriveSent) {
+        const dx = Math.abs(pos.x - agentMoveTarget.x), dy = Math.abs(pos.y - agentMoveTarget.y);
+        if (agentMoveTarget.scene === undefined || pos.scene === agentMoveTarget.scene) {
+          if (dx <= 80 && dy <= 80) {
+            agentArriveSent = true;
+            try { ws.send(JSON.stringify({ t: 'agent_arrive', index: agentArriveIndex, x: pos.x, y: pos.y, scene: pos.scene })); } catch (e) {}
+          }
+        }
       }
     }, 200);
     sceneWatchTimer = setInterval(() => {
@@ -775,9 +831,12 @@
     } catch (e) {}
   }
 
-  let agentMoveTarget = null; // {x,y} 当前 agent 目标
+  let agentMoveTarget = null; // {x,y,scene} 当前 agent 目标
+  let agentArriveIndex = null, agentArriveSent = false; // D1 确认环：当前航点序号 + 已回报标记
   function clearAgentMoveState(item) {
     agentMoveTarget = null;
+    agentArriveIndex = null;
+    agentArriveSent = false;
     hostedAgentOnline = false;
     if (agentStopTimer) { clearTimeout(agentStopTimer); agentStopTimer = null; }
     try { if (item && item.isValid) item.changeDir(0, false); } catch (e) {}
@@ -791,16 +850,40 @@
     const PlayerItem = mods && mods['PlayerItem'] && mods['PlayerItem'].exports;
     const item = (PlayerItem && node.getComponent(PlayerItem.default || PlayerItem)) || node.getComponent('PlayerItem');
     if (!item) return;
+    // D6 跨场景段：目标场景与当前不同 -> 走原版场景传送（changeSceneEasy + 门户 passage 名）
+    const myScene = (() => {
+      try {
+        const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+        const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+        return p ? p.getSceneType() : null;
+      } catch (e) { return null; }
+    })();
+    if (msg.scene !== undefined && myScene !== null && msg.scene !== myScene) {
+      try {
+        const GD = mods['GameDefine'] && mods['GameDefine'].exports;
+        const GM = mods['GameManager'] && mods['GameManager'].exports;
+        const GMClass = GM && (GM.default || GM);
+        if (GD && GMClass && typeof GMClass.getIns().changeSceneEasy === 'function') {
+          const passageType = msg.passage && GD.ScenePassageType ? GD.ScenePassageType[msg.passage] : undefined;
+          if (typeof passageType === 'number') {
+            console.log('[AF] 跨场景传送:', myScene, '->', msg.scene, msg.passage);
+            GMClass.getIns().changeSceneEasy(msg.scene, passageType);
+          }
+        }
+      } catch (e) { console.warn('[AF] 跨场景传送失败:', e.message); }
+    }
     const p = node.getPosition(), dx = msg.x - p.x, dy = msg.y - p.y;
     // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。走路状态机负责动画、碰撞和镜头。
     const dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 5 : 2) : (dy >= 0 ? 10 : 11);
     item.changeDir(dir, false);
-    agentMoveTarget = { x: msg.x, y: msg.y };
+    agentMoveTarget = { x: msg.x, y: msg.y, scene: msg.scene };
+    agentArriveIndex = (typeof msg.seg === 'number') ? msg.seg : null;
+    agentArriveSent = false;
     // agent 移动期间不自动回传本地坐标，避免与 Agent 位置竞争
     hostedAgentOnline = true;
     if (agentStopTimer) clearTimeout(agentStopTimer);
-    // 兜底：如果完成事件丢了，过一段时间也要恢复本地同步。
-    agentStopTimer = setTimeout(() => { clearAgentMoveState(item); }, 12000);
+    // 兜底：完成事件丢失则恢复本地同步（跨场景段含传送+加载，给更宽窗口）
+    agentStopTimer = setTimeout(() => { clearAgentMoveState(item); }, (msg.scene !== undefined && msg.scene !== myScene) ? 20000 : 12000);
   }
 
   function onAgentMoveDone(msg) {
@@ -960,14 +1043,14 @@
     css.textContent = `
       #af-chat { position: fixed; left: 8px; bottom: 8px; z-index: 99999; width: 340px;
         font: 13px/1.5 "Microsoft YaHei", sans-serif; pointer-events: none; }
-      #af-chat .af-line { color: #fff; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,.35);
+      #af-chat .af-line { color: var(--af-c-light); text-shadow: 1px 1px 2px var(--af-c-black-70); background: var(--af-c-black-35);
         padding: 2px 8px; margin: 2px 0; border-radius: 4px; word-break: break-all; }
-      #af-chat .af-line .af-nick { color: #ffe27a; }
+      #af-chat .af-line .af-nick { color: var(--af-c-gold); }
       #af-chat-input { position: fixed; left: 8px; bottom: 8px; z-index: 100000; width: 340px;
-        display: none; background: rgba(0,0,0,.6); color: #fff; border: 1px solid #888;
+        display: none; background: var(--af-c-black-60); color: var(--af-c-light); border: 1px solid var(--af-c-text-dim);
         border-radius: 4px; padding: 4px 8px; font: 13px "Microsoft YaHei", sans-serif; outline: none; }
       #af-chat-btn { position: fixed; left: 8px; bottom: 8px; z-index: 99998; width: 36px; height: 36px;
-        border: 1px solid #777; border-radius: 6px; background: rgba(38,44,52,.9); color: #fff;
+        border: 1px solid var(--af-c-text-dim); border-radius: 6px; background: var(--af-c-glass-panel); color: var(--af-c-light);
         cursor: pointer; font-size: 18px; }
     `;
     document.head.appendChild(css);
@@ -992,7 +1075,7 @@
       cmdBar.style.display = on ? 'flex' : 'none';
       if (on) input.focus(); else input.blur();
     }
-    button.addEventListener('click', toggle);
+    AFUNI.on(button, toggle);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && input.style.display !== 'none') {
         e.preventDefault(); e.stopPropagation();
@@ -1014,8 +1097,8 @@
     for (const [label, cmd] of [['🎁 送礼', '/give '], ['❤️ 好感', '/fav '], ['💍 关系', '/bind '], ['📜 任务', '/task'], ['❓ 帮助', '/help']]) {
       const b = document.createElement('button');
       b.textContent = label;
-      b.style.cssText = 'border:1px solid #777;border-radius:6px;background:rgba(38,44,52,.9);color:#ffd97a;cursor:pointer;font:12px "Microsoft YaHei",sans-serif;padding:3px 8px;';
-      b.onclick = () => { input.value = cmd; input.focus(); };
+      b.style.cssText = 'border:1px solid var(--af-c-text-dim);border-radius:6px;background:var(--af-c-glass-panel);color:var(--af-c-gold);cursor:pointer;font:12px "Microsoft YaHei",sans-serif;padding:3px 8px;';
+      AFUNI.on(b, () => { input.value = cmd; input.focus(); }, { cls: false });
       cmdBar.appendChild(b);
     }
     document.body.appendChild(cmdBar);
@@ -1139,7 +1222,7 @@
       const div = document.createElement('div');
       div.className = 'dm-peer';
       div.textContent = '💬 ' + pn;
-      div.onclick = () => selectDmPeer(pu);
+      AFUNI.on(div, () => selectDmPeer(pu), { cls: false });
       list.appendChild(div);
     }
   }
@@ -1234,26 +1317,26 @@
     const css = document.createElement('style');
     css.textContent = `
       #af-diary-btn { position: fixed; top: 86px; right: 10px; z-index: 99990; cursor: pointer;
-        background: rgba(38,44,52,.9); color: #ffd97a; border: 1px solid #5a6b3a; border-radius: 6px;
-        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-      #af-diary-btn:hover { background: rgba(52,60,70,.95); }
+        background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
+        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+      #af-diary-btn:hover { background: var(--af-c-glass-solid); }
       #af-diary { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 680px; max-width: 94vw; height: 440px; display: none; flex-direction: column;
-        background: linear-gradient(180deg,#2c3138,#20242a); border: 2px solid #7a6a4a; border-radius: 10px;
-        box-shadow: 0 8px 30px rgba(0,0,0,.7), inset 0 0 0 1px #3a4450; font: 13px "Microsoft YaHei", sans-serif; }
+        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
+        box-shadow: 0 8px 30px var(--af-c-black-70), inset 0 0 0 1px var(--af-c-panel); font: 13px "Microsoft YaHei", sans-serif; }
       #af-diary .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
-        border-bottom: 1px solid #3a4450; }
-      #af-diary .hd b { color: #ffd97a; font-size: 15px; }
-      #af-diary .hd .x { cursor: pointer; color: #9aa4b0; font-size: 16px; padding: 0 6px; }
-      #af-diary .hd .x:hover { color: #ff7a7a; }
+        border-bottom: 1px solid var(--af-c-panel); }
+      #af-diary .hd b { color: var(--af-c-gold); font-size: 15px; }
+      #af-diary .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
+      #af-diary .hd .x:hover { color: var(--af-c-danger); }
       #af-diary .bd { display: flex; flex: 1; min-height: 0; }
-      #af-diary .list { width: 170px; border-right: 1px solid #3a4450; overflow-y: auto; padding: 8px 0; }
-      #af-diary .list .it { padding: 7px 14px; color: #c8d0da; cursor: pointer; border-left: 3px solid transparent; }
-      #af-diary .list .it:hover { background: rgba(255,217,122,.08); }
-      #af-diary .list .it.on { background: rgba(255,217,122,.14); border-left-color: #ffd97a; color: #ffd97a; }
-      #af-diary .content { flex: 1; overflow-y: auto; padding: 14px 18px; color: #dde3ea; line-height: 1.7; white-space: pre-wrap; }
-      #af-diary .empty { color: #6b7684; text-align: center; margin-top: 60px; }
-      #af-diary .foot { padding: 6px 14px; border-top: 1px solid #3a4450; color: #6b7684; font-size: 11px; }
+      #af-diary .list { width: 170px; border-right: 1px solid var(--af-c-panel); overflow-y: auto; padding: 8px 0; }
+      #af-diary .list .it { padding: 7px 14px; color: var(--af-c-text); cursor: pointer; border-left: 3px solid transparent; }
+      #af-diary .list .it:hover { background: var(--af-c-glow-gold); }
+      #af-diary .list .it.on { background: var(--af-c-glow-gold-strong); border-left-color: var(--af-c-gold); color: var(--af-c-gold); }
+      #af-diary .content { flex: 1; overflow-y: auto; padding: 14px 18px; color: var(--af-c-text); line-height: 1.7; white-space: pre-wrap; }
+      #af-diary .empty { color: var(--af-c-text-dim); text-align: center; margin-top: 60px; }
+      #af-diary .foot { padding: 6px 14px; border-top: 1px solid var(--af-c-panel); color: var(--af-c-text-dim); font-size: 11px; }
     `;
     document.head.appendChild(css);
     const btn = document.createElement('div');
@@ -1292,11 +1375,11 @@
           const it = document.createElement('div');
           it.className = 'it' + (i === 0 ? ' on' : '');
           it.textContent = d.title;
-          it.onclick = () => {
+          AFUNI.on(it, () => {
             list.querySelectorAll('.it').forEach(x => x.classList.remove('on'));
             it.classList.add('on');
             content.textContent = d.content;
-          };
+          }, { cls: false });
           list.appendChild(it);
         });
         content.textContent = days[0].content;
@@ -1305,8 +1388,8 @@
       }
     }
     function close() { panel.style.display = 'none'; }
-    btn.onclick = open;
-    panel.querySelector('#af-diary-x').onclick = close;
+    AFUNI.on(btn, open);
+    AFUNI.on(panel.querySelector('#af-diary-x'), close, { cls: false });
   }
 
   // ---------- Agent 指挥 UI（📮 实时指挥 + ⏸ 打断 + ▶ 恢复 + 🤖 托管中状态） ----------
@@ -1315,36 +1398,40 @@
     const css = document.createElement('style');
     css.textContent = `
       #af-agent-btn, #af-interrupt-btn, #af-resume-btn { position: fixed; right: 10px; z-index: 99990; cursor: pointer;
-        background: rgba(38,44,52,.9); color: #ffd97a; border: 1px solid #5a6b3a; border-radius: 6px;
-        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+        background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
+        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
       #af-agent-btn { top: 46px; }
-      #af-interrupt-btn { top: 126px; color: #ff9a7a; border-color: #6b4a3a; }
-      #af-resume-btn { top: 126px; right: 88px; color: #8ad97a; border-color: #3a6b4a; }
-      #af-agent-btn:hover, #af-interrupt-btn:hover, #af-resume-btn:hover { background: rgba(52,60,70,.95); }
+      #af-interrupt-btn { top: 126px; color: var(--af-c-danger); border-color: var(--af-c-wood); }
+      #af-resume-btn { top: 126px; right: 88px; color: var(--af-c-success); border-color: var(--af-c-moss); }
+      #af-agent-btn:hover, #af-interrupt-btn:hover, #af-resume-btn:hover { background: var(--af-c-glass-solid); }
       #af-agent-status { position: fixed; top: 166px; right: 10px; z-index: 99990; cursor: default;
         padding: 5px 12px; border-radius: 6px; font: 12px "Microsoft YaHei", sans-serif;
-        box-shadow: 0 2px 6px rgba(0,0,0,.4); max-width: 320px; }
-      #af-agent-status.on { background: rgba(26,52,34,.92); color: #9ae87a; border: 1px solid #3a7a4a; }
-      #af-agent-status.waiting { background: rgba(70,46,20,.92); color: #ffb87a; border: 1px solid #8a5a2a; }
-      #af-agent-status.off { background: rgba(38,44,52,.92); color: #7a8490; border: 1px solid #3a4450; }
+        box-shadow: 0 2px 6px var(--af-c-black-40); max-width: 320px; }
+      #af-agent-status.on { background: var(--af-c-glass-moss); color: var(--af-c-success); border: 1px solid var(--af-c-moss); }
+      #af-agent-status.waiting { background: var(--af-c-glass-wood); color: var(--af-c-danger); border: 1px solid var(--af-c-wood-dark); }
+        #af-agent-status.off { background: var(--af-c-glass-panel); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
+        #af-hud-agent { padding: 4px 10px; border-radius: 6px; font: 12px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); max-width: 300px; }
+        #af-hud-agent.on { background: var(--af-c-glass-moss); color: var(--af-c-success); border: 1px solid var(--af-c-moss); }
+        #af-hud-agent.waiting { background: var(--af-c-glass-wood); color: var(--af-c-danger); border: 1px solid var(--af-c-wood-dark); }
+        #af-hud-agent.off { background: var(--af-c-glass-panel); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
       #af-agent { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 420px; max-width: 92vw; display: none; flex-direction: column;
-        background: linear-gradient(180deg,#2c3138,#20242a); border: 2px solid #7a6a4a; border-radius: 10px;
-        box-shadow: 0 8px 30px rgba(0,0,0,.7); font: 13px "Microsoft YaHei", sans-serif; }
-      #af-agent .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #3a4450; }
-      #af-agent .hd b { color: #ffd97a; font-size: 15px; }
-      #af-agent .hd .x { cursor: pointer; color: #9aa4b0; font-size: 16px; padding: 0 6px; }
-      #af-agent .hd .x:hover { color: #ff7a7a; }
-      #af-agent .bd { padding: 12px 14px; color: #c8d0da; line-height: 1.7; }
-      #af-agent .bd p { margin: 0 0 10px; color: #9aa4b0; font-size: 12px; }
+        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
+        box-shadow: 0 8px 30px var(--af-c-black-70); font: 13px "Microsoft YaHei", sans-serif; }
+      #af-agent .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--af-c-panel); }
+      #af-agent .hd b { color: var(--af-c-gold); font-size: 15px; }
+      #af-agent .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
+      #af-agent .hd .x:hover { color: var(--af-c-danger); }
+      #af-agent .bd { padding: 12px 14px; color: var(--af-c-text); line-height: 1.7; }
+      #af-agent .bd p { margin: 0 0 10px; color: var(--af-c-text-dim); font-size: 12px; }
       #af-agent textarea { width: 100%; box-sizing: border-box; height: 64px; resize: none; padding: 8px 10px;
-        background: #1a1f26; color: #eee; border: 1px solid #3a4450; border-radius: 6px;
+        background: var(--af-c-bg); color: var(--af-c-light-soft); border: 1px solid var(--af-c-panel); border-radius: 6px;
         font: 13px "Microsoft YaHei", sans-serif; outline: none; }
       #af-agent .row { display: flex; gap: 8px; margin-top: 10px; }
       #af-agent .btn { flex: 1; padding: 8px; border: 0; border-radius: 6px; font-size: 14px; cursor: pointer; }
-      #af-agent .btn-primary { background: #e0a63c; color: #1a1f26; font-weight: bold; }
-      #af-agent .btn-primary:hover { background: #f0b64c; }
-      #af-agent .tip { margin-top: 10px; color: #6b7684; font-size: 11px; }
+      #af-agent .btn-primary { background: var(--af-c-amber); color: var(--af-c-bg); font-weight: bold; }
+      #af-agent .btn-primary:hover { background: var(--af-c-amber); }
+      #af-agent .tip { margin-top: 10px; color: var(--af-c-text-dim); font-size: 11px; }
     `;
     document.head.appendChild(css);
     const btn = document.createElement('div');
@@ -1376,11 +1463,18 @@
       e.stopImmediatePropagation();
     }, true);
     function renderAgentStatus() {
-      const st = document.getElementById('af-agent-status');
-      if (!st) return;
-      if (!agentOnline) { st.textContent = '🤖 Agent 未连接'; st.className = 'off'; return; }
-      if (agentWaiting) { st.textContent = '⏸ Agent 已让位 · ' + (agentActivity || '等你指挥'); st.className = 'waiting'; }
-      else { st.textContent = '🤖 自动执行 · ' + (agentActivity || '运行中'); st.className = 'on'; }
+      if (document.getElementById('af-agent-status')) {
+        const st = document.getElementById('af-agent-status');
+        if (!agentOnline) { st.textContent = '🤖 Agent 未连接'; st.className = 'off'; }
+        else if (agentWaiting) { st.textContent = '⏸ Agent 已让位 · ' + (agentActivity || '等你指挥'); st.className = 'waiting'; }
+        else { st.textContent = '🤖 自动执行 · ' + (agentActivity || '运行中'); st.className = 'on'; }
+      }
+      const chip = document.getElementById('af-hud-agent');
+      if (chip) {
+        if (!agentOnline) { chip.textContent = '🤖 Agent 未连接'; chip.className = 'af-hud-agent off'; }
+        else if (agentWaiting) { chip.textContent = '⏸ 已让位 · ' + (agentActivity || '等你指挥'); chip.className = 'af-hud-agent waiting'; }
+        else { chip.textContent = '🤖 自动执行 · ' + (agentActivity || '运行中'); chip.className = 'af-hud-agent on'; }
+      }
     }
     function updateAgentStatus(online, nick) {
       agentOnline = online;
@@ -1408,6 +1502,195 @@
         .catch(() => {});
     }, 10000);
 
+    // ---------- 村民动态（B7 日程：npc_move 广播 -> 轻量 DOM 走马灯） ----------
+    if (!document.getElementById('af-npc-ticker')) {
+      const tcss = document.createElement('style');
+      tcss.textContent = `
+        #af-npc-ticker { position: fixed; bottom: 120px; left: 10px; z-index: 99989; max-width: 260px;
+          padding: 6px 10px; border-radius: 8px; background: var(--af-c-glass-bg); color: var(--af-c-text);
+          font: 12px/1.5 'Microsoft YaHei', sans-serif; pointer-events: none; opacity: 0; transition: opacity .4s; }
+        #af-npc-ticker.show { opacity: 1; }
+        #af-npc-ticker .who { color: var(--af-c-success); font-weight: 600; }
+      `;
+      document.head.appendChild(tcss);
+      const tick = document.createElement('div');
+      tick.id = 'af-npc-ticker';
+      document.body.appendChild(tick);
+      let tickTimer = null;
+      const ACT_CN = { work: '干活', rest: '休息', social: '社交', eat: '吃饭', sleep: '睡觉', fish: '钓鱼', farm: '农作', trade: '赶集' };
+      window.__AF_NPC_TICK__ = function (npc, hour) {
+        try {
+          const act = ACT_CN[npc.activity] || npc.activity || '';
+          const h = hour != null ? (' ' + String(hour).padStart(2, '0') + ':00') : '';
+          tick.innerHTML = '🧑 ' + '<span class="who">' + (npc.name || '村民') + '</span>' + ' ' + act + h;
+          tick.classList.add('show');
+          if (tickTimer) clearTimeout(tickTimer);
+          tickTimer = setTimeout(() => tick.classList.remove('show'), 6000);
+        } catch (e) { /* ignore */ }
+      };
+    }
+
+    // ---------- 今日村况（B8 历法/天气：/af/calendar -> 轻量 DOM 显示；节日高亮） ----------
+    if (!document.getElementById('af-village-today')) {
+      const vcss = document.createElement('style');
+      vcss.textContent = `
+        #af-village-today { position: fixed; bottom: 92px; left: 10px; z-index: 99988; max-width: 300px;
+          padding: 5px 9px; border-radius: 8px; background: var(--af-c-glass-bg); color: var(--af-c-text);
+          font: 12px/1.4 'Microsoft YaHei', sans-serif; pointer-events: none; }
+        #af-village-today .fx { color: var(--af-c-gold); font-weight: 600; }
+      `;
+      document.head.appendChild(vcss);
+      const vd = document.createElement('div');
+      vd.id = 'af-village-today';
+      document.body.appendChild(vd);
+      const WX = { clear: '☀️ 晴', rain: '🌧️ 雨', snow: '❄️ 雪', storm: '⛈️ 风暴' };
+      const SEASON_CN = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
+      function pollVillageToday() {
+        fetch(SERVER + '/af/calendar')
+          .then(r => r.json())
+          .then(d => {
+            if (!d || !d.ok || !d.days || !d.days[0]) return;
+            const t = d.days[0];
+            vd.innerHTML = '📅 第' + t.day + '日 · ' + (SEASON_CN[t.season] || t.season) + ' · ' + (WX[t.weather] || t.weather)
+              + (t.festival ? ' · <span class="fx">' + t.festival + '</span>' : '');
+            vd.style.display = '';
+            if (window.__AF_HUD__ && window.__AF_HUD__.setClock) {
+              window.__AF_HUD__.setClock('📅 第' + t.day + '日 · ' + (SEASON_CN[t.season] || t.season) + ' · ' + (WX[t.weather] || t.weather) + (t.festival ? ' · ' + t.festival : ''));
+            }
+            if (window.__AF_WEATHER_FX__) window.__AF_WEATHER_FX__(t.weather);
+            // M4 氛围 + M5 音频：日历驱动（hour 服务端游戏时钟；season/weather LUT；BGM 昼夜按 19:00/05:00）
+            try {
+              if (window.AFATMO && window.AFATMO.update) {
+                const hour = Number.isFinite(d.hour) ? d.hour : new Date().getHours();
+                window.AFATMO.update(hour, t.season, t.weather);
+              }
+              if (window.AFFX && window.AFFX.setMode && (t.weather === 'rain' || t.weather === 'snow' || t.weather === 'storm')) {
+                window.AFFX.setMode(t.weather === 'storm' ? 'rain' : t.weather);
+              } else if (window.AFFX && window.AFFX.setMode && t.season) {
+                const SM = { spring: 'petal', summer: 'firefly', autumn: 'leaf', winter: 'snow' };
+                window.AFFX.setMode(SM[t.season] || 'clear');
+              }
+              if (window.AFAUD && window.AFAUD.setBgmMode && Number.isFinite(d.hour)) {
+                window.AFAUD.setBgmMode(d.hour >= 19 || d.hour < 5 ? 'night' : 'day', t.season);
+              }
+            } catch (e) {}
+          })
+          .catch(() => { vd.style.display = 'none'; });
+      }
+      pollVillageToday();
+      setInterval(pollVillageToday, 60000);
+      // B8 天气全屏特效层（同轮询数据驱动；CSS 动画，pointer-events:none 不挡操作）
+      if (!document.getElementById('af-weather-fx')) {
+        const wx = document.createElement('style');
+        wx.textContent = `
+          @keyframes afRainMove { from { background-position: 0 0; } to { background-position: -40px 60px; } }
+          @keyframes afSnowMove { from { background-position: 0 0; } to { background-position: 30px 40px; } }
+          #af-weather-fx { position: fixed; inset: 0; z-index: 99985; pointer-events: none; display: none; }
+          #af-weather-fx.rain { display: block; background: repeating-linear-gradient(100deg, transparent 0 5px, var(--af-c-glass-snow) 5px 6px); animation: afRainMove .55s linear infinite; }
+          #af-weather-fx.snow { display: block; background: radial-gradient(var(--af-c-white-70) 1px, transparent 1.5px) 0 0 / 26px 26px; animation: afSnowMove 4s linear infinite; }
+          #af-weather-fx.storm { display: block; background: var(--af-c-glass-night); }
+          #af-weather-fx.storm::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(100deg, transparent 0 5px, var(--af-c-glass-sky) 5px 6px); animation: afRainMove .4s linear infinite; }
+        `;
+        document.head.appendChild(wx);
+        const fx = document.createElement('div');
+        fx.id = 'af-weather-fx';
+        document.body.appendChild(fx);
+        window.__AF_WEATHER_FX__ = function (weather) { fx.className = (weather === 'rain' || weather === 'snow' || weather === 'storm') ? weather : ''; };
+      }
+    }
+
+    // ---------- 视觉轨面板（A8 导演观战 / A10 回放 / B9 动物 / B10 庭院榜；DOM best-effort） ----------
+    if (!document.getElementById('af-visual-panel')) {
+      const vcss = document.createElement('style');
+      vcss.textContent = `
+        #af-visual-panel { position: fixed; top: 200px; right: 10px; z-index: 99987; width: 230px;
+          background: var(--af-c-glass-bg); color: var(--af-c-text); border: 1px solid var(--af-c-panel); border-radius: 8px;
+          font: 12px/1.5 'Microsoft YaHei', sans-serif; }
+        #af-visual-panel .hd { padding: 6px 10px; background: var(--af-c-glass-bg-solid); border-bottom: 1px solid var(--af-c-panel);
+          display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        #af-visual-panel .sec { padding: 6px 10px; border-bottom: 1px solid var(--af-c-panel-deep); }
+        #af-visual-panel .sec:last-child { border-bottom: none; }
+        #af-visual-panel .tt { color: var(--af-c-text-dim); font-size: 11px; margin-bottom: 3px; }
+        #af-visual-panel .line { margin: 2px 0; }
+        #af-visual-panel .cam { color: var(--af-c-success); }
+        #af-visual-panel .muted { color: var(--af-c-text-dim); }
+        #af-visual-panel.collapsed .sec { display: none; }
+      `;
+      document.head.appendChild(vcss);
+      const vp = document.createElement('div');
+      vp.id = 'af-visual-panel';
+      vp.innerHTML = '<div class="hd"><b>📷 村事</b><span id="af-vp-x">▾</span></div>' +
+        '<div class="sec"><div class="tt">导演观战</div><div id="af-vp-cam" class="line muted">未观战</div></div>' +
+        '<div class="sec"><div class="tt">动物（点击刷新）</div><div id="af-vp-animals" class="line muted">…</div></div>' +
+        '<div class="sec"><div class="tt">庭院榜</div><div id="af-vp-decor" class="line muted">…</div></div>' +
+        '<div class="sec"><div class="tt">回放（M1.4 确定性）</div><div id="af-vp-replay" class="line muted">…</div>' +
+        '<button id="af-vp-replay-btn" style="margin-top:4px;padding:3px 8px;background:var(--af-c-panel-deep);color:var(--af-c-text);border:1px solid var(--af-c-panel);border-radius:4px;cursor:pointer;font:11px \'Microsoft YaHei\',sans-serif;">刷新回放时间线</button></div>';
+      document.body.appendChild(vp);
+      AFUNI.on(vp.querySelector('#af-vp-x'), () => { vp.classList.toggle('collapsed'); vp.querySelector('#af-vp-x').textContent = vp.classList.contains('collapsed') ? '▸' : '▾'; }, { cls: false });
+
+      // A8 导演镜头：WS camera 广播 -> 观战提示（10s 自动隐回"未观战"）
+      let camTimer = null;
+      window.__AF_CAM__ = function (shot, watch) {
+        if (!shot) return;
+        const el = vp.querySelector('#af-vp-cam');
+        el.textContent = '跟随 ' + (shot.target || '世界') + '（' + (shot.kind === 'follow_agent' ? '托管行动' : '事件') + '）';
+        el.className = 'line cam';
+        if (camTimer) clearTimeout(camTimer);
+        camTimer = setTimeout(() => { el.textContent = '未观战'; el.className = 'line muted'; }, 10000);
+      };
+
+      // B9 动物面板
+      function pollAnimals() {
+        fetch(SERVER + '/af/animals')
+          .then(r => r.json())
+          .then(d => {
+            const el = vp.querySelector('#af-vp-animals');
+            if (!d.ok || !d.animals || !d.animals.length) { el.textContent = '暂无动物（去牧场领养）'; el.className = 'line muted'; return; }
+            el.innerHTML = d.animals.slice(0, 6).map(a =>
+              a.name + '(' + a.stage + ') 饱' + (a.satiety == null ? '-' : a.satiety)
+            ).join('<br>') + (d.animals.length > 6 ? '<br><span class="muted">…共 ' + d.animals.length + ' 只</span>' : '');
+            el.className = 'line';
+          })
+          .catch(() => {});
+      }
+      pollAnimals();
+      AFUNI.on(vp.querySelector('#af-vp-animals'), pollAnimals);
+      vp.querySelector('#af-vp-animals').style.cursor = 'pointer';
+
+      // B10 庭院榜
+      function pollDecor() {
+        fetch(SERVER + '/af/decor-board?token=' + encodeURIComponent(token))
+          .then(r => r.json())
+          .then(d => {
+            const el = vp.querySelector('#af-vp-decor');
+            if (!d.ok || !d.top || !d.top.length) { el.textContent = '暂无布置'; el.className = 'line muted'; return; }
+            el.innerHTML = d.top.slice(0, 5).map((r, i) => (i + 1) + '. ' + r.username + ' ' + r.score + '分').join('<br>');
+            el.className = 'line';
+          })
+          .catch(() => {});
+      }
+      pollDecor();
+
+      // A10 回放时间线（只读；verify=1 附确定性校验）
+      AFUNI.on(vp.querySelector('#af-vp-replay-btn'), function () {
+        const el = vp.querySelector('#af-vp-replay');
+        el.textContent = '加载中…';
+        fetch(SERVER + '/af/replay?events=40&verify=1&token=' + encodeURIComponent(token))
+          .then(r => r.json())
+          .then(d => {
+            if (!d.ok) { el.textContent = '回放不可用'; return; }
+            const shots = (d.shots || []).slice(-5).map(s => s.kind + ':' + s.target + '@' + s.x + ',' + s.y).join(' → ');
+            el.textContent = 'seq ' + d.fromSeq + '-' + d.toSeq + ' · ' + (d.shots || []).length + ' 镜头' +
+              (d.deterministic === false ? ' · ⚠ 非确定' : ' · 确定性✓') +
+              (shots ? '<br><span class="muted">' + shots + '</span>' : '');
+          })
+          .catch(() => { el.textContent = '回放获取失败'; });
+      });
+
+      setInterval(pollAnimals, 30000);
+      setInterval(pollDecor, 60000);
+    }
+
     const panel = document.createElement('div');
     panel.id = 'af-agent';
     panel.innerHTML = `
@@ -1423,11 +1706,11 @@
           <button class="btn" id="af-agent-model-btn">🤖 模型设置</button>
           <span class="tip" id="af-agent-model-state"></span>
         </div>
-        <div id="af-agent-model-form" style="display:none;margin-top:10px;border-top:1px solid #3a4450;padding-top:10px;">
+        <div id="af-agent-model-form" style="display:none;margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;">
           <p>配置 Agent 大脑的 LLM（OpenAI 兼容接口）。配置保存在房间服务器，一次配好全房间托管都能用。</p>
-          <input id="af-model-url" placeholder="API 地址，如 https://opencode.ai/zen/go/v1" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:#1a1f26;color:#eee;border:1px solid #3a4450;border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
-          <input id="af-model-key" placeholder="API Key（已配置时留空则保留）" type="password" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:#1a1f26;color:#eee;border:1px solid #3a4450;border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
-          <input id="af-model-name" placeholder="模型名，如 deepseek-v4-flash" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:#1a1f26;color:#eee;border:1px solid #3a4450;border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+          <input id="af-model-url" placeholder="API 地址，如 https://opencode.ai/zen/go/v1" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+          <input id="af-model-key" placeholder="API Key（已配置时留空则保留）" type="password" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+          <input id="af-model-name" placeholder="模型名，如 deepseek-v4-flash" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
           <div class="row">
             <button class="btn btn-primary" id="af-model-save">保存模型配置</button>
           </div>
@@ -1455,8 +1738,8 @@
         .catch(() => { modelState.textContent = '模型状态获取失败'; });
     }
     loadProviderState();
-    modelBtn.onclick = () => { modelForm.style.display = modelForm.style.display === 'none' ? 'block' : 'none'; loadProviderState(); };
-    modelSave.onclick = async () => {
+    AFUNI.on(modelBtn, () => { modelForm.style.display = modelForm.style.display === 'none' ? 'block' : 'none'; loadProviderState(); });
+    AFUNI.on(modelSave, async () => {
       try {
         const body = {
           url: panel.querySelector('#af-model-url').value.trim(),
@@ -1471,7 +1754,7 @@
         if (d.ok) { modelState.textContent = '✓ ' + (d.msg || '已保存'); modelForm.style.display = 'none'; }
         else modelState.textContent = '保存失败：' + (d.msg || r.status);
       } catch (e) { modelState.textContent = '保存失败：' + e.message; }
-    };
+    });
     function openPanel() { panel.style.display = 'flex'; input.focus(); }
     function closePanel() { panel.style.display = 'none'; }
     function sendMsg() {
@@ -1482,28 +1765,31 @@
       input.value = '';
       closePanel();
     }
-    btn.onclick = openPanel;
-    panel.querySelector('#af-agent-x').onclick = closePanel;
-    sendBtn.onclick = sendMsg;
-    toggleBtn.onclick = async () => {
+    AFUNI.on(btn, openPanel);
+    AFUNI.on(panel.querySelector('#af-agent-x'), closePanel, { cls: false });
+    AFUNI.on(sendBtn, sendMsg);
+    AFUNI.on(toggleBtn, async () => {
       try {
         const r = await fetch(SERVER + '/af/agent-control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: agentOnline ? 'stop' : 'start' }) });
         const d = await r.json();
         if (!d.ok) throw new Error(d.msg || '操作失败');
         toggleBtn.textContent = agentOnline ? '启动托管' : '停止托管';
-      } catch (e) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', e.message || '托管操作失败'); }
-    };
+        toast(agentOnline ? '已停止托管' : '托管已启动', agentOnline ? 'info' : 'ok');
+      } catch (e) { toast(e.message || '托管操作失败', 'err'); if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', e.message || '托管操作失败'); }
+    });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
-    intBtn.onclick = () => {
+    AFUNI.on(intBtn, () => {
       if (connected) ws.send(JSON.stringify({ t: 'agent_interrupt' }));
       if (window.__AF_AGENT_ACTIVITY__) window.__AF_AGENT_ACTIVITY__('你手动按了 ⏸，Agent 已停手等你指挥', true);
       if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '已发送打断指令');
-    };
-    resBtn.onclick = () => {
+      toast('已打断 Agent', 'info');
+    });
+    AFUNI.on(resBtn, () => {
       if (connected) ws.send(JSON.stringify({ t: 'agent_resume' }));
       if (window.__AF_AGENT_ACTIVITY__) window.__AF_AGENT_ACTIVITY__('恢复行动，继续原计划', false);
       if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '已发送恢复指令');
-    };
+      toast('Agent 恢复行动', 'ok');
+    });
     window.__AF_AGENT_STATUS__ = updateAgentStatus;
     updateAgentStatus(false);
   }
@@ -1574,13 +1860,13 @@
             const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
             if (inOrig) continue;
             const i = y * g.W + x;
-            if (g.water[i]) fill(x, y, '#8fb0d8');
-            else if (g.blocked && g.blocked[i]) fill(x, y, '#b5a06e');
+            if (g.water[i]) fill(x, y, 'var(--af-c-sky)');
+            else if (g.blocked && g.blocked[i]) fill(x, y, 'var(--af-c-wood)');
           }
           for (const h of (g.houses || [])) {
             const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
             if (inOrig) continue;
-            ctx.strokeStyle = '#9a7428';
+            ctx.strokeStyle = 'var(--af-c-wood-dark)';
             ctx.lineWidth = Math.max(1, Math.round(cw / 220));
             ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
           }
@@ -1633,14 +1919,14 @@
       const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
       if (inOrig) continue; // 原版区透明，透底
       const i = y * g.W + x;
-      if (g.water[i]) fill(x, y, '#8fb0d8');
-      else if (g.blocked && g.blocked[i]) fill(x, y, '#b5a06e');
+      if (g.water[i]) fill(x, y, 'var(--af-c-sky)');
+      else if (g.blocked && g.blocked[i]) fill(x, y, 'var(--af-c-wood)');
     }
     // 宅基地描边（只在扩展区画）
     for (const h of (g.houses || [])) {
       const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
       if (inOrig) continue;
-      ctx.strokeStyle = '#9a7428';
+      ctx.strokeStyle = 'var(--af-c-wood-dark)';
       ctx.lineWidth = Math.max(1, Math.round(cw / 220));
       ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
     }
@@ -1672,38 +1958,38 @@
     const css = document.createElement('style');
     css.textContent = `
       #af-task-btn { position: fixed; top: 46px; left: 10px; z-index: 99990; cursor: pointer;
-        background: rgba(38,44,52,.9); color: #ffd97a; border: 1px solid #5a6b3a; border-radius: 6px;
-        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-      #af-task-btn:hover { background: rgba(52,60,70,.95); }
+        background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
+        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+      #af-task-btn:hover { background: var(--af-c-glass-solid); }
       #af-task-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 460px; max-width: 94vw; display: none; flex-direction: column;
-        background: linear-gradient(180deg,#2c3138,#20242a); border: 2px solid #7a6a4a; border-radius: 10px;
-        box-shadow: 0 8px 30px rgba(0,0,0,.7); font: 13px "Microsoft YaHei", sans-serif; }
-      #af-task-panel .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #3a4450; }
-      #af-task-panel .hd b { color: #ffd97a; font-size: 15px; }
-      #af-task-panel .hd .x { cursor: pointer; color: #9aa4b0; font-size: 16px; padding: 0 6px; }
+        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
+        box-shadow: 0 8px 30px var(--af-c-black-70); font: 13px "Microsoft YaHei", sans-serif; }
+      #af-task-panel .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--af-c-panel); }
+      #af-task-panel .hd b { color: var(--af-c-gold); font-size: 15px; }
+      #af-task-panel .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
       #af-task-list { padding: 10px 14px; max-height: 380px; overflow-y: auto; }
-      #af-task-list .tl-it { padding: 8px 10px; margin-bottom: 6px; background: rgba(255,255,255,.04); border-radius: 6px; border-left: 3px solid #7a6a4a; }
-      #af-task-list .tl-it.done { opacity: .55; border-left-color: #5a8a4a; }
-      #af-task-list .tl-it b { color: #e8e0cc; }
-      #af-task-list .tl-desc { color: #8a94a0; font-size: 11px; margin-left: 6px; }
-      #af-task-list .tl-prog { float: right; color: #ffd97a; }
-      #af-task-list .tl-reward { display: block; color: #8fae6a; font-size: 11px; margin-top: 3px; }
+      #af-task-list .tl-it { padding: 8px 10px; margin-bottom: 6px; background: var(--af-c-white-04); border-radius: 6px; border-left: 3px solid var(--af-c-wood); }
+      #af-task-list .tl-it.done { opacity: .55; border-left-color: var(--af-c-moss); }
+      #af-task-list .tl-it b { color: var(--af-c-paper); }
+      #af-task-list .tl-desc { color: var(--af-c-text-dim); font-size: 11px; margin-left: 6px; }
+      #af-task-list .tl-prog { float: right; color: var(--af-c-gold); }
+      #af-task-list .tl-reward { display: block; color: var(--af-c-moss); font-size: 11px; margin-top: 3px; }
       #af-social-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 360px; max-width: 92vw; display: none; flex-direction: column;
-        background: linear-gradient(180deg,#2c3138,#20242a); border: 2px solid #7a6a4a; border-radius: 10px;
-        box-shadow: 0 8px 30px rgba(0,0,0,.7); font: 13px "Microsoft YaHei", sans-serif; }
-      #af-social-panel .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #3a4450; }
-      #af-social-panel .hd b { color: #ffd97a; font-size: 15px; }
-      #af-social-panel .hd .x { cursor: pointer; color: #9aa4b0; font-size: 16px; padding: 0 6px; }
-      #af-social-panel .bd { padding: 12px 14px; color: #c8d0da; }
+        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
+        box-shadow: 0 8px 30px var(--af-c-black-70); font: 13px "Microsoft YaHei", sans-serif; }
+      #af-social-panel .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--af-c-panel); }
+      #af-social-panel .hd b { color: var(--af-c-gold); font-size: 15px; }
+      #af-social-panel .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
+      #af-social-panel .bd { padding: 12px 14px; color: var(--af-c-text); }
       #af-social-panel input, #af-social-panel select { width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 7px 9px;
-        background: #1a1f26; color: #eee; border: 1px solid #3a4450; border-radius: 6px; font: 13px "Microsoft YaHei", sans-serif; outline: none; }
+        background: var(--af-c-bg); color: var(--af-c-light-soft); border: 1px solid var(--af-c-panel); border-radius: 6px; font: 13px "Microsoft YaHei", sans-serif; outline: none; }
       #af-social-panel .row { display: flex; gap: 8px; margin-bottom: 8px; }
-      #af-social-panel .btn { flex: 1; padding: 8px; border: 0; border-radius: 6px; font-size: 13px; cursor: pointer; color: #1a1f26; }
-      #af-social-panel .btn-g { background: #e0a63c; }
-      #af-social-panel .btn-b { background: #4a6a8a; color: #eee; }
-      #af-social-panel .st { color: #8a94a0; font-size: 12px; min-height: 16px; }
+      #af-social-panel .btn { flex: 1; padding: 8px; border: 0; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--af-c-bg); }
+      #af-social-panel .btn-g { background: var(--af-c-amber); }
+      #af-social-panel .btn-b { background: var(--af-c-sky-deep); color: var(--af-c-light-soft); }
+      #af-social-panel .st { color: var(--af-c-text-dim); font-size: 12px; min-height: 16px; }
     `;
     document.head.appendChild(css);
     // 📜 任务按钮 + 面板
@@ -1713,10 +1999,10 @@
     document.body.appendChild(tbtn);
     const tpanel = document.createElement('div');
     tpanel.id = 'af-task-panel';
-    tpanel.innerHTML = '<div class="hd"><b>📜 任务书</b><span class="x" id="af-task-x">✕</span></div><div id="af-task-list"><div style="color:#6b7684">加载中…</div></div>';
+    tpanel.innerHTML = '<div class="hd"><b>📜 任务书</b><span class="x" id="af-task-x">✕</span></div><div id="af-task-list"><div style="color:var(--af-c-text-dim)">加载中…</div></div>';
     document.body.appendChild(tpanel);
-    tbtn.onclick = () => { tpanel.style.display = 'flex'; refreshTasks(); };
-    tpanel.querySelector('#af-task-x').onclick = () => { tpanel.style.display = 'none'; };
+    AFUNI.on(tbtn, () => { tpanel.style.display = 'flex'; refreshTasks(); });
+    AFUNI.on(tpanel.querySelector('#af-task-x'), () => { tpanel.style.display = 'none'; }, { cls: false });
     // 点击玩家交互面板
     const spanel = document.createElement('div');
     spanel.id = 'af-social-panel';
@@ -1750,20 +2036,20 @@
       spanel.querySelector('#af-sp-give').value = '';
       spanel.style.display = 'flex';
     };
-    spanel.querySelector('#af-sp-x').onclick = () => { spanel.style.display = 'none'; };
-    spanel.querySelector('#af-sp-send').onclick = () => {
+    AFUNI.on(spanel.querySelector('#af-sp-x'), () => { spanel.style.display = 'none'; }, { cls: false });
+    AFUNI.on(spanel.querySelector('#af-sp-send'), () => {
       const t = spanel.querySelector('#af-sp-talk').value.trim();
       if (t && spTarget) { sendSocial('talk', { target: spTarget, text: t }); spanel.querySelector('#af-sp-talk').value = ''; }
-    };
-    spanel.querySelector('#af-sp-fav').onclick = () => { if (spTarget) sendSocial('fav', { target: spTarget }); };
+    });
+    AFUNI.on(spanel.querySelector('#af-sp-fav'), () => { if (spTarget) sendSocial('fav', { target: spTarget }); }, { cls: false });
     spanel.querySelector('#af-sp-give').onkeydown = (e) => {
       if (e.key === 'Enter') {
         const m = /(\d+)\s*(\d*)/.exec(spanel.querySelector('#af-sp-give').value.trim());
         if (m && spTarget) { sendSocial('give', { target: spTarget, itemId: Number(m[1]), num: Number(m[2] || 1) }); spanel.querySelector('#af-sp-give').value = ''; }
       }
     };
-    spanel.querySelector('#af-sp-bind').onclick = () => { if (spTarget) sendSocial('bind', { target: spTarget, type: spanel.querySelector('#af-sp-rel').value }); };
-    spanel.querySelector('#af-sp-tp').onclick = () => { if (spTarget) sendSocial('tp', { target: spTarget }); };
+    AFUNI.on(spanel.querySelector('#af-sp-bind'), () => {         if (spTarget) sendSocial('bind', { target: spTarget, type: spanel.querySelector('#af-sp-rel').value }); toast('已绑定 ' + spTarget, 'ok'); }, { cls: false });
+    AFUNI.on(spanel.querySelector('#af-sp-tp'), () => { if (spTarget) sendSocial('tp', { target: spTarget }); }, { cls: false });
   }
   function openSocialPanel(uid2) {
     try {
@@ -1779,45 +2065,45 @@
     const css = document.createElement('style');
     css.textContent = `
       #af-dm-btn { position: fixed; top: 46px; left: 56px; z-index: 99990; cursor: pointer;
-        background: rgba(38,44,52,.9); color: #ffd97a; border: 1px solid #5a6b3a; border-radius: 6px;
-        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-      #af-dm-btn:hover { background: rgba(52,60,70,.95); }
+        background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
+        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+      #af-dm-btn:hover { background: var(--af-c-glass-solid); }
       #af-dm-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 540px; max-width: 94vw; display: none; flex-direction: column;
-        background: linear-gradient(180deg,#2c3138,#20242a); border: 2px solid #7a6a4a; border-radius: 10px;
-        box-shadow: 0 8px 30px rgba(0,0,0,.7); font: 13px "Microsoft YaHei", sans-serif; }
+        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
+        box-shadow: 0 8px 30px var(--af-c-black-70); font: 13px "Microsoft YaHei", sans-serif; }
       #af-dm-panel .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
-        border-bottom: 1px solid #3a4450; }
-      #af-dm-panel .hd b { color: #ffd97a; font-size: 15px; }
-      #af-dm-panel .hd .x { cursor: pointer; color: #9aa4b0; font-size: 16px; padding: 0 6px; }
-      #af-dm-panel .hd .x:hover { color: #ff7a7a; }
+        border-bottom: 1px solid var(--af-c-panel); }
+      #af-dm-panel .hd b { color: var(--af-c-gold); font-size: 15px; }
+      #af-dm-panel .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
+      #af-dm-panel .hd .x:hover { color: var(--af-c-danger); }
       #af-dm-panel .bd { display: flex; flex: 1; min-height: 340px; }
-      #af-dm-panel .list { width: 170px; border-right: 1px solid #3a4450; overflow-y: auto; padding: 8px 0; }
-      #af-dm-panel .list .dm-peer { padding: 7px 14px; color: #c8d0da; cursor: pointer; }
-      #af-dm-panel .list .dm-peer:hover { background: rgba(255,217,122,.08); }
-      #af-dm-panel .list .dm-empty { color: #6b7684; padding: 10px 14px; font-size: 12px; }
+      #af-dm-panel .list { width: 170px; border-right: 1px solid var(--af-c-panel); overflow-y: auto; padding: 8px 0; }
+      #af-dm-panel .list .dm-peer { padding: 7px 14px; color: var(--af-c-text); cursor: pointer; }
+      #af-dm-panel .list .dm-peer:hover { background: var(--af-c-glow-gold); }
+      #af-dm-panel .list .dm-empty { color: var(--af-c-text-dim); padding: 10px 14px; font-size: 12px; }
       #af-dm-panel .chat-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-      #af-dm-panel .chat-name { padding: 8px 14px; color: #c8d0da; font-size: 12px; border-bottom: 1px solid #2c333c; }
-      #af-dm-panel .chat-name b { color: #ffd97a; font-size: 14px; }
-      #af-dm-panel .chat-name .st { color: #8a94a0; font-size: 11px; margin-left: 8px; }
-      #af-dm-panel #af-dm-log { flex: 1; overflow-y: auto; padding: 10px 14px; color: #dde3ea; line-height: 1.7; }
+      #af-dm-panel .chat-name { padding: 8px 14px; color: var(--af-c-text); font-size: 12px; border-bottom: 1px solid var(--af-c-panel-deep); }
+      #af-dm-panel .chat-name b { color: var(--af-c-gold); font-size: 14px; }
+      #af-dm-panel .chat-name .st { color: var(--af-c-text-dim); font-size: 11px; margin-left: 8px; }
+      #af-dm-panel #af-dm-log { flex: 1; overflow-y: auto; padding: 10px 14px; color: var(--af-c-text); line-height: 1.7; }
       #af-dm-panel #af-dm-log .dm-line { margin-bottom: 6px; }
-      #af-dm-panel #af-dm-log .dm-line.me { color: #7ad0ff; }
-      #af-dm-panel #af-dm-log .dm-at { color: #6b7684; font-size: 11px; margin-right: 6px; }
-      #af-dm-panel #af-dm-log .dm-nick { color: #ffe27a; font-size: 12px; }
-      #af-dm-panel #af-dm-log .dm-empty { color: #6b7684; text-align: center; margin-top: 40px; }
-      #af-dm-panel .chat-input { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid #3a4450; }
-      #af-dm-panel .chat-input input { flex: 1; background: #1a1f26; color: #eee; border: 1px solid #3a4450;
+      #af-dm-panel #af-dm-log .dm-line.me { color: var(--af-c-sky-bright); }
+      #af-dm-panel #af-dm-log .dm-at { color: var(--af-c-text-dim); font-size: 11px; margin-right: 6px; }
+      #af-dm-panel #af-dm-log .dm-nick { color: var(--af-c-gold); font-size: 12px; }
+      #af-dm-panel #af-dm-log .dm-empty { color: var(--af-c-text-dim); text-align: center; margin-top: 40px; }
+      #af-dm-panel .chat-input { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--af-c-panel); }
+      #af-dm-panel .chat-input input { flex: 1; background: var(--af-c-bg); color: var(--af-c-light-soft); border: 1px solid var(--af-c-panel);
         border-radius: 6px; padding: 7px 9px; font: 13px "Microsoft YaHei", sans-serif; outline: none; }
-      #af-dm-panel .chat-input button { background: #e0a63c; border: 0; border-radius: 6px; padding: 7px 14px;
+      #af-dm-panel .chat-input button { background: var(--af-c-amber); border: 0; border-radius: 6px; padding: 7px 14px;
         cursor: pointer; font: 13px "Microsoft YaHei", sans-serif; }
-      #af-dm-panel .chat-input button:hover { background: #f0b850; }
+      #af-dm-panel .chat-input button:hover { background: var(--af-c-amber); }
     `;
     document.head.appendChild(css);
     const btn = document.createElement('div');
     btn.id = 'af-dm-btn';
     btn.textContent = '💬 私聊';
-    btn.onclick = () => openDmPanel(null);
+    AFUNI.on(btn, () => openDmPanel(null));
     document.body.appendChild(btn);
     const panel = document.createElement('div');
     panel.id = 'af-dm-panel';
@@ -1835,7 +2121,7 @@
         </div>
       </div>`;
     document.body.appendChild(panel);
-    panel.querySelector('#af-dm-x').onclick = () => { panel.style.display = 'none'; };
+    AFUNI.on(panel.querySelector('#af-dm-x'), () => { panel.style.display = 'none'; }, { cls: false });
     const inp = panel.querySelector('#af-dm-input');
     const send = () => {
       const t = inp.value.trim();
@@ -1845,7 +2131,7 @@
       sendDm(targetUid, t);
       inp.value = '';
     };
-    panel.querySelector('#af-dm-send').onclick = send;
+    AFUNI.on(panel.querySelector('#af-dm-send'), send);
     inp.onkeydown = (e) => { if (e.key === 'Enter') send(); };
     requestDmUnlockedList();
   }
@@ -1867,6 +2153,78 @@
         if (it && it.active) { it.active = false; console.log('[AF] 已隐藏存档槽', name); }
       });
     } catch (e) {}
+  }
+
+  // ---------- C8 美术资产：服务端 /af/art-manifest + /af/art/{id}.png 交付 ----------
+  // load(id) 取 PNG dataURL（缓存）；toSprite(id, {parent,x,y,w,h,name}) 挂 Cocos 节点（best-effort：
+  // 无 Cocos 运行环境/节点不存在时静默 no-op，不碰原版外壳）。
+  if (!window.__AF_ART__) {
+    const art = {
+      manifest: null,
+      _cache: new Map(),
+      _img: new Map(),
+      fetchManifest() {
+        if (this.manifest) return Promise.resolve(this.manifest);
+        return fetch(SERVER + '/af/art-manifest')
+          .then(r => r.json())
+          .then(d => { this.manifest = (d && d.manifest) || null; return this.manifest; })
+          .catch(() => { this.manifest = null; return null; });
+      },
+      item(id) {
+        return this.manifest && this.manifest.queue ? this.manifest.queue.find(q => q.id === Number(id)) : null;
+      },
+      dataUrl(id) {
+        if (this._cache.has(id)) return Promise.resolve(this._cache.get(id));
+        return fetch(SERVER + '/af/art/' + Number(id) + '.png')
+          .then(async r => {
+            if (!r.ok) throw new Error('art ' + id + ' -> HTTP ' + r.status);
+            const buf = new Uint8Array(await r.arrayBuffer());
+            let bin = '';
+            for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+            const url = 'data:image/png;base64,' + btoa(bin);
+            this._cache.set(id, url);
+            return url;
+          });
+      },
+      image(id) {
+        if (this._img.has(id)) return this._img.get(id);
+        const p = this.dataUrl(id).then(u => new Promise((res, rej) => {
+          const im = new Image();
+          im.onload = () => { this._img.set(id, im); res(im); };
+          im.onerror = e => rej(e);
+          im.src = u;
+        }));
+        this._img.set(id, p);
+        return p;
+      },
+      // Cocos 节点级贴图（复用 mapgrid 注入的 Texture2D/SpriteFrame 模式）
+      toSprite(id, opts = {}) {
+        try {
+          if (typeof cc === 'undefined' || !cc.director) return null; // 无 Cocos 环境：静默 no-op
+          const parent = opts.parent && opts.parent.isValid ? opts.parent : null;
+          if (!parent) return null;
+          const node = new cc.Node('afArt_' + id);
+          const sprite = node.addComponent(cc.Sprite);
+          parent.addChild(node);
+          if (opts.x !== undefined || opts.y !== undefined) node.setPosition(cc.v2(opts.x || 0, opts.y || 0));
+          if (opts.name) node.name = opts.name;
+          this.image(id).then(im => {
+            if (!sprite.isValid) return;
+            const tex = new cc.Texture2D();
+            tex.initWithElement(im);
+            tex.handleLoadedTexture();
+            const sf = new cc.SpriteFrame(tex);
+            sf.setRect(new cc.Rect(0, 0, im.width, im.height));
+            sprite.spriteFrame = sf;
+            sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+            node.width = opts.w || im.width;
+            node.height = opts.h || im.height;
+          }).catch(() => { try { node.destroy(); } catch (e) {} });
+          return node;
+        } catch (e) { console.warn('[AF] art.toSprite 跳过（Cocos 环境不可用）:', e && e.message); return null; }
+      },
+    };
+    window.__AF_ART__ = art;
   }
 
   window.__AF__ = { uid, nick, get remotePlayers() { return remotePlayers; } };

@@ -1,6 +1,7 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // _agnes-screens.mjs —— Agnes 描述游戏截图画面
 import { readFileSync } from 'node:fs';
-const KEY = 'sk-vWFx8Ifrpvn4Zqe48FiUSKstxwdEu2yFo6hktUjzHRoGPaJa';
+const KEY = process.env.AGNES_API_KEY;
 const prompt = '这是像素风种田游戏的浏览器截图。请客观描述画面：1) 整体是什么界面（主菜单/加载中/村庄游戏画面/弹窗/黑屏）？2) 画面上有什么（文字、按钮、角色、地图）？3) 如果能看到地图或村庄，描述地面和建筑。简短回答。';
 for (const f of process.argv.slice(2)) {
   try {

@@ -38,7 +38,7 @@ Query: 调用 game_observe 工具，告诉我位置和金币
 [38;2;255;255;255;48;2;19;87;20m+import { randomUUID } from 'node:crypto';[0m
 [38;2;255;255;255;48;2;19;87;20m+import { readFileSync } from 'node:fs';[0m
 [38;2;255;255;255;48;2;19;87;20m+[0m
-[38;2;255;255;255;48;2;19;87;20m+const token = '1d57b638c25c3deade3e5ec744c06949';[0m
+[38;2;255;255;255;48;2;19;87;20m+const token = '***REDACTED***';[0m
 [38;2;255;255;255;48;2;19;87;20m+const child = spawn('node', ['D:\\agent社区\\AgentFarm2\\tools\\agent-mcp.mjs', '--connect-timeout', '20'], {[0m
 [38;2;255;255;255;48;2;19;87;20m+  env: { ...process.env, AF_AGENT_TOKEN: token },[0m
 [38;2;255;255;255;48;2;19;87;20m+  stdio: ['pipe', 'pipe', 'pipe'],[0m
@@ -117,7 +117,7 @@ Query: 调用 game_observe 工具，告诉我位置和金币
 [38;2;255;255;255;48;2;19;87;20m+const require = createRequire(import.meta.url);[0m
 [38;2;255;255;255;48;2;19;87;20m+const { WebSocket } = require('/d/agent社区/AgentFarm2/tools/node_modules/ws');[0m
 [38;2;255;255;255;48;2;19;87;20m+[0m
-[38;2;255;255;255;48;2;19;87;20m+const token = '1d57b638c25c3deade3e5ec744c06949';[0m
+[38;2;255;255;255;48;2;19;87;20m+const token = '***REDACTED***';[0m
 [38;2;255;255;255;48;2;19;87;20m+const url = `ws://127.0.0.1:8080/agent?token=${token}`;[0m
 [38;2;255;255;255;48;2;19;87;20m+console.log('connecting', url);[0m
 [38;2;255;255;255;48;2;19;87;20m+const ws = new WebSocket(url, { handshakeTimeout: 5000 });[0m
@@ -140,7 +140,7 @@ Query: 调用 game_observe 工具，告诉我位置和金币
 [38;2;255;255;255;48;2;119;20;20m-const { WebSocket } = require('/d/agent社区/AgentFarm2/tools/node_modules/ws');[0m
 [38;2;255;255;255;48;2;19;87;20m+const { WebSocket } = require('D:\\agent社区\\AgentFarm2\\tools\\node_modules\\ws');[0m
 [38;2;184;134;11m [0m
-[38;2;184;134;11m const token = '1d57b638c25c3deade3e5ec744c06949';[0m
+[38;2;184;134;11m const token = '***REDACTED***';[0m
 [38;2;184;134;11m const url = `ws://127.0.0.1:8080/agent?token=${token}`;[0m
   ┊ 💻 preparing terminal…
   ┊ 💻 $         node _adhoc_ws_test.mjs  0.6s
@@ -188,8 +188,8 @@ Query: 调用 game_observe 工具，告诉我位置和金币
 [38;2;184;134;11m import { randomUUID } from 'node:crypto';[0m
 [38;2;184;134;11m import { readFileSync } from 'node:fs';[0m
 [38;2;184;134;11m [0m
-[38;2;255;255;255;48;2;119;20;20m-const token = '1d57b638c25c3deade3e5ec744c06949';[0m
-[38;2;255;255;255;48;2;19;87;20m+const token = 'd9e2355ee61b5817efc9900830083fbe';[0m
+[38;2;255;255;255;48;2;119;20;20m-const token = '***REDACTED***';[0m
+[38;2;255;255;255;48;2;19;87;20m+const token = '***REDACTED***';[0m
 [38;2;184;134;11m const child = spawn('node', ['D:\\agent社区\\AgentFarm2\\tools\\agent-mcp.mjs', '--connect-timeout', '20'], {[0m
 [38;2;184;134;11m   env: { ...process.env, AF_AGENT_TOKEN: token },[0m
 [38;2;184;134;11m   stdio: ['pipe', 'pipe', 'pipe'],[0m

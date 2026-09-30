@@ -1,3 +1,4 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // verify-remote3.mjs —— v3：正确检查（Map 用 Array.from）+ 等 agent 移动验证位置同步
 import { connect } from './cdp.mjs';
 import { spawn } from 'node:child_process';
@@ -27,7 +28,7 @@ async function main() {
   // 启动 agent
   const agent = spawn('node', ['D:/agent社区/AgentFarm2/tools/game-agent.mjs', '--token', agentTok, '--mode', 'text', '--rounds', '20',
     '--notes', 'D:/agent社区/AgentFarm2/data/agent-notes/test3',
-    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', 'sk-44ef3dcb50264ca2981bc206bc94297b', '--llm-model', 'deepseek-v4-flash'], { stdio: 'ignore' });
+    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', process.env.DEEPSEEK_API_KEY, '--llm-model', 'deepseek-v4-flash'], { stdio: 'ignore' });
   console.log('agent pid=', agent.pid);
 
   // 每 5s 采样节点状态（3 次）

@@ -1,3 +1,4 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // verify-remote5.mjs —— 验证移动同步：派移动任务 → 采样节点位置变化
 import { connect } from './cdp.mjs';
 import { spawn } from 'node:child_process';
@@ -26,7 +27,7 @@ async function main() {
 
   const agent = spawn('node', ['D:/agent社区/AgentFarm2/tools/game-agent.mjs', '--token', agentTok, '--mode', 'text', '--rounds', '25',
     '--notes', 'D:/agent社区/AgentFarm2/data/agent-notes/test3',
-    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', 'sk-44ef3dcb50264ca2981bc206bc94297b', '--llm-model', 'deepseek-v4-flash'], { stdio: 'ignore' });
+    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', process.env.DEEPSEEK_API_KEY, '--llm-model', 'deepseek-v4-flash'], { stdio: 'ignore' });
   console.log('agent pid=', agent.pid);
 
   let prev = null;

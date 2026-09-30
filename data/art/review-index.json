@@ -1,0 +1,566 @@
+{
+  "note": "C8 送审归档索引：人工逐件验收后把 review 改为 pass/revise/reject；revise 件按 tools/art-prompts/style-v2.md 返工（art-gen --ids + --white-bg）",
+  "createdAt": "2026-09-29T13:34:24.297Z",
+  "totals": {
+    "flower": 10,
+    "water": 10,
+    "structure": 10,
+    "light": 10,
+    "path": 10,
+    "plant": 10
+  },
+  "byCategory": {
+    "flower": [
+      {
+        "id": 200,
+        "name": "樱花盆栽",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0002.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 201,
+        "name": "月季",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0005.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 202,
+        "name": "薰衣草",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0008.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 203,
+        "name": "风信子",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0011.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 204,
+        "name": "太阳花",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0014.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 205,
+        "name": "绣球",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0017.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 206,
+        "name": "郁金香",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0020.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 207,
+        "name": "向日葵",
+        "size": "32x32",
+        "status": "cc0-substitute",
+        "file": "assets/cc0/kenney_tiny-farm/Tiles/tile_0023.png",
+        "colors": null,
+        "review": "pending"
+      },
+      {
+        "id": 208,
+        "name": "百日草",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/208-百日草.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 209,
+        "name": "山茶",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/209-山茶.png",
+        "colors": 9,
+        "review": "pending"
+      }
+    ],
+    "water": [
+      {
+        "id": 210,
+        "name": "锦鲤池",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/210-锦鲤池.png",
+        "colors": 10,
+        "review": "pending"
+      },
+      {
+        "id": 211,
+        "name": "石灯笼水钵",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/211-石灯笼水钵.png",
+        "colors": 9,
+        "review": "pending"
+      },
+      {
+        "id": 212,
+        "name": "流水摆件",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/212-流水摆件.png",
+        "colors": 16,
+        "review": "pending"
+      },
+      {
+        "id": 213,
+        "name": "小溪石槽",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/213-小溪石槽.png",
+        "colors": 14,
+        "review": "pending"
+      },
+      {
+        "id": 214,
+        "name": "喷泉",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/214-喷泉.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 215,
+        "name": "荷花缸",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/215-荷花缸.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 216,
+        "name": "雾森",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/216-雾森.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 217,
+        "name": "水幕墙",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/217-水幕墙.png",
+        "colors": 7,
+        "review": "pending"
+      },
+      {
+        "id": 218,
+        "name": "涟漪盘",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/218-涟漪盘.png",
+        "colors": 14,
+        "review": "pending"
+      },
+      {
+        "id": 219,
+        "name": "瀑布石",
+        "size": "64x64",
+        "status": "done",
+        "file": "assets/generated/219-瀑布石.png",
+        "colors": 13,
+        "review": "pending"
+      }
+    ],
+    "structure": [
+      {
+        "id": 220,
+        "name": "竹篱笆",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/220-竹篱笆.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 221,
+        "name": "木廊架",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/221-木廊架.png",
+        "colors": 13,
+        "review": "pending"
+      },
+      {
+        "id": 222,
+        "name": "石拱桥",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/222-石拱桥.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 223,
+        "name": "凉亭",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/223-凉亭.png",
+        "colors": 10,
+        "review": "pending"
+      },
+      {
+        "id": 224,
+        "name": "栅栏门",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/224-栅栏门.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 225,
+        "name": "石墙",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/225-石墙.png",
+        "colors": 14,
+        "review": "pending"
+      },
+      {
+        "id": 226,
+        "name": "风车",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/226-风车.png",
+        "colors": 13,
+        "review": "pending"
+      },
+      {
+        "id": 227,
+        "name": "灯塔",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/227-灯塔.png",
+        "colors": 9,
+        "review": "pending"
+      },
+      {
+        "id": 228,
+        "name": "秋千架",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/228-秋千架.png",
+        "colors": 11,
+        "review": "pending"
+      },
+      {
+        "id": 229,
+        "name": "鸟屋",
+        "size": "48x48",
+        "status": "done",
+        "file": "assets/generated/229-鸟屋.png",
+        "colors": 11,
+        "review": "pending"
+      }
+    ],
+    "light": [
+      {
+        "id": 230,
+        "name": "太阳能草坪灯",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/230-太阳能草坪灯.png",
+        "colors": 9,
+        "review": "pending"
+      },
+      {
+        "id": 231,
+        "name": "灯笼串",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/231-灯笼串.png",
+        "colors": 7,
+        "review": "pending"
+      },
+      {
+        "id": 232,
+        "name": "月亮灯",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/232-月亮灯.png",
+        "colors": 8,
+        "review": "pending"
+      },
+      {
+        "id": 233,
+        "name": "星星投影灯",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/233-星星投影灯.png",
+        "colors": 10,
+        "review": "pending"
+      },
+      {
+        "id": 234,
+        "name": "风灯",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/234-风灯.png",
+        "colors": 9,
+        "review": "pending"
+      },
+      {
+        "id": 235,
+        "name": "火焰灯柱",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/235-火焰灯柱.png",
+        "colors": 10,
+        "review": "pending"
+      },
+      {
+        "id": 236,
+        "name": "冰灯",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/236-冰灯.png",
+        "colors": 7,
+        "review": "pending"
+      },
+      {
+        "id": 237,
+        "name": "雪花灯",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/237-雪花灯.png",
+        "colors": 6,
+        "review": "pending"
+      },
+      {
+        "id": 238,
+        "name": "极光板",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/238-极光板.png",
+        "colors": 13,
+        "review": "pending"
+      },
+      {
+        "id": 239,
+        "name": "许愿瓶",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/239-许愿瓶.png",
+        "colors": 16,
+        "review": "pending"
+      }
+    ],
+    "path": [
+      {
+        "id": 240,
+        "name": "碎石小径",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/240-碎石小径.png",
+        "colors": 15,
+        "review": "pending"
+      },
+      {
+        "id": 241,
+        "name": "汀步",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/241-汀步.png",
+        "colors": 13,
+        "review": "pending"
+      },
+      {
+        "id": 242,
+        "name": "木板桥",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/242-木板桥.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 243,
+        "name": "石板路",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/243-石板路.png",
+        "colors": 15,
+        "review": "pending"
+      },
+      {
+        "id": 244,
+        "name": "红砖道",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/244-红砖道.png",
+        "colors": 6,
+        "review": "pending"
+      },
+      {
+        "id": 245,
+        "name": "鹅卵石路",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/245-鹅卵石路.png",
+        "colors": 14,
+        "review": "pending"
+      },
+      {
+        "id": 246,
+        "name": "木栈道",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/246-木栈道.png",
+        "colors": 9,
+        "review": "pending"
+      },
+      {
+        "id": 247,
+        "name": "樱花步道",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/247-樱花步道.png",
+        "colors": 16,
+        "review": "pending"
+      },
+      {
+        "id": 248,
+        "name": "苔藓石",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/248-苔藓石.png",
+        "colors": 10,
+        "review": "pending"
+      },
+      {
+        "id": 249,
+        "name": "风铃道",
+        "size": "32x32",
+        "status": "done",
+        "file": "assets/generated/249-风铃道.png",
+        "colors": 9,
+        "review": "pending"
+      }
+    ],
+    "plant": [
+      {
+        "id": 250,
+        "name": "枫树苗",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/250-枫树苗.png",
+        "colors": 11,
+        "review": "pending"
+      },
+      {
+        "id": 251,
+        "name": "松树盆栽",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/251-松树盆栽.png",
+        "colors": 13,
+        "review": "pending"
+      },
+      {
+        "id": 252,
+        "name": "竹子",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/252-竹子.png",
+        "colors": 8,
+        "review": "pending"
+      },
+      {
+        "id": 253,
+        "name": "多肉组合",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/253-多肉组合.png",
+        "colors": 15,
+        "review": "pending"
+      },
+      {
+        "id": 254,
+        "name": "仙人掌",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/254-仙人掌.png",
+        "colors": 9,
+        "review": "pending"
+      },
+      {
+        "id": 255,
+        "name": "苔玉",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/255-苔玉.png",
+        "colors": 11,
+        "review": "pending"
+      },
+      {
+        "id": 256,
+        "name": "蕨类",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/256-蕨类.png",
+        "colors": 12,
+        "review": "pending"
+      },
+      {
+        "id": 257,
+        "name": "灌木球",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/257-灌木球.png",
+        "colors": 7,
+        "review": "pending"
+      },
+      {
+        "id": 258,
+        "name": "葡萄藤",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/258-葡萄藤.png",
+        "colors": 10,
+        "review": "pending"
+      },
+      {
+        "id": 259,
+        "name": "香草园",
+        "size": "32x48",
+        "status": "done",
+        "file": "assets/generated/259-香草园.png",
+        "colors": 13,
+        "review": "pending"
+      }
+    ]
+  }
+}

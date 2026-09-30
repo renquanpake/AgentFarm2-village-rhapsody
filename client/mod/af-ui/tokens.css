@@ -1,0 +1,147 @@
+/* ============================================================
+   af-ui/tokens.css —— AgentFarm2 旗舰视觉 Design Tokens（R1）
+   唯一允许出现裸色值的位置。其余样式表/内联样式一律 var(--af-*)。
+   体系：12 核心色板（暗蓝金像素 UI，延续既有面板身份）+ 扩展语义层
+        （现有 52 字面色值全部收敛到 token，R1.3 零裸色值门）
+   ============================================================ */
+#af-ui-root { all: initial; }
+:root {
+  /* ---------- 核心色板（12：6 基底 + 4 季强调 + 2 语义） ---------- */
+  --af-c-bg: #1a1f26;            /* 主背景（夜蓝） */
+  --af-c-panel: #3a4450;        /* 面板主色（蓝灰木） */
+  --af-c-panel-deep: #262c34;  /* 面板深阶（合并 #20242a/#20262e/#26303a/#2a3038/#2c3138/#2c333c/#262c34） */
+  --af-c-edge: #48535f;        /* 描边/分隔（合并 #48535f） */
+  --af-c-text: #cfd8dc;       /* 主文字（合并 #c8d0da/#cfd8dc/#dde3ea） */
+  --af-c-text-dim: #8a94a0;   /* 次级文字（合并 #9aa4b0/#8a94a0/#7a8490/#6b7684/#777/#888） */
+  --af-c-gold: #ffd97a;       /* 金色强调（合并 #ffd97a/#ffe27a/#ffd27a） */
+  --af-c-amber: #e0a63c;     /* 琥珀（合并 #f0b64c/#f0b850/#ef9a3c/#e48a2c/#f7a845/#d97e24） */
+  --af-c-wood: #7a6a4a;      /* 木色（合并 #7a6a4a/#b5a06e/#6b4a3a） */
+  --af-c-wood-dark: #8a5a2a; /* 深木（合并 #9a7428/#8a5a2a） */
+  --af-c-danger: #ff7a7a;    /* 语义·失败/危险（合并 #ff7a7a/#ff9a7a/#ffb87a 暖警示族） */
+  --af-c-success: #9ae87a;   /* 语义·成功（合并 #9ae87a/#8ad97a） */
+  /* 四季强调 4 */
+  --af-c-season-spring: #9fd66b;
+  --af-c-season-summer: #4fae62;
+  --af-c-season-autumn: #d9a13f;
+  --af-c-season-winter: #a9c0d8;
+
+  /* ---------- 扩展语义层（既有界面剩余色值收敛） ---------- */
+  --af-c-light: #fff;            /* 浅色字/高亮（#fff） */
+  --af-c-light-soft: #eee;      /* 浅灰（#eee） */
+  --af-c-paper: #e8e0cc;        /* 纸面 */
+  --af-c-paper-hud: #e8ecf1;    /* HUD 浅底（#e8ecf1） */
+  --af-c-sky: #8fb0d8;          /* 天蓝（#8fb0d8） */
+  --af-c-sky-deep: #4a6a8a;     /* 深蓝（#4a6a8a） */
+  --af-c-sky-bright: #7ad0ff;   /* 亮蓝（#7ad0ff） */
+  --af-c-moss: #5a8a4a;        /* 苔绿族（合并 #3a6b4a/#3a7a4a/#5a8a4a/#8fae6a/#5a6b3a） */
+
+  /* 玻璃/辉光/阴影阶（面板内联 rgba 收敛） */
+  --af-c-glass-panel: rgba(38, 44, 52, 0.9);
+  --af-c-glass-solid: rgba(52, 60, 70, 0.95);
+  --af-c-glass-bg: rgba(30, 34, 40, 0.85);
+  --af-c-glass-bg-deep: rgba(8, 10, 14, 0.88);
+  --af-c-glow-gold: rgba(255, 217, 122, 0.08);
+  --af-c-black-40: rgba(0, 0, 0, 0.4);
+  --af-c-black-60: rgba(0, 0, 0, 0.6);
+  --af-c-black-70: rgba(0, 0, 0, 0.7);
+
+  /* 玻璃/辉光扩展阶（重皮肤残留收敛） */
+  --af-c-black-35: rgba(0, 0, 0, 0.35);
+  --af-c-glass-bg-solid: rgba(20, 24, 30, 0.95);
+  --af-c-glass-sky: rgba(150, 170, 230, 0.22);
+  --af-c-glass-snow: rgba(170, 195, 255, 0.16);
+  --af-c-glass-moss: rgba(26, 52, 34, 0.92);
+  --af-c-glass-wood: rgba(70, 46, 20, 0.92);
+  --af-c-glass-night: rgba(30, 30, 50, 0.25);
+  --af-c-glow-gold-strong: rgba(255, 217, 122, 0.14);
+  --af-c-white-04: rgba(255, 255, 255, 0.04);
+  --af-c-white-70: rgba(255, 255, 255, 0.7);
+  /* ---------- 字体（R1.1/R1.4：像素圆体优先，资产缺失回落系统栈） ---------- */
+  --af-font-px: 'Zpix', 'Fusion Pixel', 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --af-font-size-xs: 12px;
+  --af-font-size-sm: 14px;
+  --af-font-size-md: 16px;
+  --af-font-size-lg: 20px;
+  --af-font-weight: 600;
+
+  /* ---------- 间距 / 圆角 / 阴影 ---------- */
+  --af-s-1: 4px;
+  --af-s-2: 8px;
+  --af-s-3: 12px;
+  --af-s-4: 16px;
+  --af-s-5: 24px;
+  --af-r-0: 0px;
+  --af-r-1: 2px;
+  --af-r-2: 4px;
+  --af-shadow-panel: 0 0 0 2px var(--af-c-panel-deep), 0 4px 0 var(--af-c-black-60);
+  --af-shadow-chip: 0 0 0 1px var(--af-c-edge), 0 2px 0 var(--af-c-black-40);
+
+  /* ---------- 动效 6 曲线（R1.1） ---------- */
+  --af-m-in: cubic-bezier(0.2, 0.8, 0.4, 1);
+  --af-m-out: cubic-bezier(0.6, 0, 0.9, 0.2);
+  --af-m-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --af-m-slide: cubic-bezier(0.22, 1, 0.36, 1);
+  --af-m-bounce: cubic-bezier(0.28, 1.8, 0.44, 1);
+  --af-m-ambient: ease-in-out;
+  --af-d-fast: 180ms;
+  --af-d-mid: 300ms;
+  --af-d-slow: 600ms;
+  --af-stagger-step: 45ms;
+}
+
+/* ---------- af-* 面板基础皮肤（token 化） ---------- */
+#af-ui-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99990;
+  font-family: var(--af-font-px);
+  font-size: var(--af-font-size-sm);
+  color: var(--af-c-text);
+}
+#af-ui-root * { box-sizing: border-box; }
+
+/* 面板卡片：玻璃蓝灰 + 描边阴影（R3.3 对话框用羊皮纸变体 af-panel--paper） */
+.af-panel {
+  pointer-events: auto;
+  background: var(--af-c-glass-solid);
+  border: 1px solid var(--af-c-edge);
+  border-radius: var(--af-r-2);
+  box-shadow: var(--af-shadow-panel);
+  padding: var(--af-s-3);
+}
+.af-panel.af-panel--paper {
+  background: var(--af-c-paper);
+  border: 2px solid var(--af-c-wood);
+  color: #3a2b1e; /* 羊皮纸墨色（纸面专属，纸底与暗面板互斥） */
+}
+
+/* 可点元素三态（R4.1/R4.2/R4.4；AFUI.on 绑定后自动生效） */
+.af-btn {
+  pointer-events: auto;
+  font-family: var(--af-font-px);
+  font-size: var(--af-font-size-sm);
+  font-weight: var(--af-font-weight);
+  color: var(--af-c-text);
+  background: var(--af-c-panel);
+  border: 1px solid var(--af-c-edge);
+  border-radius: var(--af-r-1);
+  box-shadow: var(--af-shadow-chip);
+  padding: var(--af-s-1) var(--af-s-2);
+  cursor: pointer;
+  user-select: none;
+  transition: filter var(--af-d-fast) var(--af-m-in), transform var(--af-d-fast) var(--af-m-in);
+}
+.af-btn:hover { filter: brightness(1.15); }
+.af-btn:active { transform: translateY(2px); box-shadow: none; }
+.af-btn.af-res-ok { background: var(--af-c-success); color: var(--af-c-bg); }
+.af-btn.af-res-err { background: var(--af-c-danger); color: var(--af-c-bg); }
+
+/* 数值滚动（R2.2：300-600ms） */
+.af-num { display: inline-block; min-width: 2ch; font-variant-numeric: tabular-nums; }
+.af-num.af-rolling { animation: af-num-pop var(--af-d-mid) var(--af-m-bounce); }
+@keyframes af-num-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}

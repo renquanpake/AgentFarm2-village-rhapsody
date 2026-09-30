@@ -1,3 +1,4 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // verify-screenshot-final.mjs —— 截图两张对比（用 test3 账号）
 import { connect } from './cdp.mjs';
 import { writeFileSync } from 'node:fs';
@@ -29,7 +30,7 @@ async function main() {
     '--mode', 'text', '--rounds', '30',
     '--notes', 'D:/agent社区/AgentFarm2/data/agent-notes/test3',
     '--llm-url', 'https://api.deepseek.com/v1',
-    '--llm-key', 'sk-44ef3dcb50264ca2981bc206bc94297b',
+    '--llm-key', process.env.DEEPSEEK_API_KEY,
     '--llm-model', 'deepseek-v4-flash'
   ], { stdio: 'ignore' });
   console.log('agent pid:', agent.pid);

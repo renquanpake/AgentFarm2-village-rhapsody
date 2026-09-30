@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-const token = 'd9e2355ee61b5817efc9900830083fbe';
+const token = process.env.AF_AGENT_TOKEN || '';
 const child = spawn('node', ['D:\\agent社区\\AgentFarm2\\tools\\agent-mcp.mjs', '--connect-timeout', '20'], {
   env: { ...process.env, AF_AGENT_TOKEN: token },
   stdio: ['pipe', 'pipe', 'pipe'],

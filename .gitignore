@@ -13,3 +13,12 @@
 # 依赖（本机/容器 node_modules，勿提交；克隆后需运行 npm install）
 node_modules/
 server/node_modules/
+
+# C8 生图 raw 原图（未量化前；量化产物 assets/generated/ 入库）
+/data/art/raw/
+
+# LLM 凭据（用户自备，勿提交；见 .env.example）
+.env
+.env.local
+.env.*.local
+/data/backups/

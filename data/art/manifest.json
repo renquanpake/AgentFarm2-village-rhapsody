@@ -1,0 +1,958 @@
+{
+  "version": "v1",
+  "generated": "2026-09-29T05:35:26.738Z",
+  "palette": "v1",
+  "queue": [
+    {
+      "idx": 1,
+      "id": 200,
+      "name": "樱花盆栽",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 樱花盆栽 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0002.png",
+        "note": "樱花盆栽->CC0 盆栽替代"
+      }
+    },
+    {
+      "idx": 2,
+      "id": 201,
+      "name": "月季",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 月季 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0005.png",
+        "note": "月季->CC0 花丛替代"
+      }
+    },
+    {
+      "idx": 3,
+      "id": 202,
+      "name": "薰衣草",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 薰衣草 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0008.png",
+        "note": "薰衣草->CC0 花替代"
+      }
+    },
+    {
+      "idx": 4,
+      "id": 203,
+      "name": "风信子",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 风信子 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0011.png",
+        "note": "风信子->CC0 花替代"
+      }
+    },
+    {
+      "idx": 5,
+      "id": 204,
+      "name": "太阳花",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 太阳花 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0014.png",
+        "note": "太阳花->CC0 向日葵类替代"
+      }
+    },
+    {
+      "idx": 6,
+      "id": 205,
+      "name": "绣球",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 绣球 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0017.png",
+        "note": "绣球->CC0 灌木花替代"
+      }
+    },
+    {
+      "idx": 7,
+      "id": 206,
+      "name": "郁金香",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 郁金香 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0020.png",
+        "note": "郁金香->CC0 花替代"
+      }
+    },
+    {
+      "idx": 8,
+      "id": 207,
+      "name": "向日葵",
+      "category": "flower",
+      "size": "32x32",
+      "status": "cc0-substitute",
+      "prompt": "Pixel art 向日葵 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "substitute": {
+        "source": "kenney-tiny-farm",
+        "ref": "assets/cc0/kenney_tiny-farm/Tiles/tile_0023.png",
+        "note": "向日葵->CC0 向日葵类替代"
+      }
+    },
+    {
+      "idx": 9,
+      "id": 208,
+      "name": "百日草",
+      "category": "flower",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 百日草 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_xWnOBXrPGT0SchGtexywpGQqPSv00SG7",
+        "colors": 12,
+        "out": "assets/generated/208-百日草.png",
+        "at": "2026-09-29T12:15:49.691Z"
+      }
+    },
+    {
+      "idx": 10,
+      "id": 209,
+      "name": "山茶",
+      "category": "flower",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 山茶 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_JqGfMeVF7IgThNCWYjOtRvpXOiGgWCFv",
+        "colors": 9,
+        "out": "assets/generated/209-山茶.png",
+        "at": "2026-09-29T12:15:49.837Z"
+      }
+    },
+    {
+      "idx": 11,
+      "id": 210,
+      "name": "锦鲤池",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 锦鲤池 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_3FH4tcqqEfQaFdSILCgJtQIqGUyPJWwD",
+        "colors": 10,
+        "out": "assets/generated/210-锦鲤池.png",
+        "at": "2026-09-29T12:47:42.357Z"
+      }
+    },
+    {
+      "idx": 12,
+      "id": 211,
+      "name": "石灯笼水钵",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 石灯笼水钵 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_lGII9zYomHtki2MYLyvy2ZLrayrH4jq2",
+        "colors": 9,
+        "out": "assets/generated/211-石灯笼水钵.png",
+        "at": "2026-09-29T12:16:05.256Z"
+      }
+    },
+    {
+      "idx": 13,
+      "id": 212,
+      "name": "流水摆件",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 流水摆件 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_fifojbVNDAFWm79rE5XPxo7OcAZGx8B8",
+        "colors": 16,
+        "out": "assets/generated/212-流水摆件.png",
+        "at": "2026-09-29T12:16:05.774Z"
+      }
+    },
+    {
+      "idx": 14,
+      "id": 213,
+      "name": "小溪石槽",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 小溪石槽 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_JIroyyPKPdJ5GWJfeNkNA3UTbJM6VSXq",
+        "colors": 14,
+        "out": "assets/generated/213-小溪石槽.png",
+        "at": "2026-09-29T12:16:08.056Z"
+      }
+    },
+    {
+      "idx": 15,
+      "id": 214,
+      "name": "喷泉",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 喷泉 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_WY9TZBQPeCwiAoInM6IfeQOEka4xQBI2",
+        "colors": 12,
+        "out": "assets/generated/214-喷泉.png",
+        "at": "2026-09-29T12:16:05.360Z"
+      }
+    },
+    {
+      "idx": 16,
+      "id": 215,
+      "name": "荷花缸",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 荷花缸 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_IZfZEQKfe2MfJXf3lVhYjd4kJbXJWYzo",
+        "colors": 12,
+        "out": "assets/generated/215-荷花缸.png",
+        "at": "2026-09-29T12:16:05.564Z"
+      }
+    },
+    {
+      "idx": 17,
+      "id": 216,
+      "name": "雾森",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 雾森 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_LU6Lz7UmFzv3I01ForJgaID2cxEZWQgm",
+        "colors": 12,
+        "out": "assets/generated/216-雾森.png",
+        "at": "2026-09-29T12:16:14.240Z"
+      }
+    },
+    {
+      "idx": 18,
+      "id": 217,
+      "name": "水幕墙",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 水幕墙 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Yljgdq1INDYs0PJEEVeKnkzMGK2XABvW",
+        "colors": 7,
+        "out": "assets/generated/217-水幕墙.png",
+        "at": "2026-09-29T12:16:13.777Z"
+      }
+    },
+    {
+      "idx": 19,
+      "id": 218,
+      "name": "涟漪盘",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 涟漪盘 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_GfGPkVjS2ILXeHirDt2AOlZwVQHJTLrI",
+        "colors": 14,
+        "out": "assets/generated/218-涟漪盘.png",
+        "at": "2026-09-29T12:16:14.745Z"
+      }
+    },
+    {
+      "idx": 20,
+      "id": 219,
+      "name": "瀑布石",
+      "category": "water",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art 瀑布石 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_trUX3oetYTmFaPhFGuCRHCBcefVx3wzC",
+        "colors": 13,
+        "out": "assets/generated/219-瀑布石.png",
+        "at": "2026-09-29T12:16:14.552Z"
+      }
+    },
+    {
+      "idx": 21,
+      "id": 220,
+      "name": "竹篱笆",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 竹篱笆 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_15yxs3XzRCHFForR8FBJHpDEwkRYi710",
+        "colors": 12,
+        "out": "assets/generated/220-竹篱笆.png",
+        "at": "2026-09-29T12:16:19.973Z"
+      }
+    },
+    {
+      "idx": 22,
+      "id": 221,
+      "name": "木廊架",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 木廊架 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_tGWtxDSQntGbTp13N8nAB2lMta0VoWX8",
+        "colors": 13,
+        "out": "assets/generated/221-木廊架.png",
+        "at": "2026-09-29T12:16:41.288Z"
+      }
+    },
+    {
+      "idx": 23,
+      "id": 222,
+      "name": "石拱桥",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 石拱桥 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_mIxn3WQKdjhTvh8vq8aqmpK6urb66YHK",
+        "colors": 12,
+        "out": "assets/generated/222-石拱桥.png",
+        "at": "2026-09-29T12:47:51.844Z"
+      }
+    },
+    {
+      "idx": 24,
+      "id": 223,
+      "name": "凉亭",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 凉亭 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_vbHTa1ZKtMJ8yj1boiL90SMaX9DDSzOP",
+        "colors": 10,
+        "out": "assets/generated/223-凉亭.png",
+        "at": "2026-09-29T12:16:40.124Z"
+      }
+    },
+    {
+      "idx": 25,
+      "id": 224,
+      "name": "栅栏门",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 栅栏门 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_G8HOxWhLNpvtCfrTfPfwQwhIfi9ie6mu",
+        "colors": 12,
+        "out": "assets/generated/224-栅栏门.png",
+        "at": "2026-09-29T12:16:40.026Z"
+      }
+    },
+    {
+      "idx": 26,
+      "id": 225,
+      "name": "石墙",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 石墙 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Z2m7C28Wu7UGTHng0spSe7wfChzhflXK",
+        "colors": 14,
+        "out": "assets/generated/225-石墙.png",
+        "at": "2026-09-29T12:16:40.971Z"
+      }
+    },
+    {
+      "idx": 27,
+      "id": 226,
+      "name": "风车",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 风车 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_FodNQb59FiUfpQ9yoPqugecFBKddHMXO",
+        "colors": 13,
+        "out": "assets/generated/226-风车.png",
+        "at": "2026-09-29T12:16:48.600Z"
+      }
+    },
+    {
+      "idx": 28,
+      "id": 227,
+      "name": "灯塔",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 灯塔 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_nvgLibezMPn4O87UO0Jx04Ibt3DtZ64U",
+        "colors": 9,
+        "out": "assets/generated/227-灯塔.png",
+        "at": "2026-09-29T12:16:49.060Z"
+      }
+    },
+    {
+      "idx": 29,
+      "id": 228,
+      "name": "秋千架",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 秋千架 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_6HK3e01sg45NLj9bT8vtyudSHIT5ex2s",
+        "colors": 11,
+        "out": "assets/generated/228-秋千架.png",
+        "at": "2026-09-29T12:16:52.790Z"
+      }
+    },
+    {
+      "idx": 30,
+      "id": 229,
+      "name": "鸟屋",
+      "category": "structure",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art 鸟屋 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_dYn1A5yYdgtL4EunBjHp2pSd89KKTrNr",
+        "colors": 11,
+        "out": "assets/generated/229-鸟屋.png",
+        "at": "2026-09-29T12:16:52.024Z"
+      }
+    },
+    {
+      "idx": 31,
+      "id": 230,
+      "name": "太阳能草坪灯",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 太阳能草坪灯 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_tRMVbXEoblcvLwlhf8wh2CfNidDqNB6c",
+        "colors": 9,
+        "out": "assets/generated/230-太阳能草坪灯.png",
+        "at": "2026-09-29T12:16:49.351Z"
+      }
+    },
+    {
+      "idx": 32,
+      "id": 231,
+      "name": "灯笼串",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 灯笼串 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_MzNBj7i3QChCENA3C5B2jJwH9FecgOZL",
+        "colors": 7,
+        "out": "assets/generated/231-灯笼串.png",
+        "at": "2026-09-29T12:47:15.064Z"
+      }
+    },
+    {
+      "idx": 33,
+      "id": 232,
+      "name": "月亮灯",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 月亮灯 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_dv8fchWdFtyoimsKOSNDNF6NQ6Pvtl4S",
+        "colors": 8,
+        "out": "assets/generated/232-月亮灯.png",
+        "at": "2026-09-29T12:19:54.321Z"
+      }
+    },
+    {
+      "idx": 34,
+      "id": 233,
+      "name": "星星投影灯",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 星星投影灯 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_aIYa174ONVMmSiyXw5Y9MkHNFguXQ32v",
+        "colors": 10,
+        "out": "assets/generated/233-星星投影灯.png",
+        "at": "2026-09-29T12:20:03.553Z"
+      }
+    },
+    {
+      "idx": 35,
+      "id": 234,
+      "name": "风灯",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 风灯 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_8QV7hTLQTQLOB9UOpbOnc8XoDpTPGPfs",
+        "colors": 9,
+        "out": "assets/generated/234-风灯.png",
+        "at": "2026-09-29T12:17:06.176Z"
+      }
+    },
+    {
+      "idx": 36,
+      "id": 235,
+      "name": "火焰灯柱",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 火焰灯柱 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_mAJbJGdZozNTl33omO10w0wDKQV56EfO",
+        "colors": 10,
+        "out": "assets/generated/235-火焰灯柱.png",
+        "at": "2026-09-29T12:17:10.097Z"
+      }
+    },
+    {
+      "idx": 37,
+      "id": 236,
+      "name": "冰灯",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 冰灯 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_tOSSQ9ydbQm6FhaZzuxht1pakMLfefAU",
+        "colors": 7,
+        "out": "assets/generated/236-冰灯.png",
+        "at": "2026-09-29T12:17:11.011Z"
+      }
+    },
+    {
+      "idx": 38,
+      "id": 237,
+      "name": "雪花灯",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 雪花灯 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Hx5nIhySETWLHSwLzsUACtv1qGpwlVSu",
+        "colors": 6,
+        "out": "assets/generated/237-雪花灯.png",
+        "at": "2026-09-29T12:17:05.638Z"
+      }
+    },
+    {
+      "idx": 39,
+      "id": 238,
+      "name": "极光板",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 极光板 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_8xUBbPoYr5tNUiE9eFD9SXn9qEMdu5Tn",
+        "colors": 13,
+        "out": "assets/generated/238-极光板.png",
+        "at": "2026-09-29T12:48:00.280Z"
+      }
+    },
+    {
+      "idx": 40,
+      "id": 239,
+      "name": "许愿瓶",
+      "category": "light",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 许愿瓶 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_c08vEk2rajqBQrshEYJ2KHPeGvwR0xOb",
+        "colors": 16,
+        "out": "assets/generated/239-许愿瓶.png",
+        "at": "2026-09-29T12:17:14.460Z"
+      }
+    },
+    {
+      "idx": 41,
+      "id": 240,
+      "name": "碎石小径",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 碎石小径 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_VN739MxlzWZgoBs4YMJ0F8xXA6HrYIzH",
+        "colors": 15,
+        "out": "assets/generated/240-碎石小径.png",
+        "at": "2026-09-29T12:17:15.055Z"
+      }
+    },
+    {
+      "idx": 42,
+      "id": 241,
+      "name": "汀步",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 汀步 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_IqyGuQRxQnzLmAfHyaTyvYBvP7lb6gy4",
+        "colors": 13,
+        "out": "assets/generated/241-汀步.png",
+        "at": "2026-09-29T12:17:15.860Z"
+      }
+    },
+    {
+      "idx": 43,
+      "id": 242,
+      "name": "木板桥",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 木板桥 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_tkO207SK3rXbS8DQKkKl46baKSUYBGS6",
+        "colors": 12,
+        "out": "assets/generated/242-木板桥.png",
+        "at": "2026-09-29T12:17:18.579Z"
+      }
+    },
+    {
+      "idx": 44,
+      "id": 243,
+      "name": "石板路",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 石板路 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_J7SJ61We09eJQoTLSlcCipQSLySNMQZo",
+        "colors": 15,
+        "out": "assets/generated/243-石板路.png",
+        "at": "2026-09-29T12:17:20.262Z"
+      }
+    },
+    {
+      "idx": 45,
+      "id": 244,
+      "name": "红砖道",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 红砖道 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_uIr1LH00lm3QjixWjcHVZfetHJtw1wZl",
+        "colors": 6,
+        "out": "assets/generated/244-红砖道.png",
+        "at": "2026-09-29T12:20:12.227Z"
+      }
+    },
+    {
+      "idx": 46,
+      "id": 245,
+      "name": "鹅卵石路",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 鹅卵石路 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_hsaTwDrgXEDIDm5jmcv8b7Fql2P5yhYr",
+        "colors": 14,
+        "out": "assets/generated/245-鹅卵石路.png",
+        "at": "2026-09-29T12:20:21.400Z"
+      }
+    },
+    {
+      "idx": 47,
+      "id": 246,
+      "name": "木栈道",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 木栈道 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_8iFeXjti758mh3Rfy4sW0NCLWmeYH6bJ",
+        "colors": 9,
+        "out": "assets/generated/246-木栈道.png",
+        "at": "2026-09-29T12:20:29.942Z"
+      }
+    },
+    {
+      "idx": 48,
+      "id": 247,
+      "name": "樱花步道",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 樱花步道 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_hLdxmA00Ds1rKfFsLLyhsHtZtL6YWt62",
+        "colors": 16,
+        "out": "assets/generated/247-樱花步道.png",
+        "at": "2026-09-29T12:20:38.634Z"
+      }
+    },
+    {
+      "idx": 49,
+      "id": 248,
+      "name": "苔藓石",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 苔藓石 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Jz0FvJvZKqY7l4rQbUAA80S83rT382po",
+        "colors": 10,
+        "out": "assets/generated/248-苔藓石.png",
+        "at": "2026-09-29T12:20:46.864Z"
+      }
+    },
+    {
+      "idx": 50,
+      "id": 249,
+      "name": "风铃道",
+      "category": "path",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art 风铃道 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ykONYiDpC16uOOu48ylotypW5hPP6OMq",
+        "colors": 9,
+        "out": "assets/generated/249-风铃道.png",
+        "at": "2026-09-29T12:20:55.076Z"
+      }
+    },
+    {
+      "idx": 51,
+      "id": 250,
+      "name": "枫树苗",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 枫树苗 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ny8UtEZ6ElynwugiQMlM2MvBsuHdpVvf",
+        "colors": 11,
+        "out": "assets/generated/250-枫树苗.png",
+        "at": "2026-09-29T12:21:03.910Z"
+      }
+    },
+    {
+      "idx": 52,
+      "id": 251,
+      "name": "松树盆栽",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 松树盆栽 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_LffiQcXDYDOMTyQAK96gAnDYD8LI3fF3",
+        "colors": 13,
+        "out": "assets/generated/251-松树盆栽.png",
+        "at": "2026-09-29T12:21:13.358Z"
+      }
+    },
+    {
+      "idx": 53,
+      "id": 252,
+      "name": "竹子",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 竹子 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_y6UV1I4wqL3KFvL8mphPESUesPmpaQaM",
+        "colors": 8,
+        "out": "assets/generated/252-竹子.png",
+        "at": "2026-09-29T12:21:23.780Z"
+      }
+    },
+    {
+      "idx": 54,
+      "id": 253,
+      "name": "多肉组合",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 多肉组合 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_3X9LA7lkoEleBai9zFvHz4AJTnZHBIL6",
+        "colors": 15,
+        "out": "assets/generated/253-多肉组合.png",
+        "at": "2026-09-29T12:17:40.993Z"
+      }
+    },
+    {
+      "idx": 55,
+      "id": 254,
+      "name": "仙人掌",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 仙人掌 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_3iTRHqOchircqikFKBmm0ryY16kGH8DU",
+        "colors": 9,
+        "out": "assets/generated/254-仙人掌.png",
+        "at": "2026-09-29T12:17:45.556Z"
+      }
+    },
+    {
+      "idx": 56,
+      "id": 255,
+      "name": "苔玉",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 苔玉 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_LJnHfwZpeMUpZ15BKIpZBrTk7A6TAa5g",
+        "colors": 11,
+        "out": "assets/generated/255-苔玉.png",
+        "at": "2026-09-29T12:17:45.466Z"
+      }
+    },
+    {
+      "idx": 57,
+      "id": 256,
+      "name": "蕨类",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 蕨类 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_vNdAUR3xBmlCSGekdRfEnVagDzqgnZl1",
+        "colors": 12,
+        "out": "assets/generated/256-蕨类.png",
+        "at": "2026-09-29T12:17:42.544Z"
+      }
+    },
+    {
+      "idx": 58,
+      "id": 257,
+      "name": "灌木球",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 灌木球 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_0pEkxPUae6nXKri0C3vfVF4NXZL0YEam",
+        "colors": 7,
+        "out": "assets/generated/257-灌木球.png",
+        "at": "2026-09-29T12:17:45.084Z"
+      }
+    },
+    {
+      "idx": 59,
+      "id": 258,
+      "name": "葡萄藤",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 葡萄藤 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_cHfrjtREvflbz5J9hs24soibas0sUEdb",
+        "colors": 10,
+        "out": "assets/generated/258-葡萄藤.png",
+        "at": "2026-09-29T12:17:49.565Z"
+      }
+    },
+    {
+      "idx": 60,
+      "id": 259,
+      "name": "香草园",
+      "category": "plant",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art 香草园 for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_gmzeZcdsxEHzz189iLK1pG22EaH9eeVm",
+        "colors": 13,
+        "out": "assets/generated/259-香草园.png",
+        "at": "2026-09-29T12:48:08.144Z"
+      }
+    }
+  ],
+  "note": "生图工具余额不足（2026-09-29）：首批 8 件按设计兜底改 CC0 直采（Kenney Tiny Farm），其余 52 件挂队列待余额恢复批量生成。；2026-09-29 52 件生图完成（agnes-image-2.5-flash + 16 色量化后处理，tools/art-gen.mjs）",
+  "progress": {
+    "done": 52,
+    "cc0-substitute": 8,
+    "total": 60,
+    "finishedAt": "2026-09-29T12:24:05.407Z"
+  }
+}

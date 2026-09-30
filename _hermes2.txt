@@ -44,7 +44,7 @@ Query: 调用 game_observe
 [38;2;255;255;255;48;2;19;87;20m+import { spawn } from 'node:child_process';[0m
 [38;2;255;255;255;48;2;19;87;20m+import { randomUUID } from 'node:crypto';[0m
 [38;2;255;255;255;48;2;19;87;20m+[0m
-[38;2;255;255;255;48;2;19;87;20m+const token = '1d57b638c25c3deade3e5ec744c06949';[0m
+[38;2;255;255;255;48;2;19;87;20m+const token = '***REDACTED***';[0m
 [38;2;255;255;255;48;2;19;87;20m+const child = spawn('node', ['D:\\agent社区\\AgentFarm2\\tools\\agent-mcp.mjs', '--connect-timeout', '20'], {[0m
 [38;2;255;255;255;48;2;19;87;20m+  env: { ...process.env, AF_AGENT_TOKEN: token },[0m
 [38;2;255;255;255;48;2;19;87;20m+  stdio: ['pipe', 'pipe', 'pipe'],[0m

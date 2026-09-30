@@ -1,3 +1,4 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // debug-agent-move.mjs —— 深入检查 agent 状态和移动链路
 import { connect } from './cdp.mjs';
 import { spawn } from 'node:child_process';
@@ -23,7 +24,7 @@ async function main() {
   const agent = sp('node', [
     'D:/agent社区/AgentFarm2/tools/game-agent.mjs', '--token', 'f70039c9b0729fae6c448b127862685e',
     '--mode', 'text', '--rounds', '15', '--notes', 'D:/agent社区/AgentFarm2/data/agent-notes/test3',
-    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', 'sk-44ef3dcb50264ca2981bc206bc94297b', '--llm-model', 'deepseek-v4-flash'
+    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', process.env.DEEPSEEK_API_KEY, '--llm-model', 'deepseek-v4-flash'
   ], { stdio: 'ignore' });
   console.log('2. agent pid:', agent.pid);
   await wait(15000);

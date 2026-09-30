@@ -1,0 +1,82 @@
+# CI 六道门（设计 M6.4）：typecheck -> 单测 -> 协议回归 -> 秘密扫描 -> 原版哈希 -> 导航回放（后者夜间）
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # 门 1：TypeScript strict 类型检查
+      - name: 门1 typecheck
+        run: npx tsc --noEmit
+
+      # 门 2：单元/事件溯源测试
+      - name: 门2 vitest
+        run: npx vitest run
+
+      # 门 3：协议回归（起真实服务端 + ws-test 全量用例；隔离数据目录）
+      - name: 门3 协议回归
+        run: |
+          export AF_DATA_DIR="$(mktemp -d)"
+          export AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 PORT=8123
+          node src/index.ts > server-ci.log 2>&1 &
+          SRV=$!
+          sleep 4
+          set +e
+          AF_BASE=http://127.0.0.1:8123 node ws-test.mjs
+          RC=$?
+          set -e
+          kill $SRV 2>/dev/null || true
+          [ $RC -eq 0 ] || { echo "=== server log ==="; cat server-ci.log; exit 1; }
+          echo "协议回归通过"
+
+      # 门 4：秘密扫描（gitleaks；豁免见 .gitleaks.toml 的 allowlist——历史明文密钥待轮换，轮换后移除豁免）
+      - name: 门4 gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          input-path: .
+          config: .gitleaks.toml
+          scan-history: false
+
+      # 门 5：原版外壳哈希（Cocos 外壳只读约束）
+      - name: 门5 原版哈希
+        run: node tools/hash-manifest.mjs --check
+        working-directory: .
+
+      # 门 6：导航数据校验（B5 村景 + 27 场景 collide 层）+ 路线回放（M3/B6 已落地）
+      - name: 门6 导航校验
+        run: |
+          node tools/gen-nav.mjs --check
+          node tools/build-scene-collisions.mjs --check
+          node tools/nav-replay.mjs --smoke
+        working-directory: .
+
+      # 门 7：角色扮演评测（F2；自主行为占比 >= 0.3 + 动作多样性熵 >= 0.6，防退化）
+      - name: 门7 角色扮演评测
+        run: node tools/eval-roleplay.mjs
+        working-directory: .
+
+      # 门 8：旗舰 UI 静态门 + DOM 冒烟（M1/M2；tokens 外裸色值=0 / af-* 点击绑定 100% AFUI.on / 常驻 DOM ≤10 / 模块逻辑冒烟）
+      - name: 门8 旗舰UI静态门
+        run: |
+          node tools/ui-lint.mjs
+          node tools/ui-smoke.mjs
+        working-directory: .

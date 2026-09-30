@@ -1,3 +1,4 @@
+import { loadLocalEnv } from './env.mjs'; loadLocalEnv(); // P0: 密钥走 env（.env.local）
 // verify-remote.mjs —— 端到端验证 agent 节点渲染：
 // 1. CDP 注入 test3 登录 → 游戏启动
 // 2. 启动 test3 的 agent（子进程）
@@ -32,7 +33,7 @@ async function main() {
   // ---- 4. 启动 agent（后台）----
   const agent = spawn('node', ['D:/agent社区/AgentFarm2/tools/game-agent.mjs', '--token', agentTok, '--mode', 'text', '--rounds', '15',
     '--notes', 'D:/agent社区/AgentFarm2/data/agent-notes/test3',
-    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', 'sk-44ef3dcb50264ca2981bc206bc94297b', '--llm-model', 'deepseek-v4-flash'], { stdio: 'ignore' });
+    '--llm-url', 'https://api.deepseek.com/v1', '--llm-key', process.env.DEEPSEEK_API_KEY, '--llm-model', 'deepseek-v4-flash'], { stdio: 'ignore' });
   console.log('agent 子进程已启动 pid=', agent.pid);
   await wait(8000);
 

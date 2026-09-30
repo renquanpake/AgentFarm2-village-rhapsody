@@ -1,0 +1,256 @@
+{
+  "scenes": [
+    {
+      "scene": 1,
+      "name": "zhujuejia",
+      "status": "ready",
+      "source": "maps/zhujuejia.json(collide 层)",
+      "w": 29,
+      "h": 29,
+      "notes": "家门口"
+    },
+    {
+      "scene": 2,
+      "name": "village(村庄)",
+      "status": "ready",
+      "source": "village-collision.json",
+      "anchors": 13,
+      "unreachable": [],
+      "notes": "村"
+    },
+    {
+      "scene": 3,
+      "name": "hebian",
+      "status": "ready",
+      "source": "maps/hebian.json(collide 层)",
+      "w": 44,
+      "h": 37,
+      "notes": "河边"
+    },
+    {
+      "scene": 4,
+      "name": "jitishuitian",
+      "status": "ready-empty-collide",
+      "source": "maps/jitishuitian.json(collide 层)",
+      "w": 53,
+      "h": 22,
+      "notes": "稻田"
+    },
+    {
+      "scene": 5,
+      "name": "chunshuian",
+      "status": "ready-empty-collide",
+      "source": "maps/chunshuian.json(collide 层)",
+      "w": 35,
+      "h": 30,
+      "notes": "尼姑庵"
+    },
+    {
+      "scene": 6,
+      "name": "wenquan",
+      "status": "ready-empty-collide",
+      "source": "maps/wenquan.json(collide 层)",
+      "w": 40,
+      "h": 35,
+      "notes": "温泉"
+    },
+    {
+      "scene": 7,
+      "name": "baolongjia",
+      "status": "ready",
+      "source": "maps/baolongjia.json(collide 层)",
+      "w": 35,
+      "h": 36,
+      "notes": "暴龙"
+    },
+    {
+      "scene": 8,
+      "name": "feiqikuangdong",
+      "status": "ready-empty-collide",
+      "source": "maps/feiqikuangdong.json(collide 层)",
+      "w": 29,
+      "h": 18,
+      "notes": "矿井通道"
+    },
+    {
+      "scene": 9,
+      "name": "kuannanzhemuyuan",
+      "status": "ready",
+      "source": "maps/kuannanzhemuyuan.json(collide 层)",
+      "w": 32,
+      "h": 68,
+      "notes": "墓园"
+    },
+    {
+      "scene": 10,
+      "name": "hoshantondao",
+      "status": "ready",
+      "source": "maps/hoshantondao.json(collide 层)",
+      "w": 29,
+      "h": 41,
+      "notes": "后山通道"
+    },
+    {
+      "scene": 11,
+      "name": "diaoqiao",
+      "status": "ready-empty-collide",
+      "source": "maps/diaoqiao.json(collide 层)",
+      "w": 39,
+      "h": 35,
+      "notes": "吊桥"
+    },
+    {
+      "scene": 12,
+      "name": "shanding",
+      "status": "ready-empty-collide",
+      "source": "maps/shanding.json(collide 层)",
+      "w": 39,
+      "h": 45,
+      "notes": "山顶"
+    },
+    {
+      "scene": 13,
+      "name": "milin",
+      "status": "ready-empty-collide",
+      "source": "maps/milin.json(collide 层)",
+      "w": 52,
+      "h": 66,
+      "notes": "密林"
+    },
+    {
+      "scene": 14,
+      "name": "suodao",
+      "status": "ready-empty-collide",
+      "source": "maps/suodao.json(collide 层)",
+      "w": 39,
+      "h": 35,
+      "notes": "索道"
+    },
+    {
+      "scene": 101,
+      "name": "zjuejnei",
+      "status": "ready",
+      "source": "maps/zjuejnei.json(collide 层)",
+      "w": 12,
+      "h": 10,
+      "notes": "家(内)"
+    },
+    {
+      "scene": 102,
+      "name": "gfujia",
+      "status": "ready-empty-collide",
+      "source": "maps/gfujia.json(collide 层)",
+      "w": 13,
+      "h": 11,
+      "notes": "寡妇家"
+    },
+    {
+      "scene": 103,
+      "name": "jiashiboo",
+      "status": "ready-empty-collide",
+      "source": "maps/jiashiboo.json(collide 层)",
+      "w": 11,
+      "h": 9,
+      "notes": "家石伯家"
+    },
+    {
+      "scene": 104,
+      "name": "shugenjia",
+      "status": "ready-empty-collide",
+      "source": "maps/shugenjia.json(collide 层)",
+      "w": 15,
+      "h": 12,
+      "notes": "树根家"
+    },
+    {
+      "scene": 105,
+      "name": "zhahuodianzz",
+      "status": "ready-empty-collide",
+      "source": "maps/zhahuodianzz.json(collide 层)",
+      "w": 13,
+      "h": 11,
+      "notes": "杂货店家"
+    },
+    {
+      "scene": 106,
+      "name": "chunzhangjia1",
+      "status": "ready-empty-collide",
+      "source": "maps/chunzhangjia1.json(collide 层)",
+      "w": 14,
+      "h": 12,
+      "notes": "村长一楼"
+    },
+    {
+      "scene": 107,
+      "name": "chunzhangjias2",
+      "status": "ready-empty-collide",
+      "source": "maps/chunzhangjias2.json(collide 层)",
+      "w": 14,
+      "h": 14,
+      "notes": "村长二楼"
+    },
+    {
+      "scene": 108,
+      "name": "mujiagjia",
+      "status": "ready-empty-collide",
+      "source": "maps/mujiagjia.json(collide 层)",
+      "w": 11,
+      "h": 10,
+      "notes": "木匠家"
+    },
+    {
+      "scene": 109,
+      "name": "laott",
+      "status": "ready-empty-collide",
+      "source": "maps/laott.json(collide 层)",
+      "w": 9,
+      "h": 10,
+      "notes": "老太太家"
+    },
+    {
+      "scene": 110,
+      "name": "tfujia",
+      "status": "ready-empty-collide",
+      "source": "maps/tfujia.json(collide 层)",
+      "w": 10,
+      "h": 10,
+      "notes": "屠夫家"
+    },
+    {
+      "scene": 111,
+      "name": "migon",
+      "status": "ready-empty-collide",
+      "source": "maps/migon.json(collide 层)",
+      "w": 45,
+      "h": 61,
+      "notes": "迷宫"
+    },
+    {
+      "scene": 112,
+      "name": "feifeijia",
+      "status": "ready-empty-collide",
+      "source": "maps/feifeijia.json(collide 层)",
+      "w": 7,
+      "h": 8,
+      "notes": "菲菲家"
+    },
+    {
+      "scene": 113,
+      "name": "yiyuanshinei",
+      "status": "ready-empty-collide",
+      "source": "maps/yiyuanshinei.json(collide 层)",
+      "w": 18,
+      "h": 17,
+      "notes": "医院"
+    },
+    {
+      "scene": "daditu",
+      "name": "daditu",
+      "status": "ready",
+      "source": "maps/daditu.json(collide 层)",
+      "w": 77,
+      "h": 61
+    }
+  ],
+  "note": "27 场景注册：28 场景由 maps/*.json collide 层生成（sceneType 数字待客户端枚举确认）；跨场景 passage 门位待客户端 PassageCollider 源数据。"
+}

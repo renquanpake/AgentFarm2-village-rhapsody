@@ -1,0 +1,449 @@
+{
+ "1": [
+  {
+   "scene": 1,
+   "toScene": 2,
+   "x": 1545,
+   "y": 65,
+   "passage": "VILLAGE_AND_HOME"
+  },
+  {
+   "scene": 1,
+   "toScene": 14,
+   "x": 2591,
+   "y": 1206,
+   "passage": "CABLEWAY_AND_HOME"
+  },
+  {
+   "scene": 1,
+   "toScene": 101,
+   "x": 1522,
+   "y": 1663,
+   "passage": "HOME_AND_PLAYER_HOUSE"
+  }
+ ],
+ "2": [
+  {
+   "scene": 2,
+   "toScene": 1,
+   "x": 4630,
+   "y": 8630,
+   "passage": "VILLAGE_AND_HOME"
+  },
+  {
+   "scene": 2,
+   "toScene": 3,
+   "x": 10380,
+   "y": 7730,
+   "passage": "VILLAGE_AND_RIVER_1"
+  },
+  {
+   "scene": 2,
+   "toScene": 3,
+   "x": 10380,
+   "y": 5530,
+   "passage": "VILLAGE_AND_RIVER_2"
+  },
+  {
+   "scene": 2,
+   "toScene": 7,
+   "x": 2880,
+   "y": 6830,
+   "passage": "VILLAGE_AND_BAOLONG"
+  },
+  {
+   "scene": 2,
+   "toScene": 6,
+   "x": 2900,
+   "y": 3650,
+   "passage": "VILLAGE_AND_HOTSPRING"
+  },
+  {
+   "scene": 2,
+   "toScene": 4,
+   "x": 6860,
+   "y": 2870,
+   "passage": "VILLAGE_AND_PADDY"
+  },
+  {
+   "scene": 2,
+   "toScene": 102,
+   "x": 3505,
+   "y": 7650,
+   "passage": "VILLAGE_AND_WIDOW_HOUSE"
+  },
+  {
+   "scene": 2,
+   "toScene": 103,
+   "x": 9500,
+   "y": 8015,
+   "passage": "VILLAGE_AND_JIASHIBO_HOUSE"
+  },
+  {
+   "scene": 2,
+   "toScene": 104,
+   "x": 5140,
+   "y": 6475,
+   "passage": "VILLAGE_AND_SHUGEN_HOUSE"
+  },
+  {
+   "scene": 2,
+   "toScene": 105,
+   "x": 7844,
+   "y": 5915,
+   "passage": "VILLAGE_AND_GROCERY_HOUSE"
+  },
+  {
+   "scene": 2,
+   "toScene": 106,
+   "x": 9700,
+   "y": 6110,
+   "passage": "VILLAGE_AND_LEADER_ONE"
+  },
+  {
+   "scene": 2,
+   "toScene": 108,
+   "x": 3075,
+   "y": 4420,
+   "passage": "VILLAGE_AND_CARPENTER"
+  },
+  {
+   "scene": 2,
+   "toScene": 109,
+   "x": 4962,
+   "y": 4400,
+   "passage": "VILLAGE_AND_OLDLADY_HOUSE"
+  },
+  {
+   "scene": 2,
+   "toScene": 110,
+   "x": 9550,
+   "y": 4075,
+   "passage": "VILLAGE_AND_BUTCHER_HOUSE"
+  }
+ ],
+ "3": [
+  {
+   "scene": 3,
+   "toScene": 2,
+   "x": 98,
+   "y": 2593,
+   "passage": "VILLAGE_AND_RIVER_1"
+  },
+  {
+   "scene": 3,
+   "toScene": 2,
+   "x": 98,
+   "y": 491,
+   "passage": "VILLAGE_AND_RIVER_2"
+  }
+ ],
+ "4": [
+  {
+   "scene": 4,
+   "toScene": 2,
+   "x": 2658,
+   "y": 1943,
+   "passage": "VILLAGE_AND_PADDY"
+  },
+  {
+   "scene": 4,
+   "toScene": 5,
+   "x": 2658,
+   "y": 54,
+   "passage": "PADDY_AND_NUNNERY"
+  }
+ ],
+ "5": [
+  {
+   "scene": 5,
+   "toScene": 4,
+   "x": 1948,
+   "y": 2731,
+   "passage": "PADDY_AND_NUNNERY"
+  }
+ ],
+ "6": [
+  {
+   "scene": 6,
+   "toScene": 2,
+   "x": 3922,
+   "y": 1437,
+   "passage": "VILLAGE_AND_HOTSPRING"
+  }
+ ],
+ "7": [
+  {
+   "scene": 7,
+   "toScene": 2,
+   "x": 3400,
+   "y": 1427,
+   "passage": "VILLAGE_AND_BAOLONG"
+  },
+  {
+   "scene": 7,
+   "toScene": 10,
+   "x": 95,
+   "y": 1427,
+   "passage": "BAOLONG_AND_TRAIL"
+  }
+ ],
+ "8": [
+  {
+   "scene": 8,
+   "toScene": 10,
+   "x": 1553,
+   "y": 55,
+   "passage": "TRAIL_AND_MINEGATE"
+  },
+  {
+   "scene": 8,
+   "toScene": 9,
+   "x": 2816,
+   "y": 732,
+   "passage": "MINEGATE_AND_CEMETERY"
+  },
+  {
+   "scene": 8,
+   "toScene": 111,
+   "x": 1041,
+   "y": 1082,
+   "passage": "MINEGATE_AND_MAZE"
+  }
+ ],
+ "9": [
+  {
+   "scene": 9,
+   "toScene": 8,
+   "x": 88,
+   "y": 833,
+   "passage": "MINEGATE_AND_CEMETERY"
+  },
+  {
+   "scene": 9,
+   "toScene": 12,
+   "x": 1750,
+   "y": 6543,
+   "passage": "CEMETERY_AND_HILLTOP"
+  }
+ ],
+ "10": [
+  {
+   "scene": 10,
+   "toScene": 7,
+   "x": 2823,
+   "y": 1337,
+   "passage": "BAOLONG_AND_TRAIL"
+  },
+  {
+   "scene": 10,
+   "toScene": 8,
+   "x": 1641,
+   "y": 3811,
+   "passage": "TRAIL_AND_MINEGATE"
+  },
+  {
+   "scene": 10,
+   "toScene": 112,
+   "x": 1067,
+   "y": 2846,
+   "passage": "TRAIL_AND_FEIFEI_HOUSE"
+  },
+  {
+   "scene": 10,
+   "toScene": 113,
+   "x": 2500,
+   "y": 2658,
+   "passage": "TRAIL_AND_HOSPITAL_HOUSE"
+  }
+ ],
+ "11": [
+  {
+   "scene": 11,
+   "toScene": 12,
+   "x": 95,
+   "y": 966,
+   "passage": "HILLTOP_AND_BRIDGE"
+  },
+  {
+   "scene": 11,
+   "toScene": 13,
+   "x": 3800,
+   "y": 966,
+   "passage": "BRIDGE_AND_FOREST"
+  }
+ ],
+ "12": [
+  {
+   "scene": 12,
+   "toScene": 9,
+   "x": 1954,
+   "y": 71,
+   "passage": "CEMETERY_AND_HILLTOP"
+  },
+  {
+   "scene": 12,
+   "toScene": 11,
+   "x": 3797,
+   "y": 1015,
+   "passage": "HILLTOP_AND_BRIDGE"
+  }
+ ],
+ "13": [
+  {
+   "scene": 13,
+   "toScene": 11,
+   "x": 62,
+   "y": 3237,
+   "passage": "BRIDGE_AND_FOREST"
+  },
+  {
+   "scene": 13,
+   "toScene": 14,
+   "x": 3067,
+   "y": 54,
+   "passage": "FOREST_AND_CABLEWAY"
+  }
+ ],
+ "14": [
+  {
+   "scene": 14,
+   "toScene": 13,
+   "x": 3056,
+   "y": 3263,
+   "passage": "FOREST_AND_CABLEWAY"
+  },
+  {
+   "scene": 14,
+   "toScene": 1,
+   "x": 3056,
+   "y": 3263,
+   "passage": "CABLEWAY_AND_HOME"
+  }
+ ],
+ "101": [
+  {
+   "scene": 101,
+   "toScene": 1,
+   "x": 880,
+   "y": 55,
+   "passage": "HOME_AND_PLAYER_HOUSE"
+  }
+ ],
+ "102": [
+  {
+   "scene": 102,
+   "toScene": 2,
+   "x": 650,
+   "y": 100,
+   "passage": "VILLAGE_AND_WIDOW_HOUSE"
+  }
+ ],
+ "103": [
+  {
+   "scene": 103,
+   "toScene": 2,
+   "x": 553,
+   "y": 95,
+   "passage": "VILLAGE_AND_JIASHIBO_HOUSE"
+  }
+ ],
+ "104": [
+  {
+   "scene": 104,
+   "toScene": 2,
+   "x": 465,
+   "y": 145,
+   "passage": "VILLAGE_AND_SHUGEN_HOUSE"
+  }
+ ],
+ "105": [
+  {
+   "scene": 105,
+   "toScene": 2,
+   "x": 340,
+   "y": 125,
+   "passage": "VILLAGE_AND_GROCERY_HOUSE"
+  }
+ ],
+ "106": [
+  {
+   "scene": 106,
+   "toScene": 2,
+   "x": 590,
+   "y": 122,
+   "passage": "VILLAGE_AND_LEADER_ONE"
+  },
+  {
+   "scene": 106,
+   "toScene": 107,
+   "x": 855,
+   "y": 148,
+   "passage": "LEADER_ONE_AND_LEADER_TWO"
+  }
+ ],
+ "107": [
+  {
+   "scene": 107,
+   "toScene": 106,
+   "x": 277,
+   "y": 150,
+   "passage": "LEADER_ONE_AND_LEADER_TWO"
+  }
+ ],
+ "108": [
+  {
+   "scene": 108,
+   "toScene": 2,
+   "x": 410,
+   "y": 210,
+   "passage": "VILLAGE_AND_CARPENTER"
+  }
+ ],
+ "109": [
+  {
+   "scene": 109,
+   "toScene": 2,
+   "x": 275,
+   "y": 135,
+   "passage": "VILLAGE_AND_OLDLADY_HOUSE"
+  }
+ ],
+ "110": [
+  {
+   "scene": 110,
+   "toScene": 2,
+   "x": 505,
+   "y": 80,
+   "passage": "VILLAGE_AND_BUTCHER_HOUSE"
+  }
+ ],
+ "111": [
+  {
+   "scene": 111,
+   "toScene": 8,
+   "x": 3559,
+   "y": 43,
+   "passage": "MINEGATE_AND_MAZE"
+  }
+ ],
+ "112": [
+  {
+   "scene": 112,
+   "toScene": 10,
+   "x": 373,
+   "y": 90,
+   "passage": "TRAIL_AND_FEIFEI_HOUSE"
+  }
+ ],
+ "113": [
+  {
+   "scene": 113,
+   "toScene": 10,
+   "x": 580,
+   "y": 181,
+   "passage": "TRAIL_AND_HOSPITAL_HOUSE"
+  }
+ ],
+ "note": "全量门户图（28 条跨场景通路 x2 侧）：主包 ScenePassageType + 各场景类 getPlayerBornPosition 提取；村景坐标为扩展网格系（原版+28 格偏移）；同日时间传送 DAY_AND_PLAYER_HOUSE 非空间门，不入图。门位落格前经 snapToWalkable 吸附（gen-nav --check 门）。"
+}

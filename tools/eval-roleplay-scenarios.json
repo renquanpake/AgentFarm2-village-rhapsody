@@ -1,0 +1,33 @@
+{
+  "note": "F2 角色扮演评测集（自主行为占比 >= 30%、多样性熵防退化）。每个场景：ticks 总步数、instructions 触发指令（时间步+动作）、persona 人设。",
+  "gates": { "selfDirectedMin": 0.3, "entropyMinNorm": 0.6 },
+  "scenarios": [
+    {
+      "id": "rainy-village",
+      "persona": "farmer",
+      "ticks": 20,
+      "weather": "rain",
+      "festival": null,
+      "instructions": [{ "at": 3, "action": "water" }, { "at": 8, "action": "gift" }, { "at": 14, "action": "talk" }],
+      "seedEvents": ["crop.harvested", "social.fav", "npc.schedule"]
+    },
+    {
+      "id": "festival-day",
+      "persona": "social",
+      "ticks": 20,
+      "weather": "clear",
+      "festival": "春花会",
+      "instructions": [{ "at": 5, "action": "gift" }, { "at": 12, "action": "talk" }],
+      "seedEvents": ["festival.result", "social.fav", "trade.filled"]
+    },
+    {
+      "id": "quiet-morning",
+      "persona": "angler",
+      "ticks": 20,
+      "weather": "clear",
+      "festival": null,
+      "instructions": [{ "at": 6, "action": "fish" }, { "at": 15, "action": "rest" }],
+      "seedEvents": ["fish.caught", "calendar.day"]
+    }
+  ]
+}

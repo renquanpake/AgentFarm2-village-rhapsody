@@ -1,64 +1,38 @@
-// config.ts —— 加载配置表（data/*.json）与 LLM 配置，全部读文件不硬编码
-import fs from 'node:fs';
+// config.ts —— 运行配置：环境变量 + 路径 + 常数（等价 legacy afserver.mjs 顶部）
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const ROOT = path.resolve(__dirname, '..', '..');
-export const DATA_DIR = path.join(ROOT, 'data');
-export const MAPS_DIR = path.join(ROOT, 'client', 'public', 'maps');
-export const MEMORY_DIR = path.join(ROOT, 'memory');
-export const DOCS_DIR = path.join(ROOT, 'docs');
-export const SAVE_DIR = path.join(__dirname, '..', 'save');
-export const STATIC_DIR = path.join(__dirname, '..', 'public', 'client'); // 生产静态（vite build 产物）
 
-/** 可选 Obsidian 记忆库路径（config/obsidian.json: {"vault": "D:\\...\\vault"}），用于分发规则文件 */
-export function obsidianDir(): string | null {
-  try {
-    const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'obsidian.json'), 'utf8'));
-    return typeof j?.vault === 'string' && j.vault ? j.vault : null;
-  } catch { return null; }
+// 支持容器/云部署：AF_DATA_DIR 可把数据目录指到持久卷（如 Fly.io volume /data）
+export const DATA_DIR = process.env.AF_DATA_DIR || path.resolve(__dirname, '..', '..', 'data');
+export const CLIENT_ROOT = process.env.AF_CLIENT_DIR || path.resolve(__dirname, '..', '..', 'client');
+export const SAVES_DIR = path.join(DATA_DIR, 'saves');
+export const SEED_FILE = path.join(DATA_DIR, 'seed-villagedb.json');
+export const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
+export const PROVIDER_FILE = path.join(DATA_DIR, 'agent-provider.json');
+export const BACKUP_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'backup-saves.mjs');
+// C8 美术资产（生图量化产物 + CC0 直采，仓库根 assets/；/af/art 端点交付给 mod）
+export const ART_ROOT = process.env.AF_ART_DIR || path.resolve(__dirname, '..', '..', 'assets', 'generated');
+export const REPO_ROOT = path.resolve(__dirname, '..', '..');
+
+export const PORT = Number(process.env.PORT || 8080);
+// 存档位：AF_SLOT 环境变量或 --slot=N，默认 1
+export const CURRENT_SLOT = Number(process.env.AF_SLOT || (process.argv.find(a => a.startsWith('--slot='))?.split('=')[1]) || 1);
+// 作物 1 天 = 10 分钟真实时间（AF_GROW_MS 可调快测试）
+export const GROW_DAY_MS = Number(process.env.AF_GROW_MS || 10 * 60 * 1000);
+// WS 心跳保活周期（防隧道/NAT 空闲断开）
+export const WS_HEARTBEAT_MS = Number(process.env.AF_WS_HEARTBEAT_MS || 30 * 1000);
+// 同场景在线 > 10 分钟自动解锁 DM
+export const DM_SCENE_COOLDOWN_MS = 10 * 60 * 1000;
+// 一格 = 100px
+export const AGENT_MOVE_STEP = 100;
+// D1 导航执行确认闭环：等待客户端 arrive 上报实际落点的时间窗（超时回落盲推当前段）
+export const NAV_ARRIVE_TIMEOUT_MS = Number(process.env.AF_NAV_ARRIVE_MS || 8000);
+// D1 debug/回落分支开关：AF_NAV_DEBUG_BLIND=1 强制 120ms 逐格盲推（等价 legacy 行为）
+export const NAV_DEBUG_BLIND = process.env.AF_NAV_DEBUG_BLIND === '1';
+
+export function slotPaths(savesDir: string, slot: number): { slotDir: string; saveFile: string; metaFile: string } {
+  const slotDir = path.join(savesDir, `slot${slot}`);
+  return { slotDir, saveFile: path.join(slotDir, 'world.json'), metaFile: path.join(slotDir, 'meta.json') };
 }
-
-function loadJson<T>(rel: string): T {
-  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, rel), 'utf8'));
-}
-
-export const data = {
-  items: loadJson<any[]>('items.json'),
-  plants: loadJson<any[]>('plants.json'),
-  recipes: loadJson<any[]>('recipes.json'),
-  buildings: loadJson<any[]>('buildings.json'),
-  shop: loadJson<any[]>('shop.json'),
-  fish: loadJson<any[]>('fish.json'),
-  mine: loadJson<any[]>('mine.json'),
-  npcs: loadJson<any[]>('npcs.json'),
-  scenes: loadJson<any[]>('scenes.json'),
-  tasks: loadJson<any>('tasks.json'),
-  social: loadJson<any>('social.json'),
-  balance: loadJson<any>('balance.json'),
-};
-
-export const itemNames: Record<string, string> = {};
-for (const it of data.items) if (it?.id) itemNames[String(it.id)] = it.name;
-
-export const scenesById: Record<number, any> = {};
-for (const s of data.scenes) scenesById[s.id] = s;
-
-export const recipesById: Record<number, any> = {};
-for (const r of data.recipes) recipesById[r.id] = r;
-
-// LLM 配置（key 走环境变量，文件内不落密钥）
-export function llmConfig() {
-  const raw = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'llm.json'), 'utf8'));
-  const tier = process.env.LLM_TIER || raw.default || 'production';
-  const cfg = raw.tiers?.[tier] || raw[tier] || raw;
-  const key = process.env.LLM_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.AGNES_API_KEY || '';
-  return { base_url: cfg.base_url, model: cfg.model, temperature: cfg.temperature ?? 0.7, key };
-}
-
-export const balance = data.balance as {
-  hunger: { max: number; slow_loss_below: number; slow_hp_per_min: number; zero_hp_per_sec: number; food_restore_range: [number, number] };
-  time: { day_cycle_minutes: number; night_start_hour: number };
-  economy: { start_gold: number };
-};
