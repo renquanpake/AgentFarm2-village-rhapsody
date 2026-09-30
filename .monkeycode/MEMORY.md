@@ -49,6 +49,6 @@
 
 ## 安全（P0，需用户操作）
 - 17 个 `tools/` 调试脚本明文 sk- **已改读 env**（tools/env.mjs + .env.local，gitignored；a0f6dc6）；.gitleaks.toml 文件级豁免已全部移除。**密钥仍在 git 历史与 .env.local——用户需轮换 AGNES_API_KEY/DEEPSEEK_API_KEY 后更新 .env.local 才真正闭环**。
-- 本次会话出现过的 GitHub PAT 应由用户撤销。
+- 本次会话出现过的 GitHub PAT 应由用户撤销（含 2026-09-30 用户在聊天中直接提供、用于绕开故障凭据服务完成推送的那枚 ghp_ 开头 PAT——聊天暴露即视为泄露，尽快轮换；本地 /root/.git-credentials 已删除）。
 - 2026-09-29 用户在聊天中提供过 agnes-ai Key（.env 的 USER_IMG_* 与 AF_LLM_*，未入库）；该 Key 已在会话中暴露，**建议轮换**后更新 `.env`/`.env.local`。
 - 服务端自身零池化 LLM 密钥；玩家 Key 经 `AF_AES_KEY` 派生的 AES-256-GCM 加密保管，接口永不回显明文。
