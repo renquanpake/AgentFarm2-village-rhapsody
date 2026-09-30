@@ -39,7 +39,8 @@
 - 真实原版精灵 PNG 在 `server/public/client/sprites/`（约 900 张，调色板提取源）；`client/assets/**` 的 Cocos 原生 PNG 是压缩二进制，PIL 读不了。
 - 新增 HTTP/WS 路由：加到 `server/src/gateway/http.ts`（HTTP）与 `gateway/ws.ts`（WS 双通道 /ws 游戏 + /agent agent），协议走 `gateway/protocol.ts` 的 zod（act 消息 passthrough，新字段无需改协议）。
 - **act/trade 消息只走托管 /agent 通道**（token=账号 agentToken）；/ws 游戏通道发 act 会被静默忽略（B4 流量驱动踩坑：0 成交）。/agent 升级 URL 必须显式 `ws://host/agent?token=`（连根路径会被 socket.destroy 报 "socket hang up"）。
-- 验收/观察工具：`tools/f4-acceptance.mjs`（F4 4.1 六项，服务端需带 AF_AES_KEY 过 LLM 项）；`tools/shadow-observe.mjs`（B4 影子 14 真实日观察流量驱动+报告，M-B1 门窗口=now-14d 不可快时钟压缩）；`tools/art-qa.mjs`（C8 60 件自动终检）；`/af/npc-schedule` 快照端点（快时钟下游戏时恒 21-23 时段 NPC 幂等不换位，npc_move 实机观察需 AF_GROW_MS=600000 生产日钟 ~13 分钟首个换时段）。
+ - 验收/观察工具：`tools/f4-acceptance.mjs`（F4 4.1 六项，服务端需带 AF_AES_KEY 过 LLM 项）；`tools/shadow-observe.mjs`（B4 影子 14 真实日观察流量驱动+报告，M-B1 门窗口=now-14d 不可快时钟压缩；支持 `--days` 参数，活体验证用默认 1、判门复查用 14）；`tools/art-qa.mjs`（C8 60 件自动终检）；`/af/npc-schedule` 快照端点（快时钟下游戏时恒 21-23 时段 NPC 幂等不换位，npc_move 实机观察需 AF_GROW_MS=600000 生产日钟 ~13 分钟首个换时段）。
+ - 影子引擎 D8 根因修复（2026-09-30）：mm-shadow 报价锚点改实盘 best bid/ask（默认 0 价差紧镜像）+ 按深度缺口补挂（旧「有成交即停挂」是漏量根因之一）。**引擎行为变更 → 观察窗作废重计**：生产 8080 重启加载新引擎后重跑 `tools/shadow-observe.mjs` 记新起点，14 日后 `--days 14` 判 M-B1 门（旧 2026-09-29T14:33Z 起点作废）。
 
 ## 工作模式（Workflow & Collaboration，用户指令）
 - **资源获取策略（2026-09-29 用户明确指示，长期生效）**：需要图片素材就上网搜（图片搜索）或自己生图（tools/art-gen.mjs 管线），双通道保供；对图片质量要求严苛——按 C8 v2 铁律（纯白底+单体锁定+量化+art-qa 机审）与授权合规把关。**入库素材优先级：生图产物（风格可控）> CC0 素材包（Kenney 已有 465 张）> 网络搜索（仅作参考/概念图，直接入库须逐张核授权）**。其他资源同理：缺任何东西（音源/字体/数据/依赖/参考资料）就去上网搜，不空等不空想。

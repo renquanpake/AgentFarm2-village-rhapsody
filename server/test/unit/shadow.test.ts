@@ -63,6 +63,59 @@ describe('影子镜像与自成流动性', () => {
     expect(n).toBe(0);
     h.db.close();
   });
+
+  it('D8：实盘 mm 主导成交被影子紧镜像跟随（量/价对称）', () => {
+    const h = harness();
+    h.state.playersDb.set('u1', new Map());
+    knapAdd(h.state.playersDb.get('u1')!, 1, 400); // 现金
+    // 实盘冷启动挂 mm 双边（marketView 触发 ensureMaker）；taker 买单直接吃实盘 mm ask（mm 驱动成交）
+    const ask = h.market.marketView(12).book.asks[0].price;
+    const r = h.market.place('u1', 12, 'buy', ask, 3);
+    expect(r.fills!.length).toBe(1);
+    expect(r.fills![0].maker).toBe('mm');
+    const n = (h.db.prepare('SELECT COUNT(*) n FROM market_shadow_fills').get() as { n: number }).n;
+    expect(n).toBe(1); // 旧逻辑（基价锚点+宽价差）此处为 0
+    const f = h.db.prepare('SELECT price, qty FROM market_shadow_fills').get() as { price: number; qty: number };
+    expect(f.price).toBe(ask); // 锚点=实盘 best ask，非 basePrice±8%
+    expect(f.qty).toBe(3);
+    const rep = h.shadow.report(14);
+    expect(rep[0].volumeDeviation).toBe(0);
+    expect(rep[0].priceSpreadPct ?? 0).toBeLessThan(15);
+    h.db.close();
+  });
+
+  it('D8：mm-shadow 深度耗尽后按缺口补挂，后续 taker 仍跟随', () => {
+    const h = harness();
+    h.state.playersDb.set('u1', new Map());
+    knapAdd(h.state.playersDb.get('u1')!, 1, 1000);
+    const mk = new ShadowMarket(h.app as App, { makerQty: 2 });
+    h.market.attachShadow(mk); // 换小深度实例：两轮 taker 各需补挂
+    const ask = h.market.marketView(12).book.asks[0].price;
+    const r1 = h.market.place('u1', 12, 'buy', ask, 2);
+    expect(r1.fills!.length).toBe(1);
+    // 第二轮 taker：实盘 mm 深度仍足（MM_MAX_QTY=50），但影子深度 2 已耗尽 -> 靠补挂跟随
+    const r2 = h.market.place('u1', 12, 'buy', ask, 2);
+    expect(r2.fills!.length).toBe(1);
+    const n = (h.db.prepare('SELECT COUNT(*) n FROM market_shadow_fills').get() as { n: number }).n;
+    expect(n).toBe(2); // 旧逻辑首成交后停挂 -> 第二轮 0
+    h.db.close();
+  });
+
+  it('D8：报价锚点跟随实盘漂移（撤旧 mm ask 后重挂高位）', () => {
+    const h = harness();
+    h.state.playersDb.set('u1', new Map());
+    knapAdd(h.state.playersDb.get('u1')!, 1, 1000);
+    const b = h.market.marketView(12).book; // 触发实盘冷启动做市
+    const mmAskId = h.market.bookOf(12).openOrders().find(o => o.owner === 'mm' && o.side === 'sell')!.id;
+    h.market.cancel('mm', 12, mmAskId); // 撤实盘旧 mm ask -> 盘口上移
+    h.market.place('mm', 12, 'sell', 90, 5); // 实盘 best ask = 90
+    const r = h.market.place('u1', 12, 'buy', 90, 1);
+    expect(r.fills!.length).toBe(1);
+    expect(r.fills![0].price).toBe(90);
+    const f = h.db.prepare('SELECT price FROM market_shadow_fills ORDER BY ts DESC LIMIT 1').get() as { price: number };
+    expect(f.price).toBe(90); // 旧逻辑锚 basePrice -> 影子成交 54 左右，偏差 ~40%
+    h.db.close();
+  });
 });
 
 describe('对比报告', () => {

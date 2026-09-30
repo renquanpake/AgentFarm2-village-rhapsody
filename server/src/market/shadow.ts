@@ -1,13 +1,13 @@
 // market/shadow.ts —— B4 影子模式：撮合引擎双实例（design M2.4）
 // 影子实例与实盘同收订单、各自撮合，但只记账不结算（不动资产、不预留、不熔断），
-// 自成流动性（做市价差/单量可配置，用于对比"若换参数会怎样"）。
+// 自成流动性（报价锚定实盘 best 盘口，默认 0 价差紧镜像；可配宽价差/单量做 what-if 对比）。
 // 14 日对比报告（价差分布、成交量偏差）作为启用真实结算的验收依据（M-B1 门）。
 import type { App } from '../app.ts';
 import { OrderBook, type Fill, type Side } from './orderbook.ts';
 
 export interface ShadowOpts {
-  spread?: number;   // 影子做市价差（默认比实盘宽，观察流动性差异）
-  makerQty?: number; // 影子做市单量
+  spread?: number;   // 影子报价相对实盘 best 的价差（默认 0 = 紧镜像，M-B1 跟随口径；设 >0 做宽价差 what-if 观察）
+  makerQty?: number; // 影子做市单量（单边深度目标）
 }
 
 export interface ShadowItemReport {
@@ -27,7 +27,7 @@ export class ShadowMarket {
   private makerQty: number;
   constructor(app: App, opts: ShadowOpts = {}) {
     this.app = app;
-    this.spread = opts.spread ?? 0.08;
+    this.spread = opts.spread ?? 0;
     this.makerQty = opts.makerQty ?? 40;
   }
 
@@ -40,7 +40,7 @@ export class ShadowMarket {
   /** 镜像实盘挂单（排除实盘做市商 mm：影子自成流动性） */
   mirrorPlace(owner: string, item: number, side: Side, price: number, qty: number): Fill[] {
     if (owner === 'mm') return []; // 影子不用实盘做市单
-    this.ensureShadowMaker(item, this.app.market.basePrice(item));
+    this.topShadowMaker(item);
     const b = this.bookOf(item);
     const r = b.place(side, price, qty, owner, Date.now());
     for (const f of r.fills) this.insertShadowFill(item, f);
@@ -55,16 +55,26 @@ export class ShadowMarket {
     if (open.length) b.cancel(open[0].id);
   }
 
-  /** 影子自成流动性：簿空且无影子成交时挂做市单（价差/单量可配置） */
-  private ensureShadowMaker(item: number, base: number): void {
+  /**
+   * 影子自成流动性（D8 根因修复）：锚点跟随实盘 best bid/ask（无盘口回落基价），
+   * 按深度缺口补挂 mm-shadow（存量 < makerQty 即补），不再因「有成交」停挂——
+   * 旧逻辑锚定 basePrice±8% 且首成交后停止补挂，导致实盘 mm 主导的物品影子系统性漏成交。
+   */
+  private topShadowMaker(item: number): void {
     const b = this.bookOf(item);
-    const hasReal = b.openOrders().some(o => o.owner !== 'mm-shadow');
-    if (!hasReal && b.recentFills(1).length === 0) {
-      const bid = Math.max(1, Math.round(base * (1 - this.spread)));
-      const ask = Math.max(1, Math.round(base * (1 + this.spread)));
-      b.place('buy', bid, this.makerQty, 'mm-shadow', Date.now());
-      b.place('sell', ask, this.makerQty, 'mm-shadow', Date.now());
-    }
+    const live = this.app.market.bookOf(item).snapshot();
+    const base = this.app.market.basePrice(item);
+    const bid0 = live.bids[0]?.price ?? base;
+    const ask0 = live.asks[0]?.price ?? base;
+    let bid = Math.max(1, Math.round(bid0 * (1 - this.spread)));
+    let ask = Math.max(1, Math.round(ask0 * (1 + this.spread)));
+    if (ask <= bid) ask = bid + 1; // 单边/空簿回落时防双边报价自成交
+    const now = Date.now();
+    const have = (s: Side) => b.openOrders().filter(o => o.owner === 'mm-shadow' && o.side === s).reduce((sum, o) => sum + o.qty, 0);
+    const buyNeed = this.makerQty - have('buy');
+    if (buyNeed > 0) b.place('buy', bid, buyNeed, 'mm-shadow', now);
+    const sellNeed = this.makerQty - have('sell');
+    if (sellNeed > 0) b.place('sell', ask, sellNeed, 'mm-shadow', now);
   }
 
   /** 重启恢复：实盘挂单（非 mm）镜像进影子簿 + 影子成交回灌 */
@@ -73,7 +83,7 @@ export class ShadowMarket {
     const opens = db.prepare("SELECT item_id, side, price, qty, owner FROM market_orders WHERE status = 'open' AND owner != 'mm'").all() as Array<Record<string, number | string>>;
     for (const o of opens) {
       const item = Number(o.item_id);
-      this.ensureShadowMaker(item, this.app.market.basePrice(item));
+      this.topShadowMaker(item);
       this.bookOf(item).restoreOpen({
         id: Number(o.id), side: String(o.side) as Side, price: Number(o.price),
         qty: Number(o.qty), owner: String(o.owner), ts: Date.now(),

@@ -18,6 +18,7 @@ const BASE = (process.env.AF_BASE || 'http://127.0.0.1:8080').replace(/\/+$/, ''
 const WS_BASE = BASE.replace(/^http/, 'ws');
 const N = Number(arg('--drivers', '3'));
 const DURATION = Number(arg('--duration', '180000'));
+const DAYS = Number(arg('--days', '1')); // 1=活体验证快照（观察期启动凭据）；14=M-B1 判门复查
 const OUT = arg('--out', join(ROOT, 'data', 'eval', 'shadow-live-check.json'));
 const ITEMS = [1, 2, 3]; // 小麦/种子等基础品（basePrice 各不同，跨品流动性）
 
@@ -117,7 +118,7 @@ await Promise.all(ds.map(d => d.run()));
 // 3) M-B1 验收快照（/af/shadow 与 /af/economy 需账号 token）
 await sleep(500);
 const tok = drivers[0].token;
-const rep = await (await fetch(BASE + `/af/shadow?days=1&token=${encodeURIComponent(tok)}`, { headers: { Connection: 'close' } })).json();
+const rep = await (await fetch(BASE + `/af/shadow?days=${DAYS}&token=${encodeURIComponent(tok)}`, { headers: { Connection: 'close' } })).json();
 const eco = await (await fetch(BASE + `/af/economy?token=${encodeURIComponent(tok)}`, { headers: { Connection: 'close' } })).json().catch(() => ({}));
 const itemsOk = Array.isArray(rep.items) ? rep.items : [];
 const withBoth = itemsOk.filter(i => i.liveVolume > 0 && i.shadowVolume > 0).length;
@@ -130,9 +131,11 @@ const report = {
   shadow: rep,
   economy: { feeMultiplier: eco.feeMultiplier, inflationIndex: eco.inflationIndex },
   mB1: {
-    criterion: '14 真实日窗口内 实盘 vs 影子：价差分布收敛（priceSpreadPct 中位 < 15%）且成交量偏差可解释（volumeDeviation < 0.5）；超阈值则调影子 spread/makerQty 后重启观察',
+    criterion: `14 真实日窗口（days=${DAYS} 复查口径）实盘 vs 影子：价差分布收敛（priceSpreadPct 中位 < 15%）且成交量偏差可解释（volumeDeviation < 0.5）；超阈值则调影子 spread/makerQty 后重启观察`,
     status: withBoth > 0
-      ? `引擎活体验证通过（${withBoth}/${itemsOk.length} 件实盘+影子双边成交）；14 日观察期起点 ${startedAt}，到期后重跑本脚本复查 /af/shadow?days=14`
+      ? (DAYS >= 14
+        ? `M-B1 判门窗口：${withBoth}/${itemsOk.length} 件双边成交；逐件核对 priceSpreadPct/volumeDeviation 是否达标`
+        : `引擎活体验证通过（${withBoth}/${itemsOk.length} 件实盘+影子双边成交）；14 日观察期起点 ${startedAt}，到期后重跑 --days 14 复查`)
       : '影子双边成交未出现——检查服务器是否挂了 shadow（app.shadow）或流量是否真实成交',
   },
 };
