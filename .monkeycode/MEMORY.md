@@ -24,6 +24,7 @@
 - CI 八道门见 `.github/workflows/ci.yaml`（门8=旗舰UI 静态+冒烟：`tools/ui-lint.mjs` 三静态门 + `tools/ui-smoke.mjs` 17 项模块逻辑冒烟，无浏览器可跑；Cocos 实机反射归 N2）；原版外壳哈希基线 `client/original-hash.json`（`node tools/hash-manifest.mjs [--check]`，mod 层豁免）。
 - 美术管线（C6-C9）：`tools/extract-palette.py`（16 色提取）+ `tools/art-postprocess.py`（量化/抠图/网格校验，需 Pillow）+ `tools/art-prompts/`（v1 基础 + **style-v2.md 现行铁律：纯白底+单体锁定**）；CC0 素材在 `assets/cc0/`（Kenney 三包 465 张）；生图走 agnes API（`tools/art-gen.mjs` + .env 的 USER_IMG_*，用户自备 Key）。
 
+- **市政路网 P1a（2026-10-01，d027ba9）**：新增门禁 `node tools/check-roads.mjs`（连通档全图判死 / 相交档村景判死、卫星 P1c 随碰撞提取告警 / 双源档村景判死：老区路格 = shilu 提取∩可走，diff 0；端点锚点 = 他路∪地标∪门户∪房屋门∪地图边界 3 格带）。流水线顺序：`build-shilu.mjs`（村 shilu 掩码，与 build-collision 同解密解法）→ `data/roads.json`（村 37 段=25 shilu 宽1 精确复刻+12 环内市政段；12 卫星进场路）+ `data/landmarks.json` → `gen-nav.mjs` + `build-scene-collisions.mjs`（写 kind=4/roadIdx 进 nav-*.json）→ `check-roads` + `nav-replay`（成本比基线 `data/nav/replay-baseline.json`，g 比 ≤1.1；改 hpath 塑形/road 数据后基线作废需重录）。已知豁免：村广场中心 3 格 = 原房层压石板（房叠 shilu），applyRoads 跳过 + 相交档 shiluExempt，属设计内非违规。gen-nav 不再写 portals.json（权威源 = build-scene-portals，全量 56 条）。
 ## 排障要点（Troubleshooting）
 - **测试隔离**：`config.ts` 在模块加载时读 `AF_DATA_DIR`。单测必须直接构造 `WorldState`/`EventLog`（临时目录），**不要**在单测里 `new App()`（会把测试夹具写进真实 `data/saves/`——曾发生，已隔离）。
 - **回放态禁落盘**：`rebuildState`/`fromSnapshot` 的重建态必须 `noPersist:true`，否则一致性校验会把回放结果写进生产存档（已修）。
