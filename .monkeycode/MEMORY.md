@@ -18,9 +18,9 @@
 
 ## 构建与验证（Build & Test）
 - 类型检查：`cd server && npx tsc --noEmit`（tsconfig strict + erasableSyntaxOnly，禁用 enum/namespace/参数属性）。
-- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 141 项）。
-- 协议回归：起服务 `AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 node src/index.ts`，另跑 `AF_BASE=http://127.0.0.1:8080 node server/ws-test.mjs`（应 11 项全过）。
-- 导航门：`node tools/gen-nav.mjs --check`（村景锚点可达 + 56 条跨场景门户吸附）+ `node tools/nav-replay.mjs [--smoke|--drift]`（27 场景 210 例，drift=偏差重规划）+ E2E `AF_BASE=... node tools/e2e-nav-arrive.mjs`（14 项，测试服务 `PORT=8091 AF_SLOT=9 AF_NAV_ARRIVE_MS=1200`）。
+- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 163 项）。
+- 协议回归：起服务 `AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 node src/index.ts`，另跑 `AF_BASE=http://127.0.0.1:8080 node server/ws-test.mjs`（应 12 项全过；talk 走 agent 通道 `{t:'act',action:'talk'}`，需带 agentToken 账号）。
+- 导航门：`node tools/gen-nav.mjs --check`（村景锚点可达 + 56 条跨场景门户吸附）+ `node tools/nav-replay.mjs [--smoke|--drift]`（村景 8 起点×3 路线×10=240 例，drift=偏差重规划；+28 环后 house-9 计入，旧"210 例"已过期）+ E2E `AF_BASE=... node tools/e2e-nav-arrive.mjs`（14 项，测试服务 `PORT=8091 AF_SLOT=9 AF_NAV_ARRIVE_MS=1200`）。
 - CI 八道门见 `.github/workflows/ci.yaml`（门8=旗舰UI 静态+冒烟：`tools/ui-lint.mjs` 三静态门 + `tools/ui-smoke.mjs` 17 项模块逻辑冒烟，无浏览器可跑；Cocos 实机反射归 N2）；原版外壳哈希基线 `client/original-hash.json`（`node tools/hash-manifest.mjs [--check]`，mod 层豁免）。
 - 美术管线（C6-C9）：`tools/extract-palette.py`（16 色提取）+ `tools/art-postprocess.py`（量化/抠图/网格校验，需 Pillow）+ `tools/art-prompts/`（v1 基础 + **style-v2.md 现行铁律：纯白底+单体锁定**）；CC0 素材在 `assets/cc0/`（Kenney 三包 465 张）；生图走 agnes API（`tools/art-gen.mjs` + .env 的 USER_IMG_*，用户自备 Key）。
 
@@ -31,6 +31,8 @@
 - **P3 相机/边界 spike 结论（2026-10-01）**：原版 Cocos 相机钳制 `updateCameraPos` 用 `sceneSize = tiledMap.getMapSize()×tileSize`（client/assets/main/index.e6d95.js @1811059/1809344）——**钳制随 TiledMap 资产尺寸自动扩展，+28 环（133→189）零相机代码改动**；风险收敛到 TMX 资产重烘（expand-village-map 管线）+ 1-2 个 hash 基线文件变更（文档化）。
  - **e2e-nav-arrive 运行要求（2026-10-01）**：26 项（P2 场景 E + E.6-E.9 功能层协议级断言：forecast 明日天气结构 / train 位置门 / report 场景门 / forge 配方注册），必须带 `AF_NAV_ARRIVE_MS=1200` 起测试服（盲推节拍，否则 B/C「走完 done」时序级联失败）；`AF_BASE=http://127.0.0.1:<port> AF_SLOT=<slot>`。
 - **P3 +28 环（189×173，2026-10-01）**：`tools/expand-village-ring.mjs` 重烘村景 TMX+plant（133→189，旧内容 +28 居中）；环布局 = 西环果农宅 id9 (4,100)+果园 / 南环河湾 3 水道 y151/159/167 / 东环建筑街 gym(172,96)+forge(172,118)+stall(174,60) / 北环树林+气象台塔 (91,3) / P3 外圈栅栏环（4 门缺口对齐 P0 四门 +28 列：W/E y105-107、N/S x95-97）；村景数据 +28 偏移走 `tools/shift-village-data.mjs`（幂等 p3_shifted 标记；roads/landmarks/decor/buildings/portals 村景侧）；village-shilu/collision/farm 重生成不偏移。hash 基线 5140（2 资产变更已刷新）；nav-replay 基线 24 路线（+house-9）已重录。客户端 B 覆盖反射（307-310 生图 + 金字 Label，injectBuildingSigns cover 分支）。**实机确认 3 锚点留待用户：新环截图 / 建筑 z 层 / 生图画风**。
+- **排期项 8/9 收尾（2026-10-01，abaeb5f + 23cf254）**：项 8 NPC 对话三段式——`data/npcs.json` 26 名 additive 补 `persona`（identity/tagline/desc）；`NpcDef` 加 `NpcPersona` 类型；`ws.ts` `act talk`（agent 通道）= 价目表（同步 result）+ llm.chat dialogue（`app.cognition.llm(uid).chat(uid,system,user,'dialogue')` 异步发第 2 条 result，无 Key/失败回落 tagline）；system 注入 persona+calendarDay 天气/节日。项 9 中央舞台节日聚集（非经济）——`schedule.ts` `NpcPois.banquetHall` 由 `municipalOf` 的 `buildings.json banquet-hall` poi（网格→像素）派生，`npcDecision` 节日 10-20 时聚宴会厅舞台（无舞台回落村中心）；309 宴会舞台 B 覆盖客户端已渲染；玩家侧位置信息现成（`observe.festival.venue` + `act forecast` hints）。**经济类钩子（开摊费/赛事奖/计息/投保）仍随 M-B1 影子窗冻结**。项 10 全回归绿（tsc/vitest 163/ws-test 12/nav-replay 240/gen-nav/check-roads）；**推送被凭据助手 500 阻塞，本地领先 origin/master 23 提交未推**——凭据恢复后 `git push origin master` 即补。
+- **talk 走 agent 通道**：`act`（含 talk）只在 `/agent?token=` 外部通道，游戏通道 `/ws` 无 `act` case；ws-test 的 talk 断言需用带 `agentToken` 账号（`data/accounts.json`）连 agent 通道。
 ## 排障要点（Troubleshooting）
 - **测试隔离**：`config.ts` 在模块加载时读 `AF_DATA_DIR`。单测必须直接构造 `WorldState`/`EventLog`（临时目录），**不要**在单测里 `new App()`（会把测试夹具写进真实 `data/saves/`——曾发生，已隔离）。
 - **回放态禁落盘**：`rebuildState`/`fromSnapshot` 的重建态必须 `noPersist:true`，否则一致性校验会把回放结果写进生产存档（已修）。
