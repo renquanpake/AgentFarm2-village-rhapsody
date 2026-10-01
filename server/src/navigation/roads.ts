@@ -100,7 +100,7 @@ export function roadOf(nav: NavGrid, x: number, y: number): string | null {
   return nav.roadNames?.[ri] ?? null;
 }
 
-/** 连通档：路端点（折线首/末格）须贴(切比雪夫 r 内) 他路/地标/门户/房屋门/地图边界(2 格带)，悬空路=0 */
+/** 连通档：路端点（折线首/末格）须贴(切比雪夫 r 内) 他路/地标/门户/房屋门/地图边界(3 格带)，悬空路=0 */
 export function connectivityCheck(
   w: number, h: number, roads: RoadLine[],
   landmarks: Array<{ x: number; y: number }>, portals: Array<{ x: number; y: number }>, r = 2,
