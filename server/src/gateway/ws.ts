@@ -20,7 +20,7 @@ import { WORLD_KEYS } from '../persistence/state.ts';
 import { doBuy, shopTable } from '../market/shop.ts';
 import { bfsPath, nearestReachable, blockedAt, blockedHouse, normXY } from '../navigation/grid.ts';
 import { navGridFromTables } from '../navigation/navgen.ts';
-import { applyRoads, type RoadLine } from '../navigation/roads.ts';
+import { applyRoads, roadOf, type RoadLine } from '../navigation/roads.ts';
 import { astarClearance, checkArrive, snapInteraction, planRoute } from '../navigation/hpath.ts';
 import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { cook, buildFacility } from '../world/cooking.ts';
@@ -916,12 +916,24 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                 send({ t: 'result', action, seq: msg.seq, ...(out as Record<string, unknown>) });
                 console.log(`[agent-move_to] ${nick} 任务结束: ${JSON.stringify(out)}`);
               });
+              // L3 市政指引（roads-landmarks §4）：路线主路名（roadOf 反查，取路径上占比最高路段）
+              let road: string | null = null;
+              if (nav) {
+                const rc = new Map<string, number>();
+                for (const [cx, cy] of path) {
+                  const rn = roadOf(nav, cx, cy);
+                  if (rn) rc.set(rn, (rc.get(rn) || 0) + 1);
+                }
+                let top = 0;
+                for (const [rn, n] of rc) if (n > top) { top = n; road = rn; }
+              }
               result = {
                 ok: true,
-                msg: `已开始移动：${path.length - 1} 步 / ${wps.length} 航点（客户端将按航点回报 arrive，偏差自动重规划）`,
+                msg: `已开始移动：${path.length - 1} 步 / ${wps.length} 航点${road ? `（沿「${road}」）` : ''}（客户端将按航点回报 arrive，偏差自动重规划）`,
                 waypoints: wps.map(({ cellI, ...w }) => w),
                 next: { index: 0, x: wps[0].x, y: wps[0].y },
                 segMs: app.navArriveTimeoutMs,
+                ...(road ? { road } : {}),
               };
               responseType = 'move_started';
               continue;

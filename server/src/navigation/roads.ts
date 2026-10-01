@@ -19,9 +19,14 @@ export const BRIDGE_COST = 1;   // 桥格：比水(2)快、比陆路(0.6)慢
 
 export interface ApplyRoadsResult { roadCells: number; bridgeCells: number; errors: string[]; }
 
-/** Bresenham 整段折线的格序列（含端点；重复格保留，由调用方去重） */
+/** Bresenham 整段折线的格序列（去重：相邻段共享端点只留一格；单点折线返回该点） */
 function bresenham(line: Array<[number, number]>): Array<[number, number]> {
   const out: Array<[number, number]> = [];
+  const push = (x: number, y: number) => {
+    const last = out[out.length - 1];
+    if (last && last[0] === x && last[1] === y) return; // 相邻段共享端点去重
+    out.push([x, y]);
+  };
   for (let s = 0; s < line.length - 1; s++) {
     let [x, y] = line[s];
     const [x1, y1] = line[s + 1];
@@ -29,14 +34,14 @@ function bresenham(line: Array<[number, number]>): Array<[number, number]> {
     const sx = x < x1 ? 1 : -1, sy = y < y1 ? 1 : -1;
     let err = dx + dy;
     for (;;) {
-      out.push([x, y]);
+      push(x, y);
       if (x === x1 && y === y1) break;
       const e2 = 2 * err;
       if (e2 >= dy) { err += dy; x += sx; }
       if (e2 <= dx) { err += dx; y += sy; }
     }
   }
-  out.push(line[line.length - 1]);
+  push(line[line.length - 1][0], line[line.length - 1][1]);
   return out;
 }
 

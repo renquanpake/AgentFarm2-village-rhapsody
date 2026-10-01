@@ -638,6 +638,7 @@
       try { if (window.__AF_BLOCK_BOXES__) startBlockWatch(); } catch (e) {}
       try { hideExtraSlots(); } catch (e) { console.warn('[AF] hideExtraSlots err:', e.message); }
       try { injectVillageMap(); } catch (e) { console.warn('[AF] injectVillageMap err:', e.message); }
+      try { injectMapLayerToggles(); } catch (e) { /* 图层开关注入失败不影响主流程 */ }
     }, 1000);
   }
 
@@ -1414,6 +1415,12 @@
         #af-hud-agent.on { background: var(--af-c-glass-moss); color: var(--af-c-success); border: 1px solid var(--af-c-moss); }
         #af-hud-agent.waiting { background: var(--af-c-glass-wood); color: var(--af-c-danger); border: 1px solid var(--af-c-wood-dark); }
         #af-hud-agent.off { background: var(--af-c-glass-panel); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
+      #af-map-layers { position: fixed; top: 190px; right: 10px; z-index: 99990; display: flex; gap: 4px; }
+      #af-map-layers button { cursor: pointer; background: var(--af-c-glass-panel); color: var(--af-c-text-dim);
+        border: 1px solid var(--af-c-panel); border-radius: 6px; padding: 3px 8px; font: 11px "Microsoft YaHei", sans-serif;
+        box-shadow: 0 2px 6px var(--af-c-black-40); }
+      #af-map-layers button.on { background: var(--af-c-glass-moss); color: var(--af-c-gold); border-color: var(--af-c-moss); }
+      #af-map-layers button:hover { background: var(--af-c-glass-solid); }
       #af-agent { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 420px; max-width: 92vw; display: none; flex-direction: column;
         background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
@@ -1878,10 +1885,11 @@
           mapFrameCache = sf;
           sprite.spriteFrame = sf;
         }
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        bg.width = cw; bg.height = ch;
-        mapImgDone = true;
-        // 异步刷新缓存（宅基地变化时更新，不阻塞当前显示）
+          sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+          bg.width = cw; bg.height = ch;
+          mapImgDone = true;
+          if (g.roads || g.landmarks) attachMapOverlays(village, g, cw, ch);
+          // 异步刷新缓存（宅基地变化时更新，不阻塞当前显示）
         if (!injectVillageMap._refreshing) {
           injectVillageMap._refreshing = true;
           fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token))
@@ -1949,7 +1957,115 @@
     sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
     bg.width = cw; bg.height = ch;
     mapImgDone = true;
+    if (g.roads || g.landmarks) attachMapOverlays(village, g, cw, ch);
     console.log('[AF] 村庄小地图底图已更新为扩展版 (' + g.W + 'x' + g.H + ')，原版区透明透出羊皮纸美术');
+  }
+
+  // ---------- L2 市政图层（roads-landmarks 规划书 §4）：小地图 路/地标 双覆盖层 + 独立显隐开关 ----------
+  // 路=浅色线（宽随路宽）、地标=按 type 的简笔图标（色盲安全：形状互异，不靠色相区分）；开关状态持久化
+  let mapLayerState = (function () {
+    try {
+      const s = JSON.parse(localStorage.getItem('af.map.layers') || 'null');
+      if (s && typeof s === 'object') return { roads: s.roads !== false, landmarks: s.landmarks !== false };
+    } catch (e) { /* 损坏状态回落默认 */ }
+    return { roads: true, landmarks: true };
+  })();
+  function paintMapOverlays(g, cw, ch) {
+    const sx = cw / g.W, sy = ch / g.H;
+    const roadsCv = document.createElement('canvas');
+    roadsCv.width = cw; roadsCv.height = ch;
+    const rc = roadsCv.getContext('2d');
+    rc.lineCap = 'round'; rc.lineJoin = 'round';
+    for (const r of (g.roads || [])) {
+      if (!Array.isArray(r.line) || r.line.length < 2) continue;
+      rc.strokeStyle = 'var(--af-c-gold)';
+      rc.lineWidth = Math.max(1, Math.round((r.width || 1) * sx * 0.75));
+      rc.beginPath();
+      for (let i = 0; i < r.line.length; i++) {
+        const px = (r.line[i][0] + 0.5) * sx, py = (r.line[i][1] + 0.5) * sy;
+        if (i) rc.lineTo(px, py); else rc.moveTo(px, py);
+      }
+      rc.stroke();
+    }
+    const lmCv = document.createElement('canvas');
+    lmCv.width = cw; lmCv.height = ch;
+    const lc = lmCv.getContext('2d');
+    const s = Math.max(2, Math.round(cw / 40)); // 图标半径
+    for (const L of (g.landmarks || [])) {
+      if (!Number.isFinite(L.x) || !Number.isFinite(L.y)) continue;
+      const px = (L.x + 0.5) * sx, py = (L.y + 0.5) * sy;
+      lc.fillStyle = 'var(--af-c-amber)';
+      lc.strokeStyle = 'var(--af-c-amber)';
+      lc.lineWidth = 1;
+      lc.beginPath();
+      switch (L.type) {
+        case 'monument': lc.moveTo(px, py - s); lc.lineTo(px + s, py + s * 0.8); lc.lineTo(px - s, py + s * 0.8); lc.closePath(); lc.fill(); break; // 三角
+        case 'building': lc.rect(px - s, py - s, s * 2, s * 2); lc.fill(); break; // 方
+        case 'bridge':
+          lc.beginPath(); lc.moveTo(px - s, py - s * 0.4); lc.lineTo(px + s, py - s * 0.4); lc.moveTo(px - s, py + s * 0.4); lc.lineTo(px + s, py + s * 0.4); lc.stroke(); break; // 双横杠
+        case 'tower': lc.moveTo(px, py - s); lc.lineTo(px + s, py); lc.lineTo(px, py + s); lc.lineTo(px - s, py); lc.closePath(); lc.fill(); break; // 菱形
+        case 'dock':
+          lc.beginPath(); lc.moveTo(px - s, py - s * 0.6); lc.lineTo(px + s, py - s * 0.6); lc.moveTo(px, py - s * 0.6); lc.lineTo(px, py + s); lc.stroke(); break; // T
+        case 'gate': lc.arc(px, py + s * 0.4, s, Math.PI, 0); lc.fill(); break; // 拱
+        case 'stall':
+          lc.beginPath(); for (let k = 0; k < 5; k++) { const a = -Math.PI / 2 + k * 2 * Math.PI / 5; const b = px + s * Math.cos(a), b2 = py + s * Math.sin(a); if (k) lc.lineTo(b, b2); else lc.moveTo(b, b2); } lc.closePath(); lc.fill(); break; // 五边
+        default: lc.arc(px, py, s, 0, Math.PI * 2); lc.fill(); // 圆（fountain/未分类）
+      }
+    }
+    return { roads: roadsCv, landmarks: lmCv };
+  }
+  function attachMapOverlays(village, g, cw, ch) {
+    const layers = paintMapOverlays(g, cw, ch);
+    for (const [name, key] of [['afMapRoads', 'roads'], ['afMapLandmarks', 'landmarks']]) {
+      let n = village.getChildByName(name);
+      if (!n) { n = new cc.Node(name); n.addComponent(cc.Sprite); village.addChild(n, 0); }
+      const tex = new cc.Texture2D();
+      tex.initWithElement(layers[key]);
+      tex.handleLoadedTexture();
+      const sf = new cc.SpriteFrame(tex);
+      sf.setRect(new cc.Rect(0, 0, cw, ch));
+      const sp = n.getComponent(cc.Sprite);
+      sp.spriteFrame = sf;
+      sp.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+      n.width = cw; n.height = ch;
+      n.active = mapLayerState[key];
+    }
+  }
+  function applyMapLayerState() {
+    const scene = cc.director && cc.director.getScene();
+    if (!scene) return;
+    let village = null;
+    scene.walk(n => { if (!village && n.name === 'village' && n.parent && n.parent.name === 'pnlContent') village = n; });
+    if (!village) return;
+    const r = village.getChildByName('afMapRoads');
+    if (r) r.active = mapLayerState.roads;
+    const l = village.getChildByName('afMapLandmarks');
+    if (l) l.active = mapLayerState.landmarks;
+  }
+  function injectMapLayerToggles() {
+    if (document.getElementById('af-map-layers')) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'af-map-layers';
+    wrap.title = '小地图图层显隐（设置持久化）';
+    const mk = (key, label) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.className = mapLayerState[key] ? 'on' : '';
+      const apply = function () {
+        mapLayerState[key] = !mapLayerState[key];
+        b.className = mapLayerState[key] ? 'on' : '';
+        try { localStorage.setItem('af.map.layers', JSON.stringify(mapLayerState)); } catch (e) { /* 存储不可用则仅本次生效 */ }
+        applyMapLayerState();
+      };
+      // R4.4：点击绑定统一走 AFUNI.on（三态）；AFUNI 缺失时静默降级（P3 隔离），不回落直接绑定
+      try { if (window.AFUNI && window.AFUNI.on) window.AFUNI.on(b, apply, { cls: false }); } catch (e) { /* 降级 */ }
+      return b;
+    };
+    wrap.appendChild(mk('roads', '路网'));
+    wrap.appendChild(mk('landmarks', '地标'));
+    document.body.appendChild(wrap);
+    applyMapLayerState();
   }
 
   // ---------- 玩家间社交 UI（点击对方角色：对话/送礼/好感/关系；📜 任务面板） ----------

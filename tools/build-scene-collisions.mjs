@@ -14,6 +14,7 @@ const NAV_DIR = join(ROOT, 'data', 'nav');
 
 const { buildNavGrid, validateAnchors } = await import(join(ROOT, 'server', 'src', 'navigation', 'navgen.ts'));
 const { applyRoads } = await import(join(ROOT, 'server', 'src', 'navigation', 'roads.ts'));
+const SW = await import(join(ROOT, 'tools', 'scene-walls.mjs'));
 
 function loadScene(name) {
   const p = join(MAPS, `${name}.json`);
@@ -22,31 +23,9 @@ function loadScene(name) {
 }
 
 function sceneGrids(scene, w, h) {
-  const layers = Array.isArray(scene.layers) ? scene.layers : [];
-  const getLayer = (n) => layers.find(l => l.name === n);
-  const n = w * h;
-  // collide 层（隐藏碰撞层）；缺省回退：任一不可见且含非零数据的 tilelayer
-  let collide = getLayer('collide');
-  if (!collide) collide = layers.find(l => l.type === 'tilelayer' && l.visible === false && l.data && l.data.some(v => v));
-  const blocked = new Array(n).fill(0);
-  if (collide?.data) for (let i = 0; i < n; i++) if (collide.data[i]) blocked[i] = 1;
-  // 退化防护（D6）：collide 层全满（100% 非零，如 migon 迷宫）视为渲染遮罩而非碰撞 -> 空网格
-  const ones = blocked.filter(v => v === 1).length;
-  if (ones === n) {
-    for (let i = 0; i < n; i++) blocked[i] = 0;
-    console.log(`[build-scene-collisions] collide 层全满（${n} 格），判定为遮罩 -> 开放网格`);
-  }
-  // never 层（绝对不可走，如危险区）并入 blocked
-  const never = layers.find(l => /never/i.test(l.name || '') && l.data);
-  if (never) for (let i = 0; i < n; i++) if (never.data[i]) blocked[i] = 1;
-  // 水层：名字含 "shui"（shuic/shuijingssss/shuitian...）
-  const water = new Array(n).fill(0);
-  for (const l of layers) {
-    if (l.type !== 'tilelayer' || !l.data) continue;
-    if (!/shui/.test(l.name || '')) continue;
-    for (let i = 0; i < n; i++) if (l.data[i]) water[i] = 1;
-  }
-  return { blocked, water };
+  // 碰撞/水层提取单一源（自审观察项①去重）：口径 = collide + never + 全满遮罩防护 + shui 水层
+  const { extractSceneWalls } = SW;
+  return extractSceneWalls(scene, w, h);
 }
 
 function check() {

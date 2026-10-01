@@ -7,6 +7,7 @@ import {
 } from '../world/farm.ts';
 import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
 import { favBetween, dmUnlockedList } from '../world/social.ts';
+import { municipalOf, municipalContext, villageNavOf } from '../navigation/municipal.ts';
 
 /** D2 区域级障碍：12 格窗口内连续水域/树丛 -> 区域名 + 格子范围 + 绕行原则（§4.2：不喂单树坐标清单给导航） */
 export function obstacleRegions(app: App, state: WorldState, gx: number, gy: number, radius = 12): Array<Record<string, unknown>> {
@@ -97,6 +98,16 @@ export function observeState(app: App, uid: string, username: string, nick: stri
   // D2 区域级障碍（水域/树丛：区域名 + 格子范围 + 绕行原则）
   const obstacles = obstacleRegions(app, state, gx, gy);
 
+  // L3 市政指引（roads-landmarks §4）：当前路名 + 最近地标方位（场景级地标；村景带路名反查）
+  const sceneId = apos.scene ?? (pd.sceneType as number | undefined) ?? 2;
+  const mu = municipalOf(app);
+  const landmarksHere = mu.landmarks.get(sceneId) || []; // 场景坐标空间各自独立，不回退村景
+  const munNav = sceneId === 2 ? villageNavOf(app) : null;
+  const mun = municipalContext(munNav, gx, gy, landmarksHere);
+  const municipal = (mun.onRoad || mun.nearest.length)
+    ? { onRoad: mun.onRoad, landmarks: mun.nearest, hint: mun.onRoad ? `你正沿「${mun.onRoad}」行走` : '按地标方位 move_to；路名会随路线摘要回报' }
+    : null;
+
   // 附近可犁地 / 已犁地块（3 格内）
   const tillableNear: Array<Record<string, unknown>> = [];
   const plotsNear: Array<Record<string, unknown>> = [];
@@ -162,6 +173,7 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     sprinklers: worldSprinklers(state).map(s => ({ gx: s.x, gy: s.y, level: s.level, range: SPRINKLER_RANGE[s.level ?? 1] })),
     waterNear: (() => { let n = false; for (let dy = -1; dy <= 1 && !n; dy++) for (let dx = -1; dx <= 1; dx++) if (waterAt(tables, gx + dx, gy + dy)) { n = true; break; } return n; })(),
     obstacles: obstacles.length ? { regions: obstacles, note: '障碍按区域提供，move_to 服务端自动绕行；无需逐格探路' } : null,
+    municipal,
     inbox: inboxArr.length
       ? { unread: inboxArr.length, last: { from: inboxArr[inboxArr.length - 1].from, text: inboxArr[inboxArr.length - 1].text } }
       : { unread: 0, last: null },

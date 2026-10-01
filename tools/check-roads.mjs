@@ -17,15 +17,15 @@ const ONLY_VILLAGE = process.argv.includes('--village');
 const { connectivityCheck, crossingCheck, dualSourceDiff } = await import(join(ROOT, 'server', 'src', 'navigation', 'roads.ts'));
 
 const load = (p, fb) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fb; } };
+const { loadSceneWalls, VILLAGE_OLD_RECT } = await import(join(ROOT, 'tools', 'scene-walls.mjs'));
 const roadsDoc = load(join(ROOT, 'data', 'roads.json'), {});
 const landmarksDoc = load(join(ROOT, 'data', 'landmarks.json'), {});
 const portalsDoc = load(join(ROOT, 'data', 'nav', 'portals.json'), {});
 const scenesDoc = load(join(ROOT, 'data', 'nav', 'scenes.json'), { scenes: [] });
-const MAPS = join(ROOT, 'server', 'public', 'client', 'maps');
 
 // 场景 id -> 状态（空碰撞判定）
 const statusOf = new Map(scenesDoc.scenes.map(s => [String(s.scene ?? s.name), s.status]));
-// 场景 id -> { blocked, water, w, h }（村景走 data/village-*，其余走 maps/<slug>.json collide+水层）
+// 场景 id -> { blocked, water, w, h }（村景走 data/village-*，其余走共享提取 scene-walls.mjs）
 function sceneWalls(sceneKey) {
   if (sceneKey === '2') {
     const col = load(join(ROOT, 'data', 'village-collision.json'), null);
@@ -36,22 +36,7 @@ function sceneWalls(sceneKey) {
   }
   const reg = scenesDoc.scenes.find(s => String(s.scene ?? s.name) === String(sceneKey));
   const slug = reg ? reg.name : sceneKey;
-  const map = load(join(MAPS, `${slug}.json`), null);
-  if (!map) return null;
-  const layers = Array.isArray(map.layers) ? map.layers : [];
-  const w = Number(map.width), h = Number(map.height);
-  let collide = layers.find(l => l.name === 'collide');
-  if (!collide) collide = layers.find(l => l.type === 'tilelayer' && l.visible === false && l.data && l.data.some(v => v));
-  const blocked = new Array(w * h).fill(0);
-  if (collide?.data) for (let i = 0; i < w * h; i++) if (collide.data[i]) blocked[i] = 1;
-  // 全满 collide = 遮罩 -> 开放网格（与 build-scene-collisions 一致）
-  if (blocked.filter(v => v === 1).length === w * h) blocked.fill(0);
-  const water = new Array(w * h).fill(0);
-  for (const l of layers) {
-    if (l.type !== 'tilelayer' || !l.data || !/shui/.test(l.name || '')) continue;
-    for (let i = 0; i < w * h; i++) if (l.data[i]) water[i] = 1;
-  }
-  return { w, h, blocked, water };
+  return loadSceneWalls(ROOT, slug);
 }
 
 let totalConn = 0, totalCross = 0, totalDual = 0;
@@ -91,8 +76,7 @@ for (const [sceneKey, entry] of Object.entries(roadsDoc)) {
       process.exit(1);
     }
     const shilu = load(shiluFile, { shilu: [] }).shilu;
-    const oldRect = { x0: 28, y0: 28, x1: 104, y1: 88 }; // 原版 77x61 居中 +28 老区
-    dual = dualSourceDiff(walls.w, walls.h, roads, shilu, walls.blocked, oldRect);
+    dual = dualSourceDiff(walls.w, walls.h, roads, shilu, walls.blocked, VILLAGE_OLD_RECT);
     totalDual += dual.length;
   }
 

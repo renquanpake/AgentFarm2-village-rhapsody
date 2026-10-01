@@ -19,6 +19,7 @@ import { calendarDay, currentGameDay } from '../world/calendar.ts';
 import { worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { courtyardRanking } from '../world/decor.ts';
 import { gameHourOf, npcDecision, villagePois } from '../world/schedule.ts';
+import { municipalOf } from '../navigation/municipal.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 void __dirname;
@@ -371,16 +372,21 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
-    // 地图网格（mod 生成扩展版小地图用）
+    // 地图网格（mod 生成扩展版小地图用）；L2 市政图层：roads/landmarks/signs（roads-landmarks 规划书 §4）
     if (u.pathname === '/af/mapgrid') {
       const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
       if (!a) { text(res, 401, 'bad token'); return; }
+      const mu = municipalOf(app);
+      const villageRoads = (mu.roads.get(2) || []).map(r => ({ id: r.id, name: r.name, width: r.width, line: r.line }));
       const g = app.tables.farm ? {
         W: app.tables.farm.waterW, H: app.tables.farm.waterH,
         water: app.tables.farm.water,
         blocked: app.tables.collision ? app.tables.collision.blocked : null,
         houses: ((app.tables.spawns && app.tables.spawns.houses) || []).map(h => ({ x: h.rect.x, y: h.rect.y, w: h.rect.w, h: h.rect.h, type: h.type })),
         LEFT: app.tables.farm.LEFT, TOP: app.tables.farm.TOP, origW: 77, origH: 61,
+        roads: villageRoads,
+        landmarks: mu.landmarks.get(2) || [],
+        signs: mu.signs.filter(s => s.scene === 2),
       } : null;
       json(res, 200, g);
       return;

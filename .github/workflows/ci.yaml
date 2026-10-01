@@ -61,11 +61,12 @@ jobs:
         run: node tools/hash-manifest.mjs --check
         working-directory: .
 
-      # 门 6：导航数据校验（B5 村景 + 27 场景 collide 层）+ 路线回放（M3/B6 已落地）
+      # 门 6：导航数据校验（B5 村景 + 27 场景 collide 层）+ 市政路网三档 + 路线回放（M3/B6 已落地）
       - name: 门6 导航校验
         run: |
           node tools/gen-nav.mjs --check
           node tools/build-scene-collisions.mjs --check
+          node tools/check-roads.mjs
           node tools/nav-replay.mjs --smoke
         working-directory: .
 
