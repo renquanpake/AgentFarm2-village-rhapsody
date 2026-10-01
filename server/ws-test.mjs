@@ -55,21 +55,33 @@ check('chat 广播', !!ch);
 const pl = await playersList();
 check('HTTP /af/players', Array.isArray(pl) && pl.length === 2, JSON.stringify(pl).slice(0, 100));
 
-// 7) 心跳保活：B 存活超过 3 个心跳周期（服务器 2s 间隔）后仍能收到广播（证明 ping/pong 保活未误杀活连接）
+// 7) talk：价目表 + persona 回退（agent 通道 act）
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const accs = JSON.parse(readFileSync(fileURLToPath(new URL('../data/accounts.json', import.meta.url)), 'utf8'));
+const agAcc = (Array.isArray(accs) ? accs : Object.values(accs)).find(a => a.agentToken);
+const AG = new WebSocket(WS_BASE + '/agent?token=' + encodeURIComponent(agAcc.agentToken));
+await onceOpen(AG);
+send(AG, { t: 'act', action: 'talk', npcId: 1, text: '你好' });
+const tk1 = await next(AG, m => m.t === 'result' && m.action === 'talk');
+check('talk 结果结构', !!tk1 && tk1.ok === true && 'priceList' in tk1 && 'dialogue' in tk1, JSON.stringify(tk1).slice(0, 200));
+AG.close();
+
+// 8) 心跳保活：B 存活超过 3 个心跳周期（服务器 2s 间隔）后仍能收到广播（证明 ping/pong 保活未误杀活连接）
 await sleep(6500);
 const hbProm = next(B, m => m.t === 'move' && m.uid === 'u_test_a' && m.x === 9);
 send(A, { t: 'move', scene: 0, x: 9, y: 0 });
 const hb = await hbProm;
 check('存活连接 3 个心跳周期后仍正常', !!hb);
 
-// 8) 死连接清理：A 粗暴断电（不发 close frame），等 2 轮心跳后被清理
+// 9) 死连接清理：A 粗暴断电（不发 close frame），等 2 轮心跳后被清理
 A.terminate();
 await sleep(6500);
 const pl2 = await playersList();
 const aGone = Array.isArray(pl2) && !pl2.some(p => p.uid === 'u_test_a');
 check('死连接被心跳清理', aGone, JSON.stringify(pl2).slice(0, 100));
 
-// 9) A 重连恢复
+// 10) A 重连恢复
 const A2 = new WebSocket(WS_BASE + '/ws');
 await onceOpen(A2);
 send(A2, { t: 'join', uid: 'u_test_a', nick: '甲', x: 0, y: 0 });

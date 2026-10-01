@@ -75,7 +75,8 @@ export interface ItemDef {
   param1?: number;
   [k: string]: unknown;
 }
-export interface NpcDef { id: number; name?: string; [k: string]: unknown; }
+export interface NpcPersona { identity?: string; tagline?: string; desc?: string; }
+export interface NpcDef { id: number; name?: string; persona?: NpcPersona; [k: string]: unknown; }
 export interface HouseDef {
   id: number;
   type?: string;

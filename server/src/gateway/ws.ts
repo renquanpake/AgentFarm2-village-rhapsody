@@ -1042,14 +1042,28 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const npc = app.tables.npcs.find(n => n.id === npcId);
             if (!npc) { result = { ok: false, msg: '没有这个 NPC（id 1-26）' }; continue; }
             const shop = shopOf(app)[npcId];
-            if (!shop || !shop.length) {
-              result = { ok: true, msg: `${npc.name}：我只是个村民，不卖东西。` };
+            const priceLines = !shop || !shop.length ? null
+              : shop.map(([itemId, price]) => {
+                  const it = app.tables.items.find(x => x.id === itemId);
+                  return `${it ? (it.name ?? '物品' + itemId) : '物品' + itemId}（id=${itemId}）${price} 金币/个`;
+                });
+            const pricePart = !priceLines ? `${npc.name}：我只是个村民，不卖东西。`
+              : `${npc.name}：我这里的货：${priceLines.join('，')}。报物品 id 和数量就能买。`;
+            const persona = npc.persona;
+            const fallback = persona ? persona.tagline : '嗯。';
+            if (persona && app.cognition?.llm) {
+              const day = currentGameDay(state, Date.now());
+              const tm = calendarDay(day);
+              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${tm.weather}${tm.festival ? ' 节日'+tm.festival : ''}`;
+              const userMsg = String(msg.text || '你好');
+              ;(async () => {
+                try {
+                  const reply = await app.cognition.llm(uid).chat(uid, system, userMsg, 'dialogue') ?? fallback;
+                  send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}` });
+                } catch { /* llm 不可用：已发价目表，对话降级 */ }
+              })();
             }
-            const lines = shop.map(([itemId, price]) => {
-              const it = app.tables.items.find(x => x.id === itemId);
-              return `${it ? (it.name ?? '物品' + itemId) : '物品' + itemId}（id=${itemId}）${price} 金币/个`;
-            });
-            result = { ok: true, msg: `${npc.name}：我这里的货：${lines.join('，')}。报物品 id 和数量就能买。` };
+            result = { ok: true, msg: pricePart, priceList: priceLines, dialogue: null };
           } else if (action === 'buy') {
             const itemId = Number(msg.itemId || msg.item);
             const count = Math.max(1, Number(msg.count || 1));
