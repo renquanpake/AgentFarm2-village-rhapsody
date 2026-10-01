@@ -126,6 +126,17 @@ type 枚举：`monument / building / bridge / fountain / tower / dock / gate / s
 
 **"注意考虑全部地图"的落实**：P1a 数据层一次覆盖 27 场景（roads/landmarks/signs 全量 schema + 逐场景条目），村景只是最先渲染的一张——后面每个卫星场景落地 = 只加渲染与碰撞提取，全图一致性由 schema 保证。
 
+### 5.1 执行状态（2026-10-01 批次 573d895）
+
+| 阶段 | 状态 | 落点 |
+|---|---|---|
+| P1a 数据层 | 已完工 | d027ba9（路网数据 + kind=4 + check-roads 三档 + nav-replay 基线） |
+| P1b 数据/功能层 | 已完工 | f95bec6（mapgrid roads/landmarks/signs + observe municipal L3 + move_to.road + 小地图双图层/开关） |
+| P1c 卫星碰撞源提取 | 已完工 | 573d895（scene-walls 语义层回退：fanzi/dik/huaiqiao/lieheng/barrir/bianyuan 阻挡 + shuitian/shanshui/wenquan 水层；shanding 山层经门户 BFS 排除；相交档全场景判死；ready-water-only 状态） |
+| P1d 生图 + 反射 | 已完工 | 573d895（manifest 301-311 v2 纯白底 + art-qa 71/71；municipal-decor.json 村景 18 件 + 客户端 injectMunicipalDecor/injectBuildingSigns；桥/塔/喷泉/栅栏门复用 222/227/214/224） |
+| P2 建筑功能层（排期项 7） | 已完工 | 573d895（buildings.json 7 建筑 C1 定稿 (48,43)-(57,51)；move_to near:建筑名跨场景；observe buildings 区域；letter + /af/letter + /af/buildings；经济钩子默认关待 M-B1） |
+| P3 +28 环 | 进行中 | 相机/边界 spike 已完成：原版 `updateCameraPos` 钳制用 `sceneSize=tiledMap.getMapSize()×tileSize`（index.e6d95.js），**钳制随 TMX 资产自动扩展、零相机代码改动**；剩余 = TMX 133→189 重烘（expand-village-map 管线泛化）+ 环建筑落位（307-310 B 覆盖件）+ 南环 3 水道/2 钓点 + 西环果农宅 id 9 + 全回归 |
+
 ## 6. 验收门
 
 | 层 | 门 |
