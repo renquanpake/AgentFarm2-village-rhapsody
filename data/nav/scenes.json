@@ -7,7 +7,9 @@
       "source": "maps/zhujuejia.json(collide 层)",
       "w": 29,
       "h": 29,
-      "notes": "家门口"
+      "notes": "家门口",
+      "anchors": 13,
+      "unreachable": []
     },
     {
       "scene": 2,

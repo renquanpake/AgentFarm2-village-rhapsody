@@ -17,6 +17,7 @@ const CHECK = process.argv.includes('--check');
 const RENDER = process.argv.includes('--render');
 
 const navgen = await import(`${ROOT}/server/src/navigation/navgen.ts`);
+const roadsMod = await import(`${ROOT}/server/src/navigation/roads.ts`);
 const { encodePng } = await import(`${ROOT}/tools/render-png.mjs`);
 
 function loadJson(p, fb) { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fb; } }
@@ -40,6 +41,13 @@ async function genVillage() {
   const farm = loadJson(`${ROOT}/data/village-farm.json`, null);
   const water = farm && farm.waterW === col.width && farm.waterH === col.height ? farm.water : undefined;
   const nav = navgen.buildNavGrid(2, col.blocked, col.width, col.height, water);
+  // 市政路网（roads-landmarks v2）：kind=4 路格 + clearance 特判 + roadOf 反查索引
+  const roadsDoc = loadJson(`${ROOT}/data/roads.json`, {});
+  const villageRoads = (roadsDoc['2'] || { roads: [] }).roads;
+  if (villageRoads.length) {
+    const res = roadsMod.applyRoads(nav, villageRoads);
+    console.log(`[gen-nav] village roads: ${res.roadCells} 路格（桥 ${res.bridgeCells}）${res.errors.length ? ' ERRORS: ' + res.errors.join('; ') : ''}`);
+  }
 
   // anchors：房屋门（spawn-points）+ 矿点（mine-spots）—— 像素坐标
   const spawns = loadJson(`${ROOT}/data/spawn-points.json`, { houses: [] });
@@ -52,14 +60,9 @@ async function genVillage() {
   }
   const rep = navgen.validateAnchors(nav, anchors);
 
-  // 门户：村景内门（同场景 POI）；跨场景 passage 源数据缺失 -> 暂无跨场景边
-  const portals = navgen.extractPortals(nav, (spawns.houses || [])
-    .filter(h => h.door)
-    .map(h => ({ toScene: 2, x: h.door.x, y: h.door.y, passage: `house-${h.id}` })));
-
   if (!CHECK) {
     writeJson(`${NAV_DIR}/nav-2.json`, nav);
-    writeJson(`${NAV_DIR}/portals.json`, { village: portals, note: '跨场景 passage 门位待客户端源数据；当前仅村景内门 POI' });
+    // 全量门户图 data/nav/portals.json 由 build-scene-portals 权威生成（1..14/101..113），gen-nav 不再覆盖
     SCENES.scenes[0].status = rep.ok ? 'ready' : 'ready-with-warnings';
     SCENES.scenes[0].anchors = anchors.length;
     SCENES.scenes[0].unreachable = rep.unreachable;

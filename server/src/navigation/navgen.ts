@@ -3,7 +3,7 @@
 // 验收：anchors（出生点/房屋门/矿点）可达性校验。纯函数，无 IO（gen-nav.mjs 做文件层）。
 import type { Tables } from '../world/tables.ts';
 
-export type NavKind = 0 | 1 | 2 | 3; // 0 空地 1 障碍 2 水面（可走，高 cost） 3 树丛（不可走）
+export type NavKind = 0 | 1 | 2 | 3 | 4; // 0 空地 1 障碍 2 水面（可走高cost/阻挡水） 3 树丛（不可走） 4 路/桥（市政路格，applyRoads 写入）
 
 export interface NavGrid {
   scene: number;
@@ -11,8 +11,10 @@ export interface NavGrid {
   height: number;
   blocked: number[];   // 行主序 0/1
   kind: number[];      // 行主序 NavKind
-  cost: number[];      // 行主序 移动成本（空地 1 / 水 2 / 障碍不可走）
+  cost: number[];      // 行主序 移动成本（空地 1 / 水 2 / 路 0.6 / 桥 1 / 障碍不可走 -1）
   clearance: number[]; // 行主序 距最近障碍的切比雪夫距离（障碍格 0）
+  roadIdx?: number[];  // 行主序 路格反查（applyRoads 写入；-1=非路格）
+  roadNames?: string[]; // roadIdx 下标 -> 路名
 }
 
 export interface Portal {

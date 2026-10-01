@@ -49,6 +49,30 @@ class MinHeap {
   private swap(i: number, j: number): void { const t = this.a[i]; this.a[i] = this.a[j]; this.a[j] = t; }
 }
 
+/** 单格塑形步代价（A* 与 pathCost 共用，保证回放成本比口径一致）：
+ *  路格（kind=4）特判：跳过 clearance 项，直接返回 cost（陆路 0.6 / 桥 1）；
+ *  其余格：wallHug -> 贴墙（clearance 低得分）；默认 -> 避墙（clearance 高得分）。 */
+export function cellShape(nav: NavGrid, i: number, wallHug: boolean, clearMax: number): number {
+  const base = nav.cost[i];
+  if (nav.kind[i] === 4) return base; // 路格/桥格：塑形项置 0（v2 定稿）
+  const c = nav.clearance[i];
+  return wallHug ? base + (clearMax - c) * 0.15 : base + c * 0.15;
+}
+
+/** 路径总塑形成本（沿 path 逐格 cellShape，对角步 x1.414）：回放成本比容差 / 路吸引度验证用 */
+export function pathCost(nav: NavGrid, path: Array<[number, number]>, wallHug = false): number {
+  if (path.length < 2) return 0;
+  const clearMax = Math.max(1, ...nav.clearance);
+  let g = 0;
+  for (let k = 1; k < path.length; k++) {
+    const [px, py] = path[k - 1];
+    const [cx, cy] = path[k];
+    const diag = Math.abs(cx - px) === 1 && Math.abs(cy - py) === 1;
+    g += cellShape(nav, cy * nav.width + cx, wallHug, clearMax) * (diag ? 1.414 : 1);
+  }
+  return g;
+}
+
 /** 场景内 A*（8 向 + 对角不切角），cost 含 clearance 塑形 */
 export function astarClearance(nav: NavGrid, sx: number, sy: number, tx: number, ty: number, opts: { wallHug?: boolean } = {}): Array<[number, number]> | null {
   const w = nav.width, h = nav.height;
@@ -61,11 +85,10 @@ export function astarClearance(nav: NavGrid, sx: number, sy: number, tx: number,
   if (!walk(startI) || !walk(goalI)) return null;
 
   // 塑形代价：wallHug -> 贴墙（clearance 低得分）；默认 -> 避墙（clearance 高得分）
-  const shape = (i: number): number => {
-    const base = nav.cost[i];
-    const c = nav.clearance[i];
-    return wallHug ? base + (clearMax - c) * 0.15 : base + c * 0.15;
-  };
+  // 路格（kind=4）特判：跳过 clearance 塑形项（定稿 v2：开阔地 clearance*0.15 可达 3.0+，
+  // 会淹没 cost 0.6 vs 1 的 0.4 差；特判后路格步代价恒定 0.6，路成为强吸引通道）。
+  // 启发式切比雪夫对 0.6 路格高估 -> wA* 有界次优（界 ≤1.67），回放容差按成本比（nav-replay g 比 <1.1）。
+  const shape = (i: number): number => cellShape(nav, i, wallHug, clearMax);
   const hfn = (x: number, y: number): number => Math.max(Math.abs(x - tx), Math.abs(y - ty)); // 切比雪夫一致启发
 
   const g = new Float64Array(N).fill(Infinity);

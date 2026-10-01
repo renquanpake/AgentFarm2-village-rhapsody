@@ -20,6 +20,7 @@ import { WORLD_KEYS } from '../persistence/state.ts';
 import { doBuy, shopTable } from '../market/shop.ts';
 import { bfsPath, nearestReachable, blockedAt, blockedHouse, normXY } from '../navigation/grid.ts';
 import { navGridFromTables } from '../navigation/navgen.ts';
+import { applyRoads, type RoadLine } from '../navigation/roads.ts';
 import { astarClearance, checkArrive, snapInteraction, planRoute } from '../navigation/hpath.ts';
 import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { cook, buildFacility } from '../world/cooking.ts';
@@ -40,7 +41,7 @@ export function shopOf(app: App): Record<number, Array<[number, number]>> {
 // ---------- 工具 ----------
 
 // B6/D6 导航：村景 = 运行时由 tables 构建（含水层）；其余场景 = data/nav/nav-<map>.json（build-scene-collisions 生成）
-let navCache: { tables: App['tables']; nav: ReturnType<typeof navGridFromTables> } | null = null;
+let navCache: { tables: App['tables']; roadsMtime: number; nav: ReturnType<typeof navGridFromTables> } | null = null;
 let sceneNavFileCache: { file: string; mtimeMs: number; nav: ReturnType<typeof navGridFromTables> | null } | null = null;
 let sceneNameCache: { file: string; mtimeMs: number; byScene: Map<number, string> } | null = null;
 let portalsCache: { file: string; mtimeMs: number; portals: import('../navigation/navgen.ts').Portal[] } | null = null;
@@ -50,11 +51,23 @@ function readNavJson(file: string): { mtimeMs: number; data: unknown | null } {
     return { mtimeMs: st.mtimeMs, data: JSON.parse(readFileSync(file, 'utf8')) };
   } catch { return { mtimeMs: 0, data: null }; }
 }
-/** sceneType -> 场景 nav-grid（village=运行时构建；其余读 data/nav/nav-<map>.json；无数据 null） */
+/** 村景市政路网（data/roads.json "2"）：mtime 缓存，applyRoads 写 kind=4 路格 */
+function villageRoads(app: App): { roads: RoadLine[]; mtimeMs: number } {
+  const file = path.join(app.dataDir, 'roads.json');
+  const r = readNavJson(file);
+  const doc = r.data as { '2'?: { roads?: RoadLine[] } } | null;
+  return { roads: doc?.['2']?.roads ?? [], mtimeMs: r.mtimeMs };
+}
+/** sceneType -> 场景 nav-grid（village=运行时构建+市政路；其余读 data/nav/nav-<map>.json；无数据 null） */
 function navOf(app: App, scene?: number): ReturnType<typeof navGridFromTables> | null {
   if (scene === undefined || scene === 2) {
-    if (!navCache || navCache.tables !== app.tables) navCache = { tables: app.tables, nav: navGridFromTables(app.tables) };
-    return navCache.nav;
+    const vr = villageRoads(app);
+    if (!navCache || navCache.tables !== app.tables || navCache.roadsMtime !== vr.mtimeMs) {
+      const nav = navGridFromTables(app.tables);
+      if (vr.roads.length) applyRoads(nav, vr.roads);
+      navCache = { tables: app.tables, roadsMtime: vr.mtimeMs, nav };
+    }
+      return navCache.nav;
   }
   const navDir = path.join(app.dataDir, 'nav');
   const regFile = path.join(navDir, 'scenes.json');

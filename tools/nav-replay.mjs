@@ -4,7 +4,9 @@
 // --drift：偏差重规划模拟（D1 闭环离线等价）—— 每航点 30% 概率偏 2 格，偏差超限即从实际位置重规划
 //   （镜像服务端 runNavTask 的确认/重规划/3 次终止逻辑），验证「同环 10 次零漂移」收敛性。
 // 用法：node tools/nav-replay.mjs [--smoke] [--drift]   （--smoke 每路线 2 次；CI 每夜 10 次）
-import { readFileSync } from 'node:fs';
+// 成本比容差（roads-landmarks v2）：理想回放每路线记录 g（pathCost）；基线 data/nav/replay-baseline.json 存在时
+//   要求 g_new <= g_base * 1.1（wA* 有界次优下允许 ≤10% 成本漂移，路径序列允许漂移）；无基线则写入并记过。
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,14 +14,24 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = `${__dirname}/..`;
 const REPEATS = process.argv.includes('--smoke') ? 2 : 10;
 const DRIFT = process.argv.includes('--drift');
+const G_RATIO_TOL = 1.1;
 
-const { astarClearance, checkArrive } = await import(`${ROOT}/server/src/navigation/hpath.ts`);
+const { astarClearance, checkArrive, pathCost } = await import(`${ROOT}/server/src/navigation/hpath.ts`);
 const { buildNavGrid, snapToWalkable } = await import(`${ROOT}/server/src/navigation/navgen.ts`);
+const { applyRoads } = await import(`${ROOT}/server/src/navigation/roads.ts`);
 
 const col = JSON.parse(readFileSync(`${ROOT}/data/village-collision.json`, 'utf8'));
 const farm = JSON.parse(readFileSync(`${ROOT}/data/village-farm.json`, 'utf8'));
 const water = farm.waterW === col.width && farm.waterH === col.height ? farm.water : undefined;
 const nav = buildNavGrid(2, col.blocked, col.width, col.height, water);
+// 市政路（kind=4 + clearance 特判）：回放口径与运行时一致
+const roadsDoc = JSON.parse(readFileSync(`${ROOT}/data/roads.json`, 'utf8'));
+const villageRoads = (roadsDoc['2'] || { roads: [] }).roads;
+if (villageRoads.length) {
+  const res = applyRoads(nav, villageRoads);
+  // 村景老区 3 格房叠广场（shilu 压原房层）为已知豁免（双源按可走口径），仅告警不判死；相交判死归 check-roads
+  if (res.errors.length) console.warn(`[nav-replay] 路数据告警 ${res.errors.length}（${res.errors[0]}…）：已知房叠/待 P1c 场景，回放继续`);
+}
 const spawns = JSON.parse(readFileSync(`${ROOT}/data/spawn-points.json`, 'utf8'));
 const mines = JSON.parse(readFileSync(`${ROOT}/data/mine-spots.json`, 'utf8'));
 
@@ -40,7 +52,7 @@ if (!targets.length) { console.error('无可用 POI'); process.exit(1); }
 // LCG（确定性：同 seed 同扰动序列）
 function lcg(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0x100000000; }; }
 
-/** 基础回放：理想逐航点推进（实际位置=航点本身） */
+/** 基础回放：理想逐航点推进（实际位置=航点本身）；返回含 cost（成本比容差基准） */
 function idealReplay(fromCell, toCell) {
   const path = astarClearance(nav, fromCell[0], fromCell[1], toCell[0], toCell[1]);
   if (!path) return { ok: false, why: '不可达' };
@@ -50,7 +62,8 @@ function idealReplay(fromCell, toCell) {
   for (const wp of wps) if (!checkArrive(wp, { scene: 2, x: wp.x, y: wp.y }, 150)) return { ok: false, why: '航点校验' };
   const last = wps[wps.length - 1];
   const within = Math.max(Math.abs(last.x - toCell[0] * 100 - 50), Math.abs(last.y - toCell[1] * 100 - 50)) <= 150;
-  return within ? { ok: true, steps: path.length - 1, wps: wps.length } : { ok: false, why: '终点偏差' };
+  if (!within) return { ok: false, why: '终点偏差' };
+  return { ok: true, steps: path.length - 1, wps: wps.length, cost: pathCost(nav, path) };
 }
 
 /** D1 闭环模拟：每航点按 rng 概率偏 2 格（执行误差），偏差超限 -> 从实际位置重规划；连续 3 次偏差超限终止（镜像服务端 runNavTask） */
@@ -100,6 +113,11 @@ function driftReplay(fromCell, toCell, seed) {
 }
 
 let pass = 0, fail = 0;
+// 成本比基线（roads-landmarks v2）：data/nav/replay-baseline.json
+const BASELINE_FILE = `${ROOT}/data/nav/replay-baseline.json`;
+let BASELINE = {};
+try { BASELINE = JSON.parse(readFileSync(BASELINE_FILE, 'utf8')); } catch { BASELINE = {}; }
+const costSeen = {};
 for (const [sName, s] of starts.map(st => [st.name, st])) {
   const sc = snapToWalkable(nav, s.x, s.y);
   if (!sc) { fail++; console.log(`  [FAIL] ${sName} 起点不可走`); continue; }
@@ -117,11 +135,34 @@ for (const [sName, s] of starts.map(st => [st.name, st])) {
         }
       } else {
         const p = idealReplay(sc, g);
-        if (p.ok) { pass++; console.log(`  [OK] ${sName}->${name} #${r + 1}（${p.steps} 步 / ${p.wps} 航点）`); }
-        else { fail++; console.log(`  [FAIL] ${sName}->${name} #${r + 1}（${p.why}）`); }
+        // 成本比容差：与基线路由成本比（g 比 <= G_RATIO_TOL），无基线则记录
+        let ratioNote = '';
+        if (p.ok && p.cost !== undefined) {
+          const key = `${sName}->${name}`;
+          const base = BASELINE[key];
+          if (base !== undefined && p.cost > base * G_RATIO_TOL + 1e-9) {
+            fail++;
+            console.log(`  [FAIL] ${key} #${r + 1} 成本漂移：g=${p.cost.toFixed(2)} > 基线 ${base.toFixed(2)} x ${G_RATIO_TOL}`);
+            continue;
+          } else if (base !== undefined && r === 0) {
+            ratioNote = `（g 比 ${(p.cost / base).toFixed(3)} ≤ ${G_RATIO_TOL}）`;
+          }
+        }
+        if (p.ok) {
+          pass++;
+          if (p.cost !== undefined) costSeen[`${sName}->${name}`] = p.cost;
+          console.log(`  [OK] ${sName}->${name} #${r + 1}（${p.steps} 步 / ${p.wps} 航点）${ratioNote}`);
+        } else {
+          fail++; console.log(`  [FAIL] ${sName}->${name} #${r + 1}（${p.why}）`);
+        }
       }
     }
   }
+}
+// 无基线则记录（成本比容差基准）：仅当本次跑理想回放且基线原为空
+if (!DRIFT && Object.keys(BASELINE).length === 0 && Object.keys(costSeen).length) {
+  writeFileSync(BASELINE_FILE, JSON.stringify(costSeen, null, 1), 'utf8');
+  console.log(`[nav-replay] 成本比基线已记录 -> ${BASELINE_FILE}（${Object.keys(costSeen).length} 路线；后续运行 g 比须 ≤ ${G_RATIO_TOL}）`);
 }
 console.log(`nav-replay: ${pass} pass / ${fail} fail（${REPEATS} 次 x ${starts.length} 起点 x ${targets.length} 路线${DRIFT ? '，drift 模式' : ''}）`);
 if (fail > 0) process.exit(1);

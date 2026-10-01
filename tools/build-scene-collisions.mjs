@@ -13,6 +13,7 @@ const MAPS = join(ROOT, 'server', 'public', 'client', 'maps');
 const NAV_DIR = join(ROOT, 'data', 'nav');
 
 const { buildNavGrid, validateAnchors } = await import(join(ROOT, 'server', 'src', 'navigation', 'navgen.ts'));
+const { applyRoads } = await import(join(ROOT, 'server', 'src', 'navigation', 'roads.ts'));
 
 function loadScene(name) {
   const p = join(MAPS, `${name}.json`);
@@ -106,6 +107,18 @@ function main() {
     else registry.scenes.push({ scene: slug, name: slug, status, source: `maps/${slug}.json(collide 层)`, w, h });
   }
   registry.note = '27 场景注册：' + registry.scenes.length + ' 场景由 maps/*.json collide 层生成（sceneType 数字待客户端枚举确认）；跨场景 passage 门位待客户端 PassageCollider 源数据。';
+  // 市政路网（roads-landmarks v2）：卫星场景折线写 kind=4；穿阻挡仅告警（相交档随逐场景碰撞提取启用）
+  const roadsDoc = JSON.parse(readFileSync(join(ROOT, 'data', 'roads.json'), 'utf8'));
+  const slugToScene = new Map(registry.scenes.map(s => [s.name, s.scene]));
+  for (const s of summary) {
+    const sid = slugToScene.get(s.slug);
+    const roads = sid !== undefined ? ((roadsDoc[String(sid)] || { roads: [] }).roads || []) : [];
+    if (!roads.length) continue;
+    const nav = JSON.parse(readFileSync(join(NAV_DIR, `nav-${s.slug}.json`), 'utf8'));
+    const res = applyRoads(nav, roads);
+    writeFileSync(join(NAV_DIR, `nav-${s.slug}.json`), JSON.stringify(nav));
+    console.log(`[roads] ${s.slug}: ${res.roadCells} 路格${res.errors.length ? ' ⚠ 相交待办: ' + res.errors.join('; ') : ''}`);
+  }
   writeFileSync(join(NAV_DIR, 'scenes.json'), JSON.stringify(registry, null, 2));
     for (const s of summary) console.log(`[build-scene] ${s.slug}: ${s.w}x${s.h} blocked=${s.blocked} water=${s.water} ${s.status}`);
   console.log(`[build-scene] 完成 ${summary.length} 场景；empty-collide=${summary.filter(s=>s.status==='ready-empty-collide').length}（需人工核验）`);

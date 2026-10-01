@@ -1,0 +1,85 @@
+{
+  "note": "地标数据层（roads-landmarks 规划书 §3 定稿 v2）。键=场景 id；值=地标数组（x/y=格坐标）；顶层 signs=世界内指路牌（L1，文字运行时渲染、图不带字）。type 枚举：monument/building/bridge/fountain/tower/dock/gate/stall。与 trade-hall spec 合并：/af/mapgrid 地标字段统一收敛本文件（trade-hall 作为 trade-hall id 之一）。卫星坐标为骨架值，P1c 碰撞源提取批产出逐场景补齐（desc 标注）。",
+  "2": [
+    { "id": "monument", "name": "村纪念碑", "type": "monument", "x": 68, "y": 78, "desc": "广场正中石碑+村徽；铭文运行时渲染：交易区→ / 河→东 / 后山→西（village 全量 P1b 落位定稿）" },
+    { "id": "trade-hall", "name": "交易大厅", "type": "building", "x": 68, "y": 86, "desc": "集市交易场所；P2 建筑坐标以 trade-hall spec C1 拍板为准（老区中央空房块）" },
+    { "id": "bank", "name": "银行", "type": "building", "x": 72, "y": 83, "desc": "存取与计息（经济参数冻结至 M-B1 影子窗结束）；P2 落位定稿" },
+    { "id": "post", "name": "邮局", "type": "building", "x": 74, "y": 81, "desc": "信函/公示投递；P2 落位定稿" },
+    { "id": "stall", "name": "驿站·公告亭", "type": "stall", "x": 74, "y": 83, "desc": "广场东南角告示板：A9 日报/告示的物理载体" },
+    { "id": "mile-n", "name": "北路口里程碑", "type": "monument", "x": 66, "y": 25, "desc": "矮石柱（5 路口中的 4 处，广场口由纪念碑承担）" },
+    { "id": "mile-s", "name": "南路口里程碑", "type": "monument", "x": 66, "y": 90, "desc": "矮石柱" },
+    { "id": "mile-w", "name": "西路口里程碑", "type": "monument", "x": 26, "y": 76, "desc": "矮石柱" },
+    { "id": "mile-e", "name": "东路口里程碑", "type": "monument", "x": 105, "y": 76, "desc": "矮石柱" },
+    { "id": "dock", "name": "南环渡口", "type": "dock", "x": 68, "y": 114, "desc": "河湾西岸木码头+系船桩；P2 生图件" },
+    { "id": "fishing-1", "name": "钓点·西", "type": "stall", "x": 26, "y": 58, "desc": "池塘西岸（钓/浴）" },
+    { "id": "fishing-2", "name": "钓点·东", "type": "stall", "x": 39, "y": 67, "desc": "池塘南东角" }
+  ],
+  "1": [
+    { "id": "player-house-gate", "name": "主角家门楼", "type": "gate", "x": 15, "y": 16, "desc": "P1c 提取定稿" }
+  ],
+  "3": [
+    { "id": "stone-bridge", "name": "石桥", "type": "bridge", "x": 18, "y": 25, "desc": "河边既有视觉焦点（骨架值，河面在东侧阻挡区）；P1c 提取定稿" }
+  ],
+  "4": [
+    { "id": "water-wheel", "name": "水车", "type": "tower", "x": 26, "y": 11, "desc": "稻田水车；P1c 提取定稿" }
+  ],
+  "6": [
+    { "id": "hot-spring", "name": "泉眼亭", "type": "fountain", "x": 20, "y": 17, "desc": "温泉泉眼；P1c 提取定稿" }
+  ],
+  "7": [
+    { "id": "dragon-gate", "name": "龙柱门楼", "type": "gate", "x": 17, "y": 18, "desc": "龙哥家视觉焦点；P1c 提取定稿" }
+  ],
+  "8": [
+    { "id": "landing", "name": "停机坪", "type": "monument", "x": 14, "y": 9, "desc": "飞机场停机坪；P1c 提取定稿" }
+  ],
+  "9": [
+    { "id": "ranch-stall", "name": "牲口棚", "type": "building", "x": 16, "y": 34, "desc": "宽南牧园棚舍；P1c 提取定稿" }
+  ],
+  "10": [
+    { "id": "trail-mark", "name": "后山道里程碑", "type": "monument", "x": 14, "y": 20, "desc": "登山步道里程碑；P1c 提取定稿" }
+  ],
+  "11": [
+    { "id": "cable-bridge", "name": "吊桥", "type": "bridge", "x": 19, "y": 17, "desc": "峡谷吊桥；P1c 提取定稿" }
+  ],
+  "12": [
+    { "id": "view-deck", "name": "观景台", "type": "tower", "x": 19, "y": 22, "desc": "山顶观景台；P1c 提取定稿" }
+  ],
+  "13": [
+    { "id": "ancient-tree", "name": "古木", "type": "monument", "x": 26, "y": 32, "desc": "密林视觉焦点；P1c 提取定稿" }
+  ],
+  "14": [
+    { "id": "valley-stream", "name": "峡溪", "type": "fountain", "x": 19, "y": 17, "desc": "峡谷溪流；P1c 提取定稿" }
+  ],
+  "signs": [
+    { "scene": 2, "x": 46, "y": 84, "landmark": "monument", "lines": ["广场→北 30", "渡口→南 30"] },
+    { "scene": 3, "x": 1, "y": 25, "lines": ["回村→西", "石桥→东 20"] },
+    { "scene": 4, "x": 27, "y": 19, "lines": ["回村→东", "水车→南 8"] },
+    { "scene": 6, "x": 38, "y": 14, "lines": ["回村→东", "泉眼→西 18"] },
+    { "scene": 7, "x": 33, "y": 14, "lines": ["回村→东", "后山道→西 32"] },
+    { "scene": 8, "x": 15, "y": 1, "lines": ["停机坪→南 8", "后山道→北"] },
+    { "scene": 9, "x": 1, "y": 8, "lines": ["飞机场→西", "牲口棚→东 15"] },
+    { "scene": 10, "x": 27, "y": 13, "lines": ["龙哥家→东", "矿口→南 24"] },
+    { "scene": 11, "x": 1, "y": 9, "lines": ["回山顶→西", "吊桥→东 18"] },
+    { "scene": 12, "x": 19, "y": 1, "lines": ["牧园→北 63", "观景台→南 21"] },
+    { "scene": 13, "x": 1, "y": 32, "lines": ["吊桥→西 18", "缆车→北 30"] },
+    { "scene": 14, "x": 31, "y": 32, "lines": ["回村→缆车", "峡溪→西 11"] },
+    { "scene": 2, "x": 68, "y": 20, "landmark": "mile-n", "lines": ["稻田→北 8", "温泉→西北 20"] },
+    { "scene": 2, "x": 68, "y": 114, "landmark": "dock", "lines": ["渡口→此", "钓点·东→西 40"] },
+    { "scene": 2, "x": 27, "y": 76, "landmark": "mile-w", "lines": ["寡妇家→东北 10", "木匠家→北 44"] },
+    { "scene": 2, "x": 105, "y": 76, "landmark": "mile-e", "lines": ["河边→南 4", "屠夫家→北 38"] },
+    { "scene": 2, "x": 68, "y": 78, "landmark": "monument", "lines": ["交易区→", "河→东", "后山→西"] },
+    { "scene": 101, "x": 8, "y": 2, "lines": ["主角家"] },
+    { "scene": 102, "x": 6, "y": 3, "lines": ["寡妇家"] },
+    { "scene": 103, "x": 5, "y": 2, "lines": ["家石伯家"] },
+    { "scene": 104, "x": 4, "y": 3, "lines": ["树根家"] },
+    { "scene": 105, "x": 3, "y": 3, "lines": ["小卖部"] },
+    { "scene": 106, "x": 5, "y": 3, "lines": ["村长家"] },
+    { "scene": 107, "x": 2, "y": 3, "lines": ["村长家二"] },
+    { "scene": 108, "x": 4, "y": 4, "lines": ["木匠家"] },
+    { "scene": 109, "x": 2, "y": 3, "lines": ["老太太家"] },
+    { "scene": 110, "x": 5, "y": 2, "lines": ["屠夫家"] },
+    { "scene": 111, "x": 35, "y": 2, "lines": ["迷宫"] },
+    { "scene": 112, "x": 3, "y": 2, "lines": ["菲菲家"] },
+    { "scene": 113, "x": 5, "y": 3, "lines": ["诊所"] }
+  ]
+}

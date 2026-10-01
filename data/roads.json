@@ -1,0 +1,80 @@
+{
+  "note": "市政路网数据层（roads-landmarks 规划书 §2 定稿 v2）。键=场景 id（村景=2，卫星=数字 sceneType；室内 101-113 不设路；daditu 非行走场景不设路）。line=格坐标折线（行主序，y 向下），width=路宽格（膨胀半径：奇宽对称、偶宽向下偏）；bridge=true 才允许穿水（桥 cost 1）；links=交叉口语义。村景 25 段 shilu 宽1折线 = data/village-shilu.json 81 格逐行精确复刻（tools/build-shilu.mjs 产出，双源一致性档 diff 0；被原房层压住的 3 格广场中心按路格永不碰撞跳过）；环内新市政路（大街/主街/河堤路/路口）在老区外，负区段（+28 环，design.md P3）越界建格自动裁剪。",
+  "2": {
+    "roads": [
+      { "id": "shilu-y25x37", "name": "门垫·树根家", "width": 1, "line": [[37, 25], [38, 25]] },
+      { "id": "shilu-y26x37", "name": "门垫·树根家", "width": 1, "line": [[37, 26], [38, 26]] },
+      { "id": "shilu-y26x74", "name": "门垫·小卖部", "width": 1, "line": [[74, 26], [75, 26]] },
+      { "id": "shilu-y27x74", "name": "门垫·小卖部", "width": 1, "line": [[74, 27], [75, 27]] },
+      { "id": "shilu-y30x105", "name": "门垫·屠夫家", "width": 1, "line": [[105, 30], [106, 30]] },
+      { "id": "shilu-y31x105", "name": "门垫·屠夫家", "width": 1, "line": [[105, 31], [106, 31]] },
+      { "id": "shilu-y42x26", "name": "门垫·家石伯西", "width": 1, "line": [[26, 42], [27, 42]] },
+      { "id": "shilu-y43x26", "name": "门垫·家石伯西", "width": 1, "line": [[26, 43], [27, 43]] },
+      { "id": "shilu-y58x106", "name": "门垫·家石伯东", "width": 1, "line": [[106, 58], [107, 58]] },
+      { "id": "shilu-y59x106", "name": "门垫·家石伯东", "width": 1, "line": [[106, 59], [107, 59]] },
+      { "id": "shilu-y73x67", "name": "广场·北支", "width": 1, "line": [[67, 73], [69, 73]] },
+      { "id": "shilu-y74x67", "name": "广场·北支", "width": 1, "line": [[67, 74], [69, 74]] },
+      { "id": "shilu-y75x67", "name": "广场·北支", "width": 1, "line": [[67, 75], [69, 75]] },
+      { "id": "shilu-y76x67", "name": "广场·北支", "width": 1, "line": [[67, 76], [69, 76]] },
+      { "id": "shilu-y77x62", "name": "广场·西臂", "width": 1, "line": [[62, 77], [66, 77]] },
+      { "id": "shilu-y77x70", "name": "广场·东臂", "width": 1, "line": [[70, 77], [74, 77]] },
+      { "id": "shilu-y78x62", "name": "广场·西臂", "width": 1, "line": [[62, 78], [66, 78]] },
+      { "id": "shilu-y78x70", "name": "广场·东臂", "width": 1, "line": [[70, 78], [74, 78]] },
+      { "id": "shilu-y79x62", "name": "广场·横带", "width": 1, "line": [[62, 79], [74, 79]] },
+      { "id": "shilu-y80x67", "name": "广场·南支", "width": 1, "line": [[67, 80], [69, 80]] },
+      { "id": "shilu-y81x67", "name": "广场·南支", "width": 1, "line": [[67, 81], [69, 81]] },
+      { "id": "shilu-y82x67", "name": "广场·南支", "width": 1, "line": [[67, 82], [69, 82]] },
+      { "id": "shilu-y83x67", "name": "广场·南支", "width": 1, "line": [[67, 83], [69, 83]] },
+      { "id": "shilu-y90x36", "name": "门垫·木匠家", "width": 1, "line": [[36, 90], [37, 90]] },
+      { "id": "shilu-y91x72", "name": "门垫·老太太家", "width": 1, "line": [[72, 91], [73, 91]] },
+      { "id": "avenue-n", "name": "南北大街·北林间道", "width": 3, "line": [[68, 2], [68, 26]] },
+      { "id": "avenue-s", "name": "南北大街·南河堤", "width": 3, "line": [[68, 90], [68, 114]] },
+      { "id": "mainst-w", "name": "东西主街·西果园道", "width": 3, "line": [[2, 78], [26, 78]] },
+      { "id": "mainst-e", "name": "东西主街·东建筑街", "width": 3, "line": [[106, 78], [130, 78]] },
+      { "id": "river-w", "name": "河堤路", "width": 1, "line": [[26, 44], [26, 78]] },
+      { "id": "j-2", "name": "北路口", "width": 3, "line": [[66, 25]] },
+      { "id": "j-3", "name": "北路口二", "width": 3, "line": [[66, 26]] },
+      { "id": "j-6", "name": "东路口", "width": 3, "line": [[106, 76]] },
+      { "id": "j-7", "name": "东路口二", "width": 3, "line": [[107, 76]] },
+      { "id": "j-8", "name": "西路口", "width": 3, "line": [[26, 76]] },
+      { "id": "j-4", "name": "南路口", "width": 3, "line": [[66, 90]] },
+      { "id": "j-5", "name": "南路口二", "width": 3, "line": [[66, 91]] }
+    ]
+  },
+  "1": { "roads": [
+    { "id": "home-main", "name": "家门口主路", "width": 1, "line": [[15, 0], [15, 16]] }
+  ]},
+  "3": { "roads": [
+    { "id": "hebian-main", "name": "河堤路(河边)", "width": 1, "line": [[0, 25], [18, 25]] }
+  ]},
+  "4": { "roads": [
+    { "id": "paddy-cross", "name": "田埂路", "width": 1, "line": [[26, 19], [26, 11]] }
+  ]},
+  "6": { "roads": [
+    { "id": "wenquan-ring", "name": "环池步道", "width": 1, "line": [[39, 14], [20, 14], [20, 17]] }
+  ]},
+  "7": { "roads": [
+    { "id": "baolong-main", "name": "龙哥家门前道", "width": 1, "line": [[34, 14], [34, 15], [17, 15], [17, 18]] }
+  ]},
+  "8": { "roads": [
+    { "id": "mine-runway", "name": "跑道", "width": 2, "line": [[15, 0], [14, 9]] }
+  ]},
+  "9": { "roads": [
+    { "id": "ranch-main", "name": "牧园主道", "width": 1, "line": [[0, 8], [16, 8], [16, 34]] }
+  ]},
+  "10": { "roads": [
+    { "id": "trail-main", "name": "登山步道", "width": 1, "line": [[28, 13], [14, 13], [14, 20]] }
+  ]},
+  "11": { "roads": [
+    { "id": "bridge-main", "name": "吊桥引道", "width": 1, "line": [[0, 9], [19, 17]] }
+  ]},
+  "12": { "roads": [
+    { "id": "hilltop-main", "name": "登顶步道", "width": 1, "bridge": true, "line": [[19, 0], [19, 22]] }
+  ]},
+  "13": { "roads": [
+    { "id": "forest-main", "name": "密林道", "width": 1, "line": [[0, 32], [26, 32]] }
+  ]},
+  "14": { "roads": [
+    { "id": "canyon-main", "name": "峡谷路", "width": 1, "line": [[30, 32], [19, 32], [19, 17]] }
+  ]}
+}

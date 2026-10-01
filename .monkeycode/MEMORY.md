@@ -46,6 +46,7 @@
 - **资源获取策略（2026-09-29 用户明确指示，长期生效）**：需要图片素材就上网搜（图片搜索）或自己生图（tools/art-gen.mjs 管线），双通道保供；对图片质量要求严苛——按 C8 v2 铁律（纯白底+单体锁定+量化+art-qa 机审）与授权合规把关。**入库素材优先级：生图产物（风格可控）> CC0 素材包（Kenney 已有 465 张）> 网络搜索（仅作参考/概念图，直接入库须逐张核授权）**。其他资源同理：缺任何东西（音源/字体/数据/依赖/参考资料）就去上网搜，不空等不空想。
 - **提交前安全审查（2026-09-29 用户明确指示，长期生效）**：每次 git commit 前必须先跑 `node tools/security-check.mjs`（默认扫暂存区；`--all` 扫全仓），PASS 才允许提交。检查项：敏感文件（.env/.env.local/*.pem/*.key 等）禁止入库 + 机密内容规则（sk- 密钥/GitHub PAT/GitLab PAT/AWS/Slack/私钥块/凭据赋值长串，占位符豁免）。首跑即抓出 4 个存量文件硬编码本地 agentToken，已按 P0 模式修复（脚本改读 AF_AGENT_TOKEN，观察记录脱敏 ***REDACTED***）。
 - **分工模式（2026-09-29 用户明确指示，长期生效）**：会话主模型负责对话、规划、拆解、审查、验收；具体写代码等执行类工作，先把任务规划好再委托 agnes-3.0-flash 执行，节省主模型额度。委托通道：`tools/llm-worker.mjs`（`echo 任务 | node tools/llm-worker.mjs`，或 `--in/--out` 文件进出；Key 走 .env 的 AF_LLM_*/USER_IMG_* 用户自备 Key，模型缺省 agnes-3.0-flash）。
+- **代码自审（2026-10-01 用户指示：每批工作完自审）**：`alibaba/open-code-review` 已装（npm 全局 `@alibaba-group/open-code-review` v1.12.11，CLI `ocr`；PyPI 无此包）。流程：`ocr delegate preview --from <base> --to <head>`（可审文件清单）→ `ocr delegate rule <files...>`（系统规则集，免 LLM）→ 宿主 Agent 对 diff 逐条套规则，产行级意见分三档（必须修复/建议修复/可以忽略）；必改项修完跑回归再提交。全自动行级评论 `ocr review` 需用户提供 LLM 端点（URL/token/model，平台自身 key 禁止接入）。git 2.39.5 低于其最低支持 2.41.0，有 warning 不影响运行。
 - 委托注意事项：flash 小模型无工具/仓库访问能力，prompt 里必须打包所需代码上下文；输出有"自言自语纠错"倾向（先写错再自行输出干净终版），主模型必须审查后取终版集成；适合独立函数/单文件脚本/文档/测试草稿等边界清晰任务，多文件重构与调试类主模型自己做更划算。
 
 ## 安全（P0，需用户操作）
