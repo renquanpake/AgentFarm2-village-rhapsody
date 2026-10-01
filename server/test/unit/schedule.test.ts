@@ -32,6 +32,7 @@ afterAll(() => { for (const d of dirs) { try { fs.rmSync(d, { recursive: true, f
 const pois: NpcPois = {
   scene: 2,
   villageCenter: { x: 5000, y: 4000 },
+  banquetHall: { x: 9650, y: 10750 },
   riverside: { x: 6000, y: 7000 },
   mine: { x: 3500, y: 1000 },
   doors: [{ x: 3700, y: 2500, house: 2 }],
@@ -69,13 +70,21 @@ describe('npcDecision 时段规则', () => {
     expect(storm.activity).toBe('风暴避险'); // 风暴压过节日聚集
   });
 
-  it('节日：10-20 时聚集村中心', () => {
+  it('节日：10-20 时聚集宴会厅舞台（有 stage 时）', () => {
     const f = npcDecision(npc1, { day: 9, hour: 12, weather: 'clear', festival: '春花会' }, pois);
     expect(f.activity).toBe('节日：春花会');
-    expect([f.x, f.y]).toEqual([5000, 4000]);
+    expect([f.x, f.y]).toEqual([9650, 10750]); // 宴会厅舞台
+    expect(f.reason).toBe('节日宴会场舞台聚集');
     // 节日时段外（9 时）不聚集
     const f2 = npcDecision(npc1, { day: 9, hour: 9, weather: 'clear', festival: '春花会' }, pois);
     expect(f2.activity).not.toBe('节日：春花会');
+  });
+
+  it('节日：无宴会厅时回落村中心', () => {
+    const noStage = { ...pois, banquetHall: null };
+    const f = npcDecision(npc1, { day: 9, hour: 12, weather: 'clear', festival: '春花会' }, noStage);
+    expect([f.x, f.y]).toEqual([5000, 4000]); // 村中心
+    expect(f.reason).toBe('节日集市聚集');
   });
 });
 

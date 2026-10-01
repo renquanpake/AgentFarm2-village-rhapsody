@@ -7,10 +7,12 @@ import type { App } from '../app.ts';
 import type { WorldState } from '../persistence/state.ts';
 import type { NpcDef } from '../types.ts';
 import { currentGameDay, calendarDay, type Weather } from './calendar.ts';
+import { municipalOf } from '../navigation/municipal.ts';
 import { log } from '../logging.ts';
 
 export interface NpcPois {
   villageCenter: { x: number; y: number };
+  banquetHall: { x: number; y: number } | null;
   riverside: { x: number; y: number };
   mine: { x: number; y: number } | null;
   doors: Array<{ x: number; y: number; house: number }>;
@@ -61,7 +63,8 @@ export function npcDecision(npc: NpcDef, ctx: { day: number; hour: number; weath
   // 1) 天气/节日覆盖（最高优先级）
   if (ctx.weather === 'storm') return { ...home(), activity: '风暴避险', reason: '风暴日全员居家' };
   if (ctx.festival && ctx.hour >= 10 && ctx.hour < 20) {
-    return { ...base, activity: `节日：${ctx.festival}`, x: pois.villageCenter.x, y: pois.villageCenter.y, reason: '节日集市聚集' };
+    const stage = pois.banquetHall;
+    return { ...base, activity: `节日：${ctx.festival}`, x: stage ? stage.x : pois.villageCenter.x, y: stage ? stage.y : pois.villageCenter.y, reason: stage ? '节日宴会场舞台聚集' : '节日集市聚集' };
   }
   if (ctx.weather === 'rain') return { ...home(), activity: '雨天室内', reason: '雨天居家' };
 
@@ -91,9 +94,13 @@ export function villagePois(app: App): NpcPois {
   }
   const mines = T.mineSpots;
   const doors = (app.stateOpts?.spawns?.houses || []).map(hd => ({ x: hd.door.x, y: hd.door.y, house: hd.id }));
+  // 宴会厅舞台（buildings.json banquet-hall）：节日赛事锚点；poi 为网格坐标，转像素（dataDir 缺失时降级 null）
+  const bh = app.dataDir ? (municipalOf(app).buildings.get(2) || []).find(b => b.id === 'banquet-hall') : undefined;
+  const banquetHall = bh && bh.poi && !bh.pending ? { x: bh.poi.x * 100 + 50, y: bh.poi.y * 100 + 50 } : null;
   return {
     scene: 2,
     villageCenter: { x: Math.floor(w / 2) * 100 + 50, y: Math.floor(h / 2) * 100 + 50 },
+    banquetHall,
     riverside: river,
     mine: mines && mines.length ? { x: mines[0].gx * 100 + 50, y: mines[0].gy * 100 + 50 } : null,
     doors,
