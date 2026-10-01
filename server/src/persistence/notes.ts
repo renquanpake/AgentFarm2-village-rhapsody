@@ -1,6 +1,6 @@
 // persistence/notes.ts —— Agent 便签/收件箱/日记（data/agent-notes/<username>/）
 // 等价 legacy afserver.mjs 的 inboxOf/pushInbox/agent-setup/agent-setup/diary 段。
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import type { InboxEntry } from '../types.ts';
 import { loadJson } from './state.ts';
@@ -69,6 +69,28 @@ export class AgentNotes {
       for (const f of readdirSync(diaryDir).filter(x => x.endsWith('.md')).sort()) {
         const content = readFileSync(join(diaryDir, f), 'utf8');
         out.days.push({ file: f, title: f.replace(/\.md$/, ''), content: content.slice(0, 3000) });
+      }
+    }
+    return out;
+  }
+
+  /** 资产日报（P2 银行）：一游戏日一份文件（日报/day-<N>.md），同日追加 */
+  writeDailyReport(username: string, text: string, day: number): string {
+    const dir = join(this.notesDir(username), '日报');
+    mkdirSync(dir, { recursive: true });
+    const f = join(dir, `day-${day}.md`);
+    appendFileSync(f, `- ${new Date().toLocaleTimeString('zh-CN', { hour12: false })} ${text}\n`, 'utf8');
+    console.log(`[daily-report] ${username} 第 ${day} 天资产快照已存档`);
+    return f;
+  }
+
+  /** 资产日报（只读，供 /af/diary 复用思路） */
+  dailyReportOf(username: string): { username: string; days: Array<{ file: string; content: string }> } {
+    const dir = join(this.notesDir(username), '日报');
+    const out: { username: string; days: Array<{ file: string; content: string }> } = { username, days: [] };
+    if (existsSync(dir)) {
+      for (const f of readdirSync(dir).filter(x => x.endsWith('.md')).sort()) {
+        out.days.push({ file: f, content: readFileSync(join(dir, f), 'utf8').slice(0, 3000) });
       }
     }
     return out;

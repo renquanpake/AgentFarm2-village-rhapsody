@@ -1,5 +1,7 @@
 [
   { "id": 1, "facility": "mill", "name": "磨坊：面包", "inputs": { "28": 3 }, "output": { "itemId": 23, "qty": 2 } },
   { "id": 2, "facility": "kitchen", "name": "厨房：鸡米花", "inputs": { "12": 1, "28": 2 }, "output": { "itemId": 140, "qty": 1 } },
-  { "id": 3, "facility": "kiln", "name": "窑炉：精陶", "inputs": { "7": 2, "18": 1 }, "output": { "itemId": 77, "qty": 1 } }
+  { "id": 3, "facility": "kiln", "name": "窑炉：精陶", "inputs": { "7": 2, "18": 1 }, "output": { "itemId": 77, "qty": 1 } },
+  { "id": 4, "facility": "forge", "name": "铁匠：鱼竿", "inputs": { "60": 1 }, "output": { "itemId": 6, "qty": 1 } },
+  { "id": 5, "facility": "forge", "name": "铁匠：洒水壶", "inputs": { "18": 1, "61": 1 }, "output": { "itemId": 5, "qty": 1 } }
 ]

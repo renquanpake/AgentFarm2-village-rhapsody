@@ -27,7 +27,8 @@ import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../wo
 import { cook, buildFacility } from '../world/cooking.ts';
 import { placeDecor, removeDecor, courtyardScore, courtyardCompletion, courtyardContest } from '../world/decor.ts';
 import { recordFestivalScore, stallFee, activeFestival } from '../world/festival.ts';
-import { currentGameDay } from '../world/calendar.ts';
+import { currentGameDay, calendarDay, STORM_INSURANCE_PER_PLANT } from '../world/calendar.ts';
+import { trainAttr, fitnessOf, GYM_ATTR_NAME, GYM_ATTRS } from '../world/fitness.ts';
 import type { AgentPos } from '../types.ts';
 import { observeState } from '../cognition/observe.ts';
 import { notePlayerOp, publishAgentActivityGlobal } from '../cognition/managed.ts';
@@ -886,6 +887,39 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             app.inboxPush(String(target.uid), nick, `[letter] ${body}`);
             publish(`给${target.nick}写了封信`);
             result = { ok: true, to: target.nick, msg: '信已投进对方邮局（对方 observe 的 inbox 可见）' };
+          } else if (action === 'forecast') {
+            // P2 气象台（北环小塔）：明日天气预告（日历确定性纯函数；投保钩子随经济类 M-B1 冻结，此处只播报）
+            const day = currentGameDay(state, Date.now());
+            const tm = calendarDay(day + 1);
+            const hints: string[] = [];
+            if (tm.weather === 'storm') hints.push(`明日风暴：作物受灾（保险赔付 ${STORM_INSURANCE_PER_PLANT}/株 次日发放）`);
+            if (tm.weather === 'rain') hints.push('明日有雨（生长 x1.5，钓点丰收）');
+            if (tm.festival) hints.push(`明日节日「${tm.festival}」：赛事锚点在村中央宴会厅（observe 的 festival 字段有明细）`);
+            result = { ok: true, day, tomorrow: { season: tm.season, weather: tm.weather, festival: tm.festival }, hints, msg: `明日（第 ${day + 1} 天）${tm.weather === 'clear' ? '晴朗' : tm.weather === 'rain' ? '有雨' : tm.weather === 'snow' ? '下雪' : '风暴'}` };
+          } else if (action === 'train') {
+            // P2 健身房（东环新楼）：属性训练（力量/敏捷/亲和）+ 冷却；位置门：健身房门位 6 格内
+            const gym = buildingTargetOf(municipalOf(app), 'gym');
+            const curScene = apos.scene ?? 2;
+            if (!gym || curScene !== 2) { result = { ok: false, msg: '训练需在村景健身房（先 move_to {near:"健身房"}）' }; continue; }
+            const gx = Math.floor(gym.x / 100), gy = Math.floor(gym.y / 100);
+            const inGym = Math.abs(Math.floor((apos.x ?? 0) / 100) - gx) <= 6 && Math.abs(Math.floor((apos.y ?? 0) / 100) - gy) <= 6;
+            if (!inGym) { result = { ok: false, msg: `离健身房太远（需 move_to {near:"健身房"} 到门位附近）` }; continue; }
+            const tr = trainAttr(state, uid, String(msg.attr || ''), Date.now());
+            result = tr.ok
+              ? { ok: true, attr: msg.attr, level: tr.level, msg: tr.msg }
+              : { ok: false, waitSec: tr.waitSec, msg: tr.msg };
+          } else if (action === 'report') {
+            // P2 银行（102 gfujia）：资产日报——只读快照写入 agent 日报文件（存取计息钩子 M-B1 冻结）
+            const curScene = apos.scene ?? 2;
+            if (curScene !== 102) { result = { ok: false, msg: '资产日报在银行办理（先 move_to {near:"银行"} 跨场景到 102）' }; continue; }
+            const nameOfItem = (id: number) => app.tables.nameOf(id);
+            const kn = (pm?.get('knapData') as { props?: Array<{ id: number; num: number }> } | undefined)?.props || [];
+            const coins = kn.find(p => p.id === 1)?.num || 0;
+            const knapItems = kn.filter(p => p.id !== 1).map(p => ({ id: p.id, num: p.num, name: nameOfItem(p.id) })).slice(0, 10);
+            const day = currentGameDay(state, Date.now());
+            const text = `资产日报：金币 ${coins}；背包 ${knapItems.length ? knapItems.map(k => `${k.name}x${k.num}`).join('、') : '空'}`;
+            app.notes.writeDailyReport(app.usernameOf(uid), text, day);
+            result = { ok: true, coins, items: knapItems, day, msg: `资产日报已存档（金币 ${coins}；${knapItems.length} 类物品）` };
           } else if (action === 'move_to') {
             // D1 执行确认闭环 + D3 交互环 + D6 跨场景：目标吸附可站立环 -> 全路径 -> 逐段发航点 + arrive 确认（盲推仅离线/debug 回落）
             // P2 near 目标解析：near=water|npc（交互环）或 建筑名（buildings.json -> 场景+门位像素；跨场景自动解门户）
@@ -1253,7 +1287,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const type = String(msg.type || '');
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
-            const r = buildFacility(state, uid, type as 'barn' | 'mill' | 'kitchen' | 'kiln', gx, gy);
+            const r = buildFacility(state, uid, type as 'barn' | 'mill' | 'kitchen' | 'kiln' | 'forge', gx, gy);
             if (r.ok) {
               app.log.append('facility.built', uid, { uid, type, x: gx, y: gy });
               publish(`建造了 ${type}`);
@@ -1317,7 +1351,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
   });
 
   // 欢迎 + 初始状态
-  send({ t: 'welcome', uid, nick, notice: 'AgentFarm2 游戏接入。发送 {t:"observe"} 查看世界，{t:"act",action:"move|chat|buy|trade|letter|move_to|arrive",...} 行动（trade: op=place|cancel|book；letter: {to, body} 写信给在线玩家；move_to 返回 waypoints，near 可填 water/npc 或建筑名（如 move_to {near:"交易大厅"} 自动跨场景到门位），可用 arrive {index,x,y} 确认航点）。' });
+  send({ t: 'welcome', uid, nick, notice: 'AgentFarm2 游戏接入。发送 {t:"observe"} 查看世界，{t:"act",action:"move|chat|buy|trade|letter|forecast|train|report|move_to|arrive",...} 行动（trade: op=place|cancel|book；letter: {to, body} 写信给在线玩家；forecast 明日天气/节日预告；train {attr:力量/敏捷/亲和} 在健身房训练；report 在银行生成资产日报；move_to 返回 waypoints，near 可填 water/npc 或建筑名（如 move_to {near:"交易大厅"} 自动跨场景到门位），可用 arrive {index,x,y} 确认航点）。' });
   send({ t: 'state', ...observeState(app, uid, username, nick) });
 }
 

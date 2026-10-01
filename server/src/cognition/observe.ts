@@ -7,7 +7,9 @@ import {
 } from '../world/farm.ts';
 import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
 import { favBetween, dmUnlockedList } from '../world/social.ts';
-import { municipalOf, municipalContext, villageNavOf, type Building } from '../navigation/municipal.ts';
+import { fitnessOf } from '../world/fitness.ts';
+import { activeFestival } from '../world/festival.ts';
+import { municipalOf, municipalContext, villageNavOf, buildingTargetOf, type Building } from '../navigation/municipal.ts';
 
 /** D2 区域级障碍：12 格窗口内连续水域/树丛 -> 区域名 + 格子范围 + 绕行原则（§4.2：不喂单树坐标清单给导航） */
 export function obstacleRegions(app: App, state: WorldState, gx: number, gy: number, radius = 12): Array<Record<string, unknown>> {
@@ -186,6 +188,18 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     obstacles: obstacles.length ? { regions: obstacles, note: '障碍按区域提供，move_to 服务端自动绕行；无需逐格探路' } : null,
     municipal,
     buildings: buildingsHere.length ? { here: buildingsHere, hint: '同场景建筑（dist=门位切比雪夫格数）；move_to {near:"建筑名"} 直接到门位（自动跨场景）' } : null,
+    fitness: (() => {
+      const r = fitnessOf(state, uid);
+      const attrs = Object.entries(r.attrs).filter(([, v]) => (v ?? 0) > 0);
+      if (!attrs.length) return null;
+      return { attrs: Object.fromEntries(attrs), hint: '训练（力量/敏捷/亲和）在村景健身房，act train {attr}；每次 +1，5 分钟冷却' };
+    })(),
+    festival: (() => {
+      const fest = activeFestival(app);
+      if (!fest) return null;
+      const hall = buildingTargetOf(municipalOf(app), 'banquet-hall');
+      return { name: fest, venue: hall ? { scene: hall.scene, name: hall.name, doorPx: hall.x, doorPy: hall.y } : null, hint: '今日节日，赛事分随 act fish/harvest 自动累计；act forecast 可看明日节日预告' };
+    })(),
     inbox: inboxArr.length
       ? { unread: inboxArr.length, last: { from: inboxArr[inboxArr.length - 1].from, text: inboxArr[inboxArr.length - 1].text } }
       : { unread: 0, last: null },

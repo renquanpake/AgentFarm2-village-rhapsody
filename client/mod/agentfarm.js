@@ -1039,6 +1039,32 @@
         w: Math.round(dim[0] * scale), h: Math.round(dim[1] * scale),
       });
     }
+    // L1 指路牌文字（landmarks.json signs，图不带字）：多行 Label 叠在路牌精灵上方；就近吸附 3 格内 301 精灵，无精灵则落数据点
+    try {
+      const signs = Array.isArray(g.signs) ? g.signs : [];
+      const signSprites = (g.decor || []).filter(d => d && d.sprite === 301);
+      signs.forEach((s, i) => {
+        if (!s || !Array.isArray(s.lines) || !s.lines.length) return;
+        const nm = 'afSignLbl_' + i;
+        if (tiledNode.getChildByName(nm)) return;
+        let ax = s.x, ay = s.y;
+        let best = null, bestD = 3;
+        for (const sp of signSprites) {
+          const dd = Math.max(Math.abs(sp.x - s.x), Math.abs(sp.y - s.y));
+          if (dd <= bestD) { best = sp; bestD = dd; }
+        }
+        if (best) { ax = best.x; ay = best.y; }
+        const ln = new cc.Node(nm);
+        const lb = ln.addComponent(cc.Label);
+        lb.string = s.lines.join('\n');
+        lb.fontSize = 12;
+        lb.lineHeight = 14;
+        lb.color = new cc.Color(255, 235, 180, 255);
+        ln.setPosition(lx(ax), ly(ay) + 52);
+        ln.zIndex = ay * 100 + 50;
+        tiledNode.addChild(ln);
+      });
+    } catch (e) { /* Label API 缺失：路牌仅图形，文字降级 */ }
   }
 
   // ---------- P2 建筑招牌（A 挂牌模式：原版建筑 + 挂件 311 + cc.Label 名；B 覆盖建筑随 +28 环 P3 落位后自动生效） ----------

@@ -220,6 +220,28 @@ send(A, { t: 'observe' });
 const stE = await AQ.next(m => m.t === 'state');
 const bHere = stE?.buildings?.here || [];
 check('observe buildings 区域结构正确（有则带门位距离）', !!stE && (stE.buildings === null || Array.isArray(bHere)), stE?.buildings ? `scene=${stE.scene} near=${bHere[0]?.id || '无'}` : 'null（当前场景无已落成建筑，正确）');
+check('observe fitness/festival 字段类型正确', !!stE && (stE.fitness === null || typeof stE.fitness === 'object') && (stE.festival === null || typeof stE.festival === 'object'), `fitness=${stE?.fitness ? 'obj' : 'null'} festival=${stE?.festival ? stE.festival.name : 'null'}`);
+
+// E.6 气象台 forecast（日历确定性纯函数：明日天气/节日预告）
+send(A, { t: 'act', action: 'forecast', seq: 23 });
+const fc = await AQ.next(m => m.t === 'result' && m.action === 'forecast' && m.seq === 23).catch(() => null);
+const fcOk = !!fc && fc.ok === true && Number.isInteger(fc.day) && fc.tomorrow && ['clear', 'rain', 'snow', 'storm'].includes(fc.tomorrow.weather);
+check('forecast 返回明日天气（day/tomorrow 结构）', fcOk, fc ? `day=${fc.day} 明日=${fc.tomorrow?.weather}${fc.tomorrow?.festival ? ' 节日=' + fc.tomorrow.festival : ''}` : 'timeout');
+
+// E.7 健身房 train 位置门（agent 不在 gym 门位 6 格内 -> 友好报错带指引）
+send(A, { t: 'act', action: 'train', attr: 'strength', seq: 24 });
+const tr = await AQ.next(m => m.t === 'result' && m.action === 'train' && m.seq === 24).catch(() => null);
+check('train 位置门（远处拒绝并指引 move_to near:健身房）', !!tr && tr.ok === false && /太远|健身房/.test(tr.msg || ''), tr?.msg || 'timeout');
+
+// E.8 银行 report 场景门（agent 在村景 -> 指引跨场景到 102）
+send(A, { t: 'act', action: 'report', seq: 25 });
+const rp = await AQ.next(m => m.t === 'result' && m.action === 'report' && m.seq === 25).catch(() => null);
+check('report 场景门（村景拒绝并指引银行）', !!rp && rp.ok === false && /银行/.test(rp.msg || ''), rp?.msg || 'timeout');
+
+// E.9 铁匠 forge 配方被 recipeOf 识别（cook recipeId=4：文案区分「没有这个配方」vs 原料/位置门）
+send(A, { t: 'act', action: 'cook', recipeId: 4, seq: 26 });
+const ck = await AQ.next(m => m.t === 'result' && m.action === 'cook' && m.seq === 26).catch(() => null);
+check('forge 配方已注册（cook 识别，报原料/位置门而非未知配方）', !!ck && !/没有这个配方/.test(ck.msg || ''), ck?.msg || 'timeout');
 
 G.close(); A.close();
 const fails = results.filter(r => !r).length;
