@@ -144,7 +144,6 @@ function copyHouse(key, dstX, dstY, band = 'S') {
   }
   // 门前石板垫（2 格宽 1 格深，朝向 band：S=宅南 / E=宅东）
   const midX = dstX + Math.floor(h.srcRect.w / 2);
-  const midY = dstY + Math.floor(h.srcRect.h / 2);
   const pad = band === 'E'
     ? Array.from({ length: h.srcRect.h }, (_, i) => [dstX + h.srcRect.w + 1, dstY + i])
     : [[midX - 1, dstY + h.srcRect.h + 1], [midX, dstY + h.srcRect.h + 1]];

@@ -21,7 +21,6 @@ const write = (p, o) => writeFileSync(join(D, p), JSON.stringify(o, null, 1) + '
   if (!r.p3_shifted) {
     for (const rd of r['2'].roads) {
       rd.line = rd.line.map(([x, y]) => [x + SH, y + SH]);
-      if (rd.note && !rd.note.includes('p3')) rd.note = rd.note;
     }
     r.p3_shifted = true;
     write(f, r);
