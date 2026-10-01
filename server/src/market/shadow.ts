@@ -66,7 +66,7 @@ export class ShadowMarket {
     const base = this.app.market.basePrice(item);
     const bid0 = live.bids[0]?.price ?? base;
     const ask0 = live.asks[0]?.price ?? base;
-    let bid = Math.max(1, Math.round(bid0 * (1 - this.spread)));
+    const bid = Math.max(1, Math.round(bid0 * (1 - this.spread)));
     let ask = Math.max(1, Math.round(ask0 * (1 + this.spread)));
     if (ask <= bid) ask = bid + 1; // 单边/空簿回落时防双边报价自成交
     const now = Date.now();

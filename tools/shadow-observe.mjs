@@ -18,7 +18,12 @@ const BASE = (process.env.AF_BASE || 'http://127.0.0.1:8080').replace(/\/+$/, ''
 const WS_BASE = BASE.replace(/^http/, 'ws');
 const N = Number(arg('--drivers', '3'));
 const DURATION = Number(arg('--duration', '180000'));
-const DAYS = Number(arg('--days', '1')); // 1=活体验证快照（观察期启动凭据）；14=M-B1 判门复查
+const DAYS_RAW = arg('--days', '1');
+const DAYS = Number(DAYS_RAW); // 1=活体验证快照（观察期启动凭据）；14=M-B1 判门复查
+if (!Number.isFinite(DAYS) || DAYS <= 0) {
+  console.error(`--days 非法：${DAYS_RAW}（应为正数，1=活体快照 / 14=判门复查）`);
+  process.exit(2);
+}
 const OUT = arg('--out', join(ROOT, 'data', 'eval', 'shadow-live-check.json'));
 const ITEMS = [1, 2, 3]; // 小麦/种子等基础品（basePrice 各不同，跨品流动性）
 
@@ -118,10 +123,23 @@ await Promise.all(ds.map(d => d.run()));
 // 3) M-B1 验收快照（/af/shadow 与 /af/economy 需账号 token）
 await sleep(500);
 const tok = drivers[0].token;
-const rep = await (await fetch(BASE + `/af/shadow?days=${DAYS}&token=${encodeURIComponent(tok)}`, { headers: { Connection: 'close' } })).json();
+const rep = await fetch(BASE + `/af/shadow?days=${DAYS}&token=${encodeURIComponent(tok)}`, { headers: { Connection: 'close' } })
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
+  .catch(e => {
+    console.error(`/af/shadow 拉取失败（${e.message}）——检查服务是否在线与 token 是否有效`);
+    process.exit(2);
+  });
 const eco = await (await fetch(BASE + `/af/economy?token=${encodeURIComponent(tok)}`, { headers: { Connection: 'close' } })).json().catch(() => ({}));
 const itemsOk = Array.isArray(rep.items) ? rep.items : [];
 const withBoth = itemsOk.filter(i => i.liveVolume > 0 && i.shadowVolume > 0).length;
+// 判定口径：无双边成交=异常；days>=14 进判门复查；其余为活体验证快照
+let mb1Status;
+if (withBoth <= 0) mb1Status = '影子双边成交未出现——检查服务器是否挂了 shadow（app.shadow）或流量是否真实成交';
+else if (DAYS >= 14) mb1Status = `M-B1 判门窗口：${withBoth}/${itemsOk.length} 件双边成交；逐件核对 priceSpreadPct/volumeDeviation 是否达标`;
+else mb1Status = `引擎活体验证通过（${withBoth}/${itemsOk.length} 件实盘+影子双边成交）；14 日观察期起点 ${startedAt}，到期后重跑 --days 14 复查`;
 const report = {
   at: new Date().toISOString(),
   startedAt,
@@ -132,11 +150,7 @@ const report = {
   economy: { feeMultiplier: eco.feeMultiplier, inflationIndex: eco.inflationIndex },
   mB1: {
     criterion: `14 真实日窗口（days=${DAYS} 复查口径）实盘 vs 影子：价差分布收敛（priceSpreadPct 中位 < 15%）且成交量偏差可解释（volumeDeviation < 0.5）；超阈值则调影子 spread/makerQty 后重启观察`,
-    status: withBoth > 0
-      ? (DAYS >= 14
-        ? `M-B1 判门窗口：${withBoth}/${itemsOk.length} 件双边成交；逐件核对 priceSpreadPct/volumeDeviation 是否达标`
-        : `引擎活体验证通过（${withBoth}/${itemsOk.length} 件实盘+影子双边成交）；14 日观察期起点 ${startedAt}，到期后重跑 --days 14 复查`)
-      : '影子双边成交未出现——检查服务器是否挂了 shadow（app.shadow）或流量是否真实成交',
+    status: mb1Status,
   },
 };
 writeFileSync(OUT, JSON.stringify(report, null, 2));
