@@ -7,7 +7,7 @@ import {
 } from '../world/farm.ts';
 import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
 import { favBetween, dmUnlockedList } from '../world/social.ts';
-import { municipalOf, municipalContext, villageNavOf } from '../navigation/municipal.ts';
+import { municipalOf, municipalContext, villageNavOf, type Building } from '../navigation/municipal.ts';
 
 /** D2 区域级障碍：12 格窗口内连续水域/树丛 -> 区域名 + 格子范围 + 绕行原则（§4.2：不喂单树坐标清单给导航） */
 export function obstacleRegions(app: App, state: WorldState, gx: number, gy: number, radius = 12): Array<Record<string, unknown>> {
@@ -108,6 +108,17 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     ? { onRoad: mun.onRoad, landmarks: mun.nearest, hint: mun.onRoad ? `你正沿「${mun.onRoad}」行走` : '按地标方位 move_to；路名会随路线摘要回报' }
     : null;
 
+  // P2 建筑功能层（buildings.json）：同场景已落成建筑（门位 + kind + move_to near 名），供 Agent 定位/写信/进出
+  const buildingsHere = (mu.buildings.get(sceneId) || [])
+    .filter((b): b is Building & { door: { x: number; y: number } } => !b.pending && b.door !== null)
+    .map(b => ({
+      id: b.id, name: b.name, kind: b.kind, mode: b.mode,
+      doorPx: b.door.x, doorPy: b.door.y,
+      dist: Math.max(Math.abs(Math.floor(b.door.x / 100) - gx), Math.abs(Math.floor(b.door.y / 100) - gy)),
+    }))
+    .sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id))
+    .slice(0, 6);
+
   // 附近可犁地 / 已犁地块（3 格内）
   const tillableNear: Array<Record<string, unknown>> = [];
   const plotsNear: Array<Record<string, unknown>> = [];
@@ -174,6 +185,7 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     waterNear: (() => { let n = false; for (let dy = -1; dy <= 1 && !n; dy++) for (let dx = -1; dx <= 1; dx++) if (waterAt(tables, gx + dx, gy + dy)) { n = true; break; } return n; })(),
     obstacles: obstacles.length ? { regions: obstacles, note: '障碍按区域提供，move_to 服务端自动绕行；无需逐格探路' } : null,
     municipal,
+    buildings: buildingsHere.length ? { here: buildingsHere, hint: '同场景建筑（dist=门位切比雪夫格数）；move_to {near:"建筑名"} 直接到门位（自动跨场景）' } : null,
     inbox: inboxArr.length
       ? { unread: inboxArr.length, last: { from: inboxArr[inboxArr.length - 1].from, text: inboxArr[inboxArr.length - 1].text } }
       : { unread: 0, last: null },

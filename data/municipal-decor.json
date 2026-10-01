@@ -1,0 +1,23 @@
+{
+ "note": "P1d 场景内市政装饰（村景 133x117 网格坐标；/af/mapgrid 交付 municipalDecor，客户端在村景 TiledMap 节点下反射 Cocos 精灵；sprite=manifest id；scale=相对格宽 100px 的渲染倍率；路牌 301 无字，文字走 minimap/地标 tooltip）",
+ "2": [
+  {"id": "sign-center", "sprite": 301, "x": 70, "y": 78, "scale": 1.5, "note": "广场中央路牌（纪念碑东侧路格）"},
+  {"id": "sign-mile-n", "sprite": 301, "x": 68, "y": 20, "scale": 1.5, "note": "北路口里程碑旁路牌"},
+  {"id": "sign-dock", "sprite": 301, "x": 68, "y": 114, "scale": 1.5, "note": "南环渡口路牌"},
+  {"id": "sign-mile-w", "sprite": 301, "x": 27, "y": 76, "scale": 1.5, "note": "西路口路牌"},
+  {"id": "sign-mile-e", "sprite": 301, "x": 105, "y": 76, "scale": 1.5, "note": "东路口路牌"},
+  {"id": "sign-monument", "sprite": 301, "x": 46, "y": 84, "scale": 1.5, "note": "广场东南指示路牌"},
+  {"id": "lamp-avenue-n1", "sprite": 302, "x": 68, "y": 10, "scale": 1.6, "note": "南北大街·北段路灯"},
+  {"id": "lamp-avenue-n2", "sprite": 302, "x": 68, "y": 18, "scale": 1.6},
+  {"id": "lamp-avenue-s1", "sprite": 302, "x": 68, "y": 98, "scale": 1.6, "note": "南北大街·南河堤路灯"},
+  {"id": "lamp-avenue-s2", "sprite": 302, "x": 68, "y": 108, "scale": 1.6},
+  {"id": "lamp-mainst-w1", "sprite": 302, "x": 10, "y": 78, "scale": 1.6, "note": "东西主街·西段路灯"},
+  {"id": "lamp-mainst-w2", "sprite": 302, "x": 20, "y": 78, "scale": 1.6},
+  {"id": "lamp-mainst-e1", "sprite": 302, "x": 114, "y": 78, "scale": 1.6, "note": "东西主街·东段路灯"},
+  {"id": "lamp-mainst-e2", "sprite": 302, "x": 124, "y": 78, "scale": 1.6},
+  {"id": "planter-nw", "sprite": 303, "x": 65, "y": 75, "scale": 1.4, "note": "广场四角花箱（小 y 朝北）"},
+  {"id": "planter-ne", "sprite": 303, "x": 71, "y": 75, "scale": 1.4},
+  {"id": "planter-sw", "sprite": 303, "x": 65, "y": 81, "scale": 1.4},
+  {"id": "planter-se", "sprite": 303, "x": 71, "y": 81, "scale": 1.4}
+ ]
+}

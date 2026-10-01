@@ -71,7 +71,7 @@ console.log(`[art-gen] model=${model} base=${base} 目标 ${items.length} 件（
 if (!items.length) { console.log('[art-gen] 目标为空，退出'); process.exit(0); }
 
 // ---------- 单件生成 ----------
-function apiSize(q) { return q.size === '32x48' ? '512x768' : '512x512'; }
+function apiSize(q) { return q.size === '32x48' ? '512x768' : q.size === '288x384' ? '512x768' : q.size === '384x288' ? '512x512' : '512x512'; }
 
 async function generateOne(q) {
   const resp = await fetch(base + '/images/generations', {

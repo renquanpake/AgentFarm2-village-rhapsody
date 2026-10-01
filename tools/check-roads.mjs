@@ -2,7 +2,7 @@
 // tools/check-roads.mjs —— 市政路网校验（roads-landmarks 规划书 §6 验收门）
 // 三档：
 //   1) 连通档（全图）：路端点必接 路口/地标/门户/地图边界，悬空路 = 0
-//   2) 相交档（随真实碰撞逐场景）：路穿水(非桥)/穿阻挡 = 0；空碰撞场景(ready-empty-collide)跳过
+//   2) 相交档（P1c 起全场景判死）：路穿水(非桥)/穿阻挡 = 0；有碰撞/水提取的场景逐场景判死，无数据场景恒 0
 //   3) 双源一致性档（村景）：老区路格集合 == shilu 提取掩码（diff 0）
 // 用法：
 //   node tools/check-roads.mjs            全量
@@ -23,8 +23,6 @@ const landmarksDoc = load(join(ROOT, 'data', 'landmarks.json'), {});
 const portalsDoc = load(join(ROOT, 'data', 'nav', 'portals.json'), {});
 const scenesDoc = load(join(ROOT, 'data', 'nav', 'scenes.json'), { scenes: [] });
 
-// 场景 id -> 状态（空碰撞判定）
-const statusOf = new Map(scenesDoc.scenes.map(s => [String(s.scene ?? s.name), s.status]));
 // 场景 id -> { blocked, water, w, h }（村景走 data/village-*，其余走共享提取 scene-walls.mjs）
 function sceneWalls(sceneKey) {
   if (sceneKey === '2') {
@@ -58,11 +56,10 @@ for (const [sceneKey, entry] of Object.entries(roadsDoc)) {
   const conn = connectivityCheck(walls.w, walls.h, roads, landmarks, portals.map(p => ({ x: p.x, y: p.y })), 2, extraAnchors);
   totalConn += conn.length;
 
-  // 2) 相交档（真实碰撞场景才启用；空碰撞跳过；村景房叠石板豁免）
-  const status = statusOf.get(sceneKey) || '';
-  const realCollide = walls.blocked.some(v => v === 1);
+  // 2) 相交档（P1c 起：场景有碰撞/水提取数据即判死；无数据场景恒 0 过）
+  const hasWalls = walls.blocked.some(v => v === 1) || walls.water.some(v => v === 1);
   let cross = [];
-  if (realCollide && !String(status).includes('empty-collide')) {
+  if (hasWalls) {
     const shiluExempt = sceneKey === '2' ? load(join(ROOT, 'data', 'village-shilu.json'), { shilu: [] }).shilu : undefined;
     cross = crossingCheck(walls.w, walls.h, walls.blocked, walls.water, roads, shiluExempt);
   }
@@ -80,18 +77,17 @@ for (const [sceneKey, entry] of Object.entries(roadsDoc)) {
     totalDual += dual.length;
   }
 
-  // 判定：村景三档全判死；卫星场景相交档为 P1c 随碰撞提取启用（P1a 仅告警不判死），连通/双源判死
-  const isVillage = sceneKey === '2';
-  const crossFatal = isVillage;
-  const fatal = (conn.length > 0) || (crossFatal ? cross.length > 0 : false) || dual.length > 0;
+  // 判定：三档全判死（P1c：相交档随场景碰撞/水提取逐场景启用；无数据场景恒 0）
+  const crossFatal = true;
+  const fatal = (conn.length > 0) || cross.length > 0 || dual.length > 0;
   totalCross += cross.length;
-  const ok = conn.length === 0 && (crossFatal ? cross.length === 0 : true) && dual.length === 0;
-  const crossTag = crossFatal ? `相交 ${cross.length}` : `相交 ${cross.length}(P1c 启用，暂告警)`;
-  console.log(`[check-roads] 场景${sceneKey}（${walls.w}x${walls.h}，${roads.length} 路，${realCollide ? '真实碰撞' : '空碰撞'}）：连通悬空 ${conn.length} / ${crossTag} / 双源 diff ${dual.length} ${ok ? '✓' : '✗'}`);
+  const ok = conn.length === 0 && cross.length === 0 && dual.length === 0;
+  const wallTag = walls.blocked.some(v => v === 1) ? '阻挡' : walls.water.some(v => v === 1) ? '水层' : '空碰撞';
+  console.log(`[check-roads] 场景${sceneKey}（${walls.w}x${walls.h}，${roads.length} 路，${wallTag}）：连通悬空 ${conn.length} / 相交 ${cross.length} / 双源 diff ${dual.length} ${ok ? '✓' : '✗'}`);
   for (const e of conn) console.log('   悬空: ' + e);
-  for (const e of cross) console.log(`   相交${crossFatal ? '' : '(告警)'}: ` + e);
+  for (const e of cross) console.log(`   相交: ` + e);
   for (const i of dual.slice(0, 20)) console.log(`   双源: (${i % walls.w},${(i / walls.w) | 0})`);
   if (dual.length > 20) console.log(`   双源: ...共 ${dual.length} 格`);
   if (fatal) process.exitCode = 1;
 }
-console.log(`[check-roads] 汇总：悬空 ${totalConn} / 相交 ${totalCross}（卫星为 P1c 告警）/ 双源 ${totalDual}${process.exitCode ? '（有违规，exit 1）' : '（全过）'}`);
+console.log(`[check-roads] 汇总：悬空 ${totalConn} / 相交 ${totalCross}（P1c 判死）/ 双源 ${totalDual}${process.exitCode ? '（有违规，exit 1）' : '（全过）'}`);

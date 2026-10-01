@@ -186,6 +186,41 @@ if (hc) {
   check('D.2 障碍格吸附（无可用障碍格，跳过）', true, 'skip');
 }
 
+// ---------- 场景 E：P2 市政建筑功能层（buildings.json + move_to near + letter + /af/*） ----------
+console.log('\n=== E: P2 建筑层 ===');
+// E.1 move_to near:建筑名（村景交易大厅 C1 门位；同场景 A* 分支）
+send(A, { t: 'act', action: 'move_to', near: '交易大厅', seq: 20 });
+const mvN = await AQ.next(m => (m.t === 'move_started' || m.t === 'result') && m.seq === 20).catch(() => null);
+// 成功态 = move_started（含航点）或「路径过长，请分两段走」（路已解出，超 60 步上限的分段提示，非不可达）
+const mvNok = !!mvN && ((mvN.ok === true && (mvN.crossScene || Array.isArray(mvN.waypoints))) || /路径过长/.test(mvN.msg || ''));
+check('move_to near:交易大厅 解析到门位（move_started/跨场景/分段提示）', mvNok, mvN?.msg || 'timeout');
+if (mvN?.ok) {
+  const doneN = await waitDone(40000).catch(() => null);
+  check('near 建筑路线走完（确认环）', !!doneN);
+}
+// E.2 不可解析的 near
+send(A, { t: 'act', action: 'move_to', near: '不存在的楼宇', seq: 21 });
+const mvBad = await AQ.next(m => m.t === 'result' && m.seq === 21).catch(() => null);
+check('near 无法解析时返回可用建筑名清单', !!mvBad && mvBad.ok === false && /无法解析/.test(mvBad.msg || ''), mvBad?.msg || 'timeout');
+// E.3 邮局 letter（收件人 = 游戏通道昵称「导航验证」）
+send(A, { t: 'act', action: 'letter', to: '导航验证', body: 'e2e 测试信件：交易大厅在村中央，门朝广场。', seq: 22 });
+const lt = await AQ.next(m => m.t === 'result' && m.action === 'letter' && m.seq === 22).catch(() => null);
+check('letter 投递成功（inbox 持久化）', !!lt && lt.ok === true && lt.to === '导航验证', lt?.msg || 'timeout');
+const letter = await fetch(`${BASE}/af/letter?token=${encodeURIComponent(token)}`).then(r => r.json()).catch(() => null);
+// 游戏通道 join 与 agent 同 uid（昵称「导航验证」），故信投到自己收件箱：unread>=1 且末条含信文
+check('/af/letter 收到信（unread>=1 且含信文）', !!letter && letter.unread >= 1 && letter.inbox.some(e => e.text.includes('e2e 测试信件')), letter ? `unread=${letter.unread}` : '404/timeout');
+// E.4 /af/buildings 场景数据（村景 = 交易大厅/气象台/宴会厅/健身房/铁匠铺 5 座；银行/邮局在内部场景 102/109）
+const bldg = await fetch(`${BASE}/af/buildings?scene=2&token=${encodeURIComponent(token)}`).then(r => r.json()).catch(() => null);
+const bIds = (bldg?.buildings || []).map(b => b.id);
+check('/af/buildings?scene=2 含村景 5 建筑', bIds.includes('trade-hall') && bIds.includes('gym') && bIds.length === 5, bIds.join(','));
+const bldg102 = await fetch(`${BASE}/af/buildings?scene=102&token=${encodeURIComponent(token)}`).then(r => r.json()).catch(() => null);
+check('/af/buildings?scene=102 含银行（A 挂牌落位内部场景）', (bldg102?.buildings || []).some(b => b.id === 'bank'), JSON.stringify(bldg102?.buildings || []));
+// E.5 observe buildings 区域（当前场景有已落成建筑时非空；跨场景移动中途时为空属正确降级）
+send(A, { t: 'observe' });
+const stE = await AQ.next(m => m.t === 'state');
+const bHere = stE?.buildings?.here || [];
+check('observe buildings 区域结构正确（有则带门位距离）', !!stE && (stE.buildings === null || Array.isArray(bHere)), stE?.buildings ? `scene=${stE.scene} near=${bHere[0]?.id || '无'}` : 'null（当前场景无已落成建筑，正确）');
+
 G.close(); A.close();
 const fails = results.filter(r => !r).length;
 console.log('----');

@@ -387,8 +387,29 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
         roads: villageRoads,
         landmarks: mu.landmarks.get(2) || [],
         signs: mu.signs.filter(s => s.scene === 2),
+        decor: mu.decor.get(2) || [],
+        buildings: mu.buildings.get(2) || [],
       } : null;
       json(res, 200, g);
+      return;
+    }
+
+    // P2 邮局：收件箱只读快照（拉取/清空走 agent {t:'inbox'} 通道，本端点不消费）
+    if (u.pathname === '/af/letter') {
+      const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
+      if (!a) { text(res, 401, 'bad token'); return; }
+      const { arr } = app.notes.inboxOf(app.accounts.usernameOf(a));
+      json(res, 200, { unread: arr.length, inbox: arr.slice(-10).map(e => ({ from: e.from, text: e.text, at: e.at })) });
+      return;
+    }
+
+    // P2 建筑（buildings.json）：按场景取（客户端招牌反射 + 小地图；mtime 缓存走 municipalOf）
+    if (u.pathname === '/af/buildings') {
+      const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
+      if (!a) { text(res, 401, 'bad token'); return; }
+      const scene = Number(u.searchParams.get('scene')) || 2;
+      const mu = municipalOf(app);
+      json(res, 200, { scene, buildings: mu.buildings.get(scene) || [] });
       return;
     }
 

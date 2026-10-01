@@ -10,11 +10,27 @@ import { applyRoads, roadOf, type RoadLine } from './roads.ts';
 
 export interface Landmark { id: string; name: string; type: string; x: number; y: number; desc?: string; }
 export interface Sign { scene: number; x: number; y: number; lines: string[]; landmark?: string; }
+/** P1d 场景内市政装饰（municipal-decor.json）：sprite=art manifest id，x/y=网格坐标，scale=渲染倍率 */
+export interface DecorItem { id: string; sprite: number; x: number; y: number; scale?: number; note?: string; }
+/** P2 建筑（buildings.json）：mode=hang 挂牌 / cover 覆盖；pending=true 落位占位（随 +28 环启用） */
+export interface Building {
+  id: string; name: string; kind: string; scene: number;
+  rect?: { x: number; y: number; w: number; h: number };
+  door: { x: number; y: number } | null;
+  poi: { x: number; y: number } | null;
+  sign: { x: number; y: number } | null;
+  artId: number;
+  mode: 'hang' | 'cover';
+  pending?: boolean;
+  hooks?: string[];
+}
 
 export interface MunicipalDoc {
   landmarks: Map<number, Landmark[]>; // 场景 id -> 地标
   signs: Sign[];
   roads: Map<number, RoadLine[]>;     // 场景 id -> 路段（L2 小地图折线 / kind=4 同源数据）
+  decor: Map<number, DecorItem[]>;    // 场景 id -> 场景内装饰件（P1d Cocos 反射）
+  buildings: Map<number, Building[]>;  // 场景 id -> 建筑（P2 功能层）
 }
 
 let cache: { dir: string; mtime: number; doc: MunicipalDoc } | null = null;
@@ -24,11 +40,15 @@ export function municipalOf(app: App): MunicipalDoc {
   const dir = path.join(app.dataDir, '');
   const lmFile = path.join(app.dataDir, 'landmarks.json');
   const rdFile = path.join(app.dataDir, 'roads.json');
-  const mt = Math.max(safeMtime(lmFile), safeMtime(rdFile));
+  const dcFile = path.join(app.dataDir, 'municipal-decor.json');
+  const bdFile = path.join(app.dataDir, 'buildings.json');
+  const mt = Math.max(safeMtime(lmFile), safeMtime(rdFile), safeMtime(dcFile), safeMtime(bdFile));
   if (cache && cache.dir === dir && cache.mtime === mt) return cache.doc;
   const landmarks = new Map<number, Landmark[]>();
   let signs: Sign[] = [];
   const roads = new Map<number, RoadLine[]>();
+  const decor = new Map<number, DecorItem[]>();
+  const buildings = new Map<number, Building[]>();
   try {
     const lmDoc = JSON.parse(readFileSync(lmFile, 'utf8')) as Record<string, unknown>;
     for (const [k, v] of Object.entries(lmDoc)) {
@@ -48,14 +68,54 @@ export function municipalOf(app: App): MunicipalDoc {
       if (!Number.isFinite(scene) || !v?.roads?.length) continue;
       roads.set(scene, v.roads.filter(r => r && Array.isArray(r.line) && r.line.length > 0));
     }
+    // P1d 场景内装饰件（municipal-decor.json）：场景 id -> DecorItem[]
+    try {
+      const dcDoc = JSON.parse(readFileSync(dcFile, 'utf8')) as Record<string, unknown>;
+      for (const [k, v] of Object.entries(dcDoc)) {
+        if (k === 'note' || !Array.isArray(v)) continue;
+        const scene = Number(k);
+        if (!Number.isFinite(scene)) continue;
+        const items = (v as DecorItem[]).filter(d => d && Number.isFinite(d?.sprite) && Number.isFinite(d?.x) && Number.isFinite(d?.y));
+        if (items.length) decor.set(scene, items);
+      }
+    } catch { /* 装饰件文件缺失 -> 空 decor（功能降级） */ }
+    // P2 建筑（buildings.json）：顶层 buildings 数组 -> 按 scene 分桶
+    try {
+      const bdDoc = JSON.parse(readFileSync(bdFile, 'utf8')) as { buildings?: unknown };
+      const arr = Array.isArray(bdDoc?.buildings) ? bdDoc.buildings : [];
+      for (const b of arr as Building[]) {
+        if (!b || !Number.isFinite(b?.scene) || !b.id || !b.name) continue;
+        const scene = Number(b.scene);
+        const list = buildings.get(scene) || [];
+        list.push(b);
+        buildings.set(scene, list);
+      }
+    } catch { /* 建筑文件缺失 -> 空 buildings（功能降级） */ }
   } catch { /* 文件缺失/损坏 -> 空市政层（功能降级，不影响主流程） */ }
-  const doc: MunicipalDoc = { landmarks, signs, roads };
+  const doc: MunicipalDoc = { landmarks, signs, roads, decor, buildings };
   cache = { dir, mtime: mt, doc };
   return doc;
 }
 
 function safeMtime(file: string): number {
   try { return statSync(file).mtimeMs; } catch { return 0; }
+}
+
+/** move_to near:<id|name> 解析（P2）：建筑 id/名（含中文）模糊匹配 -> 该场景门位像素坐标；无匹配/门位未定（pending）返回 null */
+export function buildingTargetOf(doc: MunicipalDoc, query: string): { scene: number; x: number; y: number; name: string } | null {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  let best: Building | null = null;
+  let bestScore = 0;
+  for (const list of doc.buildings.values()) {
+    for (const b of list) {
+      if (b.pending || !b.door) continue; // 占位落位未定，不可导航
+      const score = b.id.toLowerCase() === q ? 3 : b.name === q ? 2 : (b.id.toLowerCase().includes(q) || b.name.includes(q) ? 1 : 0);
+      if (score > bestScore) { best = b; bestScore = score; }
+    }
+  }
+  if (!best || !best.door) return null;
+  return { scene: best.scene, x: best.door.x, y: best.door.y, name: best.name };
 }
 
 let villageNavCache: { tables: App['tables']; mtime: number; nav: NavGrid } | null = null;

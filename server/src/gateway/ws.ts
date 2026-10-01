@@ -21,6 +21,7 @@ import { doBuy, shopTable } from '../market/shop.ts';
 import { bfsPath, nearestReachable, blockedAt, blockedHouse, normXY } from '../navigation/grid.ts';
 import { navGridFromTables } from '../navigation/navgen.ts';
 import { applyRoads, roadOf, type RoadLine } from '../navigation/roads.ts';
+import { municipalOf, buildingTargetOf } from '../navigation/municipal.ts';
 import { astarClearance, checkArrive, snapInteraction, planRoute } from '../navigation/hpath.ts';
 import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { cook, buildFacility } from '../world/cooking.ts';
@@ -867,7 +868,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             persistAgentPosition(app, state, uid, apos);
             publish('移动中 (' + Math.round(apos.x) + ',' + Math.round(apos.y) + ')');
             result = { ok: true, pos: { x: nx, y: ny }, scene: apos.scene };
-          } else if (action === 'chat') {
+           } else if (action === 'chat') {
             const text = String(msg.text || '').slice(0, 200);
             app.chatLog.push({ nick: nick + '(托管)', text, at: Date.now(), isAgent: true });
             while (app.chatLog.length > 50) app.chatLog.shift();
@@ -875,13 +876,31 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             console.log(`[agent-chat] ${nick}: ${text}`);
             publish('正在说话');
             result = { ok: true, sent: text };
+          } else if (action === 'letter') {
+            // P2 邮局：写信给在线目标（收件箱走 notes.pushInbox 持久化；对方 observe.inbox 可见，{t:'inbox'} 拉取）
+            const to = String(msg.to || '').trim();
+            const body = String(msg.body || '').slice(0, 400);
+            if (!to || !body) { result = { ok: false, msg: 'letter 需要 to（昵称）与 body（信文）' }; continue; }
+            const target = Array.from(state.online.values()).find(o => o.nick === to || String(o.uid) === to);
+            if (!target) { result = { ok: false, msg: `收信人 ${to} 不在线（在线：${Array.from(state.online.values()).map(o => o.nick).join('/') || '无'}）` }; continue; }
+            app.inboxPush(String(target.uid), nick, `[letter] ${body}`);
+            publish(`给${target.nick}写了封信`);
+            result = { ok: true, to: target.nick, msg: '信已投进对方邮局（对方 observe 的 inbox 可见）' };
           } else if (action === 'move_to') {
             // D1 执行确认闭环 + D3 交互环 + D6 跨场景：目标吸附可站立环 -> 全路径 -> 逐段发航点 + arrive 确认（盲推仅离线/debug 回落）
-            const ring = msg.near === 'water' || msg.near === 'npc' ? (msg.near as 'water' | 'npc') : undefined;
+            // P2 near 目标解析：near=water|npc（交互环）或 建筑名（buildings.json -> 场景+门位像素；跨场景自动解门户）
+            const nearRaw = typeof msg.near === 'string' ? msg.near : undefined;
+            const ring = nearRaw === 'water' || nearRaw === 'npc' ? (nearRaw as 'water' | 'npc') : undefined;
             const curScene = apos.scene ?? 2;
-            const targetScene = msg.scene === undefined ? curScene : Math.round(Number(msg.scene));
-            console.log(`[agent-move_to] ${nick} 目标 (${msg.x},${msg.y}) 当前 (${apos.x},${apos.y}) 场景 ${curScene}->${targetScene} near=${ring || '-'}`);
-            const tx = Math.floor(Number(msg.x) / 100), ty = Math.floor(Number(msg.y) / 100);
+            const building = nearRaw && !ring ? buildingTargetOf(municipalOf(app), nearRaw) : null;
+            if (nearRaw && !ring && !building) {
+              const muNames = Array.from(municipalOf(app).buildings.values()).flat().filter(b => !b.pending && b.door).map(b => b.name).join(' / ');
+              result = { ok: false, msg: `near="${nearRaw}" 无法解析（可用：water / npc / 建筑名：${muNames || '无'}）` }; continue;
+            }
+            let targetScene = msg.scene === undefined ? curScene : Math.round(Number(msg.scene));
+            let tx = Math.floor(Number(msg.x) / 100), ty = Math.floor(Number(msg.y) / 100);
+            if (building) { targetScene = building.scene; tx = Math.floor(building.x / 100); ty = Math.floor(building.y / 100); }
+            console.log(`[agent-move_to] ${nick} 目标 ${building ? `「${building.name}」` : `(${msg.x},${msg.y})`} 当前 (${apos.x},${apos.y}) 场景 ${curScene}->${targetScene} near=${ring || building?.name || '-'}`);
             if (state.agentMoves.has(uid)) { result = { ok: false, msg: '上一个移动还没走完，请稍等' }; continue; }
             if (targetScene === curScene) {
               // 同场景：A* 逐格路径（现状主流程）
@@ -1298,7 +1317,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
   });
 
   // 欢迎 + 初始状态
-  send({ t: 'welcome', uid, nick, notice: 'AgentFarm2 游戏接入。发送 {t:"observe"} 查看世界，{t:"act",action:"move|chat|buy|trade|move_to|arrive",...} 行动（trade: op=place|cancel|book；move_to 返回 waypoints，可用 arrive {index,x,y} 确认航点）。' });
+  send({ t: 'welcome', uid, nick, notice: 'AgentFarm2 游戏接入。发送 {t:"observe"} 查看世界，{t:"act",action:"move|chat|buy|trade|letter|move_to|arrive",...} 行动（trade: op=place|cancel|book；letter: {to, body} 写信给在线玩家；move_to 返回 waypoints，near 可填 water/npc 或建筑名（如 move_to {near:"交易大厅"} 自动跨场景到门位），可用 arrive {index,x,y} 确认航点）。' });
   send({ t: 'state', ...observeState(app, uid, username, nick) });
 }
 

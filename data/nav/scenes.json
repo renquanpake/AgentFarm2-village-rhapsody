@@ -32,7 +32,7 @@
     {
       "scene": 4,
       "name": "jitishuitian",
-      "status": "ready-empty-collide",
+      "status": "ready-water-only",
       "source": "maps/jitishuitian.json(collide 层)",
       "w": 53,
       "h": 22,
@@ -41,7 +41,7 @@
     {
       "scene": 5,
       "name": "chunshuian",
-      "status": "ready-empty-collide",
+      "status": "ready",
       "source": "maps/chunshuian.json(collide 层)",
       "w": 35,
       "h": 30,
@@ -50,7 +50,7 @@
     {
       "scene": 6,
       "name": "wenquan",
-      "status": "ready-empty-collide",
+      "status": "ready-water-only",
       "source": "maps/wenquan.json(collide 层)",
       "w": 40,
       "h": 35,
@@ -95,7 +95,7 @@
     {
       "scene": 11,
       "name": "diaoqiao",
-      "status": "ready-empty-collide",
+      "status": "ready",
       "source": "maps/diaoqiao.json(collide 层)",
       "w": 39,
       "h": 35,
@@ -104,7 +104,7 @@
     {
       "scene": 12,
       "name": "shanding",
-      "status": "ready-empty-collide",
+      "status": "ready-water-only",
       "source": "maps/shanding.json(collide 层)",
       "w": 39,
       "h": 45,
@@ -122,7 +122,7 @@
     {
       "scene": 14,
       "name": "suodao",
-      "status": "ready-empty-collide",
+      "status": "ready",
       "source": "maps/suodao.json(collide 层)",
       "w": 39,
       "h": 35,
@@ -140,7 +140,7 @@
     {
       "scene": 102,
       "name": "gfujia",
-      "status": "ready-empty-collide",
+      "status": "ready-water-only",
       "source": "maps/gfujia.json(collide 层)",
       "w": 13,
       "h": 11,
@@ -221,7 +221,7 @@
     {
       "scene": 111,
       "name": "migon",
-      "status": "ready-empty-collide",
+      "status": "ready",
       "source": "maps/migon.json(collide 层)",
       "w": 45,
       "h": 61,

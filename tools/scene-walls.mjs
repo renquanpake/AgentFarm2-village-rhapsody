@@ -7,6 +7,19 @@ import { join } from 'node:path';
 /** 村景老区 rect（原版 77x61 居中 +28）：双源一致性档比对范围（自审观察项②常量） */
 export const VILLAGE_OLD_RECT = { x0: 28, y0: 28, x1: 104, y1: 88 };
 
+/**
+ * P1c 语义层回退：collide 层为空时从场景语义层提取阻挡/水（层名精确匹配，拼音）。
+ * 保守口径——已知实心物体才标阻挡（房子/坑/坏桥/裂壑/屏障/边界），
+ * 歧义地形（如 suodao xiatukuda 44% 密集带、migon shiqian 满幅）保持可走；水层 = 含 "shui" 正则 + 温泉。
+ * 每层自带全满遮罩防护（100% 非零视为渲染遮罩，如 migon collide / yiyuanshinei qiangbi）。
+ * 已验证口径（门户可达性 BFS）：shanding 山层 shan 不入表——原版该场景 collide 全空、山体即可走，
+ * 两个门户 (20,1)/(38,10) 都在山体 8 格带内，标山阻挡即断门户；水层 shanshui 照常保留（路带 bridge）。
+ */
+const SOLID_LAYER_NAMES = new Set(['fanzi', 'dik', 'huaiqiao', 'lieheng', 'barrir', 'bianyuan']);
+const WATER_LAYER_NAMES = new Set(['wenquan']);
+
+function layerNonZeroCount(data, n) { let c = 0; for (let i = 0; i < n; i++) c += data[i] ? 1 : 0; return c; }
+
 /** 从 Tiled 场景 JSON 提取 { blocked, water }（行主序 0/1，w*h 长度）；口径与 build-scene-collisions 一致 */
 export function extractSceneWalls(map, w, h) {
   const layers = Array.isArray(map.layers) ? map.layers : [];
@@ -21,10 +34,21 @@ export function extractSceneWalls(map, w, h) {
   // never 层（绝对不可走，如危险区）并入 blocked
   const never = layers.find(l => /never/i.test(l.name || '') && l.data);
   if (never) for (let i = 0; i < n; i++) if (never.data[i]) blocked[i] = 1;
-  // 水层：名字含 "shui"（shuic/shuijingssss/shuitian...）
+  // P1c 语义回退：collide/never 全空时，从实心语义层提取阻挡（每层全满遮罩防护）
+  if (!blocked.some(v => v === 1)) {
+    for (const l of layers) {
+      if (l.type !== 'tilelayer' || !l.data || !SOLID_LAYER_NAMES.has(l.name)) continue;
+      if (layerNonZeroCount(l.data, n) === n) continue;
+      for (let i = 0; i < n; i++) if (l.data[i]) blocked[i] = 1;
+    }
+  }
+  // 水层：名字含 "shui"（shuic/shuijingssss/shuitian/shanshui...）+ 温泉语义层
   const water = new Array(n).fill(0);
   for (const l of layers) {
-    if (l.type !== 'tilelayer' || !l.data || !/shui/.test(l.name || '')) continue;
+    if (l.type !== 'tilelayer' || !l.data) continue;
+    const isWater = /shui/.test(l.name || '') || WATER_LAYER_NAMES.has(l.name);
+    if (!isWater) continue;
+    if (layerNonZeroCount(l.data, n) === n) continue; // 全满遮罩防护
     for (let i = 0; i < n; i++) if (l.data[i]) water[i] = 1;
   }
   return { blocked, water };

@@ -75,8 +75,10 @@ function main() {
     const center = { x: Math.floor(w / 2) * 100 + 50, y: Math.floor(h / 2) * 100 + 50 };
     const rep = validateAnchors(nav, [{ name: 'center', ...center }]);
     const blockedRatio = blocked.filter(x => x).length / (w * h);
+    const waterCount = water.filter(x => x).length;
     let status;
-    if (blocked.filter(x => x).length === 0) status = 'ready-empty-collide'; // collide 层空：无阻挡数据，需人工核验
+    if (blocked.filter(x => x).length === 0 && waterCount === 0) status = 'ready-empty-collide'; // 无任何碰撞/水数据，需人工核验
+    else if (blocked.filter(x => x).length === 0) status = 'ready-water-only'; // P1c 语义水层提取（相交档查穿水）
     else if (blockedRatio > 0.95) status = 'ready-with-warnings'; // 几乎全阻（矿洞类：需指定入口锚点）
     else status = rep.ok ? 'ready' : 'ready-with-warnings';
     summary.push({ slug, w, h, blocked: blocked.filter(x => x).length, water: water.filter(x => x).length, centerOk: rep.ok, status });

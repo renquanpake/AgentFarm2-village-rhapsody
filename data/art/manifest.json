@@ -946,6 +946,182 @@
         "out": "assets/generated/259-香草园.png",
         "at": "2026-09-29T12:48:08.144Z"
       }
+    },
+    {
+      "idx": 60,
+      "id": 301,
+      "name": "路牌",
+      "category": "municipal",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art a blank wooden wayfinding signpost with two empty unreadable arrow planks mounted on one post for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_jX2muujB5aJeVlLSpZUqEa32RNLJV2mj",
+        "colors": 9,
+        "out": "assets/generated/301-路牌.png",
+        "at": "2026-10-01T13:06:42.532Z"
+      }
+    },
+    {
+      "idx": 60,
+      "id": 302,
+      "name": "路灯",
+      "category": "municipal",
+      "size": "32x48",
+      "status": "done",
+      "prompt": "Pixel art a stone-base oil street lamp with warm lit glass head on a tall post for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_K5rjtXieJ4V1QfFT83Oo2gUxJAcsridR",
+        "colors": 13,
+        "out": "assets/generated/302-路灯.png",
+        "at": "2026-10-01T13:06:53.199Z"
+      }
+    },
+    {
+      "idx": 60,
+      "id": 303,
+      "name": "花箱",
+      "category": "municipal",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art a wooden planter box with colorful flowers spilling over the edge for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_1iZeZb3Ktkp3MGxZWPlVRoi56tg0rk8d",
+        "colors": 13,
+        "out": "assets/generated/303-花箱.png",
+        "at": "2026-10-01T13:07:02.521Z"
+      }
+    },
+    {
+      "idx": 60,
+      "id": 304,
+      "name": "水磨坊",
+      "category": "municipal",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art a small medieval water mill house with a wooden water wheel on the side for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ONOpM7sw3hiqufLmCW5D2GgTjC2ulKH9",
+        "colors": 10,
+        "out": "assets/generated/304-水磨坊.png",
+        "at": "2026-10-01T13:07:11.136Z"
+      }
+    },
+    {
+      "idx": 60,
+      "id": 305,
+      "name": "市集摊",
+      "category": "municipal",
+      "size": "64x64",
+      "status": "done",
+      "prompt": "Pixel art a striped awning market stall table with goods, single stall only for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 64x64. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_gVcOYszCZB9tIzgSKhF1fjvV1v63ntaG",
+        "colors": 12,
+        "out": "assets/generated/305-市集摊.png",
+        "at": "2026-10-01T13:07:21.706Z"
+      }
+    },
+    {
+      "idx": 60,
+      "id": 306,
+      "name": "码头",
+      "category": "municipal",
+      "size": "48x48",
+      "status": "done",
+      "prompt": "Pixel art a small wooden dock pier with two posts and rope, single pier for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no border. Size 48x48. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_4WBPfGB7SDQjftUW0YOo5w1qdlQlf8dH",
+        "colors": 11,
+        "out": "assets/generated/306-码头.png",
+        "at": "2026-10-01T13:07:31.773Z"
+      }
+    },
+    {
+      "idx": 66,
+      "id": 307,
+      "name": "健身房",
+      "category": "building",
+      "size": "288x384",
+      "status": "done",
+      "prompt": "Pixel art a two-storey cozy village GYM house with red-tiled roof, big front door, a dumbbell icon on a blank wooden sign board above the door (sign completely blank) for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no letters, no symbols, no border. Size 288x384. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, letters, symbols, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_JP9ZKI48upIY0cPbOyhzD9EWEAngitLM",
+        "colors": 13,
+        "out": "assets/generated/307-健身房.png",
+        "at": "2026-10-01T13:22:17.357Z"
+      }
+    },
+    {
+      "idx": 66,
+      "id": 308,
+      "name": "铁匠铺",
+      "category": "building",
+      "size": "288x384",
+      "status": "done",
+      "prompt": "Pixel art a medieval village blacksmith forge house with stone base, anvil by the door, chimney smoke puff, blank wooden FORGE sign above door for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no letters, no symbols, no border. Size 288x384. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, letters, symbols, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Xm4rBfUEty3hgaPxagNqu9o1a7Y4g4Lo",
+        "colors": 13,
+        "out": "assets/generated/308-铁匠铺.png",
+        "at": "2026-10-01T13:22:30.568Z"
+      }
+    },
+    {
+      "idx": 66,
+      "id": 309,
+      "name": "宴会舞台",
+      "category": "building",
+      "size": "384x288",
+      "status": "done",
+      "prompt": "Pixel art an open-air village festival stage with wooden platform, two lantern posts and a striped banner, single stage only for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no letters, no symbols, no border. Size 384x288. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, letters, symbols, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_4G8FWzvpglwCWKvLaC7k1ZHKYADOVVIS",
+        "colors": 12,
+        "out": "assets/generated/309-宴会舞台.png",
+        "at": "2026-10-01T13:22:40.514Z"
+      }
+    },
+    {
+      "idx": 66,
+      "id": 310,
+      "name": "气象台小塔",
+      "category": "building",
+      "size": "288x384",
+      "status": "done",
+      "prompt": "Pixel art a small round village observation tower with telescope slit and weathervane on top, blank sign for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no letters, no symbols, no border. Size 288x384. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, letters, symbols, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_mXgnjgx6HQ4n1d6k44q1oQGlNsrlkeI0",
+        "colors": 14,
+        "out": "assets/generated/310-气象台小塔.png",
+        "at": "2026-10-01T13:22:49.720Z"
+      }
+    },
+    {
+      "idx": 66,
+      "id": 311,
+      "name": "招牌挂件",
+      "category": "municipal",
+      "size": "32x32",
+      "status": "done",
+      "prompt": "Pixel art a wooden hanging sign with one red lantern and one small red banner attached, sign board completely blank, single object for a cozy pixel village farm game, 16-bit top-down style, single consistent palette: #fadec9, #2e1008, #d29272, #434b54, #b25c32, #363766, #fac78c, #db8854, #684949, #93899c, #baa397, #dad7dd, #3a7d8d, #473e33, #81618d, #4596a9, 1px dark-brown outline, top-left highlight, clean silhouette, transparent background, no text, no letters, no symbols, no border. Size 32x32. Negative: smooth gradient, anti-aliasing, blur, photorealistic, 3d, text, watermark, letters, symbols, extra colors outside palette.",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_azK6qV5dpEiPq4G2SJeaiN2EJDSjLkjr",
+        "colors": 12,
+        "out": "assets/generated/311-招牌挂件.png",
+        "at": "2026-10-01T13:23:00.569Z"
+      }
     }
   ],
   "note": "生图工具余额不足（2026-09-29）：首批 8 件按设计兜底改 CC0 直采（Kenney Tiny Farm），其余 52 件挂队列待余额恢复批量生成。；2026-09-29 52 件生图完成（agnes-image-2.5-flash + 16 色量化后处理，tools/art-gen.mjs）",

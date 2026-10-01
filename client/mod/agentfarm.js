@@ -639,6 +639,8 @@
       try { hideExtraSlots(); } catch (e) { console.warn('[AF] hideExtraSlots err:', e.message); }
       try { injectVillageMap(); } catch (e) { console.warn('[AF] injectVillageMap err:', e.message); }
       try { injectMapLayerToggles(); } catch (e) { /* 图层开关注入失败不影响主流程 */ }
+      try { injectMunicipalDecor(); } catch (e) { /* 装饰反射失败不影响主流程 */ }
+      try { injectBuildingSigns(); } catch (e) { /* 招牌反射失败不影响主流程 */ }
     }, 1000);
   }
 
@@ -1004,6 +1006,93 @@
   // ---------- 回滚阻挡（兜底：headless 或物理失效时，玩家不得进入房子/树篱） ----------
   // 注意：不用 setInterval（后台标签页会被浏览器节流），挂游戏主循环每帧检测
   let lastValidPos = null, blockWatchOn = false;
+  // ---------- P1d 场景内市政装饰（路牌/路灯/花箱）：/af/mapgrid.decor -> 村景 TiledMap 节点 Cocos 精灵 ----------
+  // 数据 = data/municipal-decor.json（服务端 municipalOf mtime 缓存）；坐标与 injectBlockers 同口径（H 行 y 翻转）。
+  // 幂等：节点名 afMuni_<id>；场景切换随 TiledMap 节点销毁，回村景由 1s tick 重新注入。
+  function injectMunicipalDecor() {
+    const g = mapGridCache;
+    if (!g || !Array.isArray(g.decor) || !g.decor.length) return;
+    const scene = cc.director && cc.director.getScene();
+    if (!scene) return;
+    const pos = readPlayerPos();
+    if (!pos || pos.scene !== 2) return; // 仅村景
+    const tiledNode = getTiledMapNode();
+    if (!tiledNode || !tiledNode.isValid) return;
+    const art = window.__AF_ART__;
+    if (!art || typeof art.toSprite !== 'function') return;
+    const tm = tiledNode.getComponent(cc.TiledMap);
+    const ms = tm && tm.getMapSize ? tm.getMapSize() : null;
+    const H = ms && ms.height;
+    if (!H) return;
+    const lx = (tx) => tx * 100 + 50;
+    const ly = (ty) => (H - ty) * 100 - 50;
+    const DIMS = { 301: [32, 48], 302: [32, 48], 303: [32, 32] }; // manifest 301-306 生成尺寸
+    for (const d of g.decor) {
+      if (!d || !d.id) continue;
+      const node = 'afMuni_' + d.id;
+      if (tiledNode.getChildByName(node)) continue;
+      const scale = Number(d.scale) > 0 ? Number(d.scale) : 1.4;
+      const dim = DIMS[d.sprite] || [48, 48];
+      art.toSprite(d.sprite, {
+        parent: tiledNode, name: node,
+        x: lx(d.x), y: ly(d.y),
+        w: Math.round(dim[0] * scale), h: Math.round(dim[1] * scale),
+      });
+    }
+  }
+
+  // ---------- P2 建筑招牌（A 挂牌模式：原版建筑 + 挂件 311 + cc.Label 名；B 覆盖建筑随 +28 环 P3 落位后自动生效） ----------
+  // 数据 = /af/buildings?scene=N（buildings.json mtime 缓存）；场景切换随 TiledMap 节点销毁，回场景由 1s tick 重新注入。
+  const bldgSceneCache = {};
+  let bldgInjectedScene = null;
+  function injectBuildingSigns() {
+    const pos = readPlayerPos();
+    if (!pos || !pos.scene) return;
+    const sceneId = pos.scene;
+    if (bldgInjectedScene !== sceneId) {
+      bldgInjectedScene = sceneId;
+      if (window.__AF_BLDG_DONE__) delete window.__AF_BLDG_DONE__[sceneId]; // 场景树已换新，重置幂等标记
+    }
+    if (window.__AF_BLDG_DONE__ && window.__AF_BLDG_DONE__[sceneId]) return;
+    const tiledNode = getTiledMapNode();
+    if (!tiledNode || !tiledNode.isValid) return;
+    const art = window.__AF_ART__;
+    if (!art || typeof art.toSprite !== 'function') return;
+    const deliver = (list) => {
+      if (!list.length) { window.__AF_BLDG_DONE__ = window.__AF_BLDG_DONE__ || {}; window.__AF_BLDG_DONE__[sceneId] = true; return; }
+      const tm = tiledNode.getComponent(cc.TiledMap);
+      const ms = tm && tm.getMapSize ? tm.getMapSize() : null;
+      const H = ms && ms.height;
+      if (!H) return;
+      const lx = (gx) => gx * 100 + 50;
+      const ly = (gy) => (H - gy) * 100 - 50;
+      for (const b of list) {
+        if (b.pending || !b.sign || b.door === null || b.mode !== 'hang') continue; // B 覆盖/pending 占位不挂
+        const sx = lx(b.sign.x), sy = ly(b.sign.y);
+        const sn = 'afBldg_' + b.id;
+        if (tiledNode.getChildByName(sn)) continue;
+        art.toSprite(b.artId, { parent: tiledNode, name: sn, x: sx, y: sy + 24, w: 40, h: 40 });
+        try { // 招牌文字（图不带字，Label 运行时叠加；金 12px）
+          const ln = new cc.Node('afBldgLbl_' + b.id);
+          const lb = ln.addComponent(cc.Label);
+          lb.string = b.name;
+          lb.fontSize = 12;
+          lb.lineHeight = 14;
+          lb.color = new cc.Color(255, 215, 90, 255);
+          ln.setPosition(sx, sy + 48);
+          tiledNode.addChild(ln);
+        } catch (e) { /* Label API 缺失：挂件已挂，文字降级 */ }
+      }
+      window.__AF_BLDG_DONE__ = window.__AF_BLDG_DONE__ || {};
+      window.__AF_BLDG_DONE__[sceneId] = true;
+    };
+    if (bldgSceneCache[sceneId]) { deliver(bldgSceneCache[sceneId]); return; }
+    fetch(SERVER + '/af/buildings?scene=' + sceneId + '&token=' + encodeURIComponent(token))
+      .then(r => r.json())
+      .then(d => { bldgSceneCache[sceneId] = (d && d.buildings) || []; deliver(bldgSceneCache[sceneId]); })
+      .catch(() => { bldgSceneCache[sceneId] = []; window.__AF_BLDG_DONE__ = window.__AF_BLDG_DONE__ || {}; window.__AF_BLDG_DONE__[sceneId] = true; });
+  }
+
   function startBlockWatch() {
     if (blockWatchOn || !window.cc || !cc.director) return;
     blockWatchOn = true;
