@@ -4,8 +4,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** 村景老区 rect（原版 77x61 居中 +28）：双源一致性档比对范围（自审观察项②常量） */
-export const VILLAGE_OLD_RECT = { x0: 28, y0: 28, x1: 104, y1: 88 };
+/** 村景老区 rect（原版 77x61 居中；P0 133 空间 +28=56 偏移，P3 189 空间再 +28=112 偏移）：双源一致性档比对范围 */
+export const VILLAGE_OLD_RECT = { x0: 56, y0: 56, x1: 132, y1: 116 };
 
 /**
  * P1c 语义层回退：collide 层为空时从场景语义层提取阻挡/水（层名精确匹配，拼音）。

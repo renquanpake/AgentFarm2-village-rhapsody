@@ -135,7 +135,7 @@ type 枚举：`monument / building / bridge / fountain / tower / dock / gate / s
 | P1c 卫星碰撞源提取 | 已完工 | 573d895（scene-walls 语义层回退：fanzi/dik/huaiqiao/lieheng/barrir/bianyuan 阻挡 + shuitian/shanshui/wenquan 水层；shanding 山层经门户 BFS 排除；相交档全场景判死；ready-water-only 状态） |
 | P1d 生图 + 反射 | 已完工 | 573d895（manifest 301-311 v2 纯白底 + art-qa 71/71；municipal-decor.json 村景 18 件 + 客户端 injectMunicipalDecor/injectBuildingSigns；桥/塔/喷泉/栅栏门复用 222/227/214/224） |
 | P2 建筑功能层（排期项 7） | 已完工 | 573d895（buildings.json 7 建筑 C1 定稿 (48,43)-(57,51)；move_to near:建筑名跨场景；observe buildings 区域；letter + /af/letter + /af/buildings；经济钩子默认关待 M-B1） |
-| P3 +28 环 | 进行中 | 相机/边界 spike 已完成：原版 `updateCameraPos` 钳制用 `sceneSize=tiledMap.getMapSize()×tileSize`（index.e6d95.js），**钳制随 TMX 资产自动扩展、零相机代码改动**；剩余 = TMX 133→189 重烘（expand-village-map 管线泛化）+ 环建筑落位（307-310 B 覆盖件）+ 南环 3 水道/2 钓点 + 西环果农宅 id 9 + 全回归 |
+| P3 +28 环 | 已完工（数据层） | 相机 spike：钳制随 TMX 资产自动扩展（零代码）；`tools/expand-village-ring.mjs` 重烘 189×173 TMX+plant+spawn（西环果农宅 id9+果园、南环 3 水道、东环建筑街 3 块、北环树林+气象台塔、P3 外圈栅栏环）；村景数据全 +28（roads/landmarks/decor/buildings/portals，shift-village-data 幂等）；新增 5 段环路（ring-w/n/e-n/e-s/s）+4 锚点地标（气象台塔/河湾钓点/集市广场/建筑街南）；B 覆盖件定稿 pending=false；buildings.json 村景 5 + 内部场景 2；hash 基线刷新 5140（2 资产）；nav-replay 24 路线基线重录（含 house-9）；客户端 B 覆盖反射（307-310 生图 + Label，底边锚点+zIndex 同角色公式）。**留实机确认锚点：新环截图 / 建筑 z 层 / 生图画风 3 件** |
 
 ## 6. 验收门
 

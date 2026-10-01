@@ -1067,12 +1067,29 @@
       const lx = (gx) => gx * 100 + 50;
       const ly = (gy) => (H - gy) * 100 - 50;
       for (const b of list) {
-        if (b.pending || !b.sign || b.door === null || b.mode !== 'hang') continue; // B 覆盖/pending 占位不挂
+        if (b.pending) continue;
         const sx = lx(b.sign.x), sy = ly(b.sign.y);
         const sn = 'afBldg_' + b.id;
-        if (tiledNode.getChildByName(sn)) continue;
-        art.toSprite(b.artId, { parent: tiledNode, name: sn, x: sx, y: sy + 24, w: 40, h: 40 });
+        if (b.mode === 'cover' && b.rect) {
+          // B 覆盖：生图建筑（307-310）盖住 fanzi 块；锚点=底边中点，zIndex 与角色同公式（底边行深）
+          if (!tiledNode.getChildByName(sn)) {
+            const DIMC = { 307: [288, 384], 308: [288, 384], 309: [384, 288], 310: [288, 384] };
+            const dim = DIMC[b.artId] || [288, 384];
+            const fw = b.rect.w * 100, fh = b.rect.h * 100 * 0.9;
+            const sc = Math.min(fw / dim[0], fh / dim[1]);
+            const cx = lx(b.rect.x + b.rect.w / 2), byBase = ly(b.rect.y + b.rect.h);
+            art.toSprite(b.artId, { parent: tiledNode, name: sn, x: cx, y: byBase, w: Math.round(dim[0] * sc), h: Math.round(dim[1] * sc) });
+            // toSprite 默认锚点(0.5,0.5)：底边中点定位需下移半高
+            const node = tiledNode.getChildByName(sn);
+            if (node) node.setPosition(cx, byBase - Math.round(dim[1] * sc) / 2 + 2);
+          }
+        } else if (b.mode === 'hang' && !tiledNode.getChildByName(sn)) {
+          art.toSprite(b.artId, { parent: tiledNode, name: sn, x: sx, y: sy + 24, w: 40, h: 40 });
+        } else {
+          continue;
+        }
         try { // 招牌文字（图不带字，Label 运行时叠加；金 12px）
+          if (!b.sign || tiledNode.getChildByName('afBldgLbl_' + b.id)) continue;
           const ln = new cc.Node('afBldgLbl_' + b.id);
           const lb = ln.addComponent(cc.Label);
           lb.string = b.name;
@@ -1080,6 +1097,7 @@
           lb.lineHeight = 14;
           lb.color = new cc.Color(255, 215, 90, 255);
           ln.setPosition(sx, sy + 48);
+          ln.zIndex = (b.rect ? (b.rect.y + b.rect.h) * 100 : 0) + 50;
           tiledNode.addChild(ln);
         } catch (e) { /* Label API 缺失：挂件已挂，文字降级 */ }
       }

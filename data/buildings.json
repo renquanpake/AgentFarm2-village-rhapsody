@@ -1,12 +1,204 @@
 {
  "note": "P2 建筑功能层（world-expansion design.md §4）：统一 buildings.json（trade-hall spec 并入）。C1 中央空房 = 推荐候选 (48,43)-(57,51)（trade-hall spec 待确认项定稿）。mode=hang 为 A 挂牌（原版建筑上挂招牌挂件 311），mode=cover 为 B 覆盖（空地盖生图建筑，artId 307-310，随 +28 环 P3 建成启用）；hooks 中经济类（匹配/计息/投保/开摊）默认关，M-B1 影子窗结束后开启。pending=true 的落位坐标为占位，P3 建环后校正。",
  "buildings": [
-  {"id": "trade-hall", "name": "交易大厅", "kind": "hall", "scene": 2, "rect": {"x": 48, "y": 43, "w": 10, "h": 9}, "door": {"x": 5350, "y": 5250}, "poi": {"x": 53, "y": 52}, "sign": {"x": 53, "y": 52}, "artId": 311, "mode": "hang", "pending": false, "hooks": ["trade-hall T1-T4：move_to near/小地图金框/行情牌（开）；订单匹配（关至 M-B1）"]},
-  {"id": "bank", "name": "银行", "kind": "bank", "scene": 102, "door": {"x": 650, "y": 100}, "poi": {"x": 6, "y": 1}, "sign": {"x": 6, "y": 2}, "artId": 311, "mode": "hang", "pending": false, "hooks": ["资产日报（开）；存取计息（关至 M-B1）"]},
-  {"id": "post", "name": "邮局", "kind": "post", "scene": 109, "door": {"x": 275, "y": 135}, "poi": {"x": 2, "y": 1}, "sign": {"x": 2, "y": 2}, "artId": 311, "mode": "hang", "pending": false, "hooks": ["letter 写信（开，llm-write + 无 Key 回落）"]},
-  {"id": "observatory", "name": "气象台", "kind": "tower", "scene": 2, "rect": {"x": 64, "y": 0, "w": 8, "h": 4}, "door": null, "poi": null, "sign": null, "artId": 310, "mode": "cover", "pending": true, "hooks": ["明日天气预告（开）；投保（关至 M-B1）"]},
-  {"id": "banquet-hall", "name": "宴会厅", "kind": "stage", "scene": 2, "rect": {"x": 66, "y": 76, "w": 5, "h": 5}, "door": {"x": 6850, "y": 8150}, "poi": {"x": 68, "y": 79}, "sign": {"x": 68, "y": 79}, "artId": 309, "mode": "cover", "pending": false, "hooks": ["四类节日赛事锚点 + 开摊区（开摊关至 M-B1）"]},
-  {"id": "gym", "name": "健身房", "kind": "gym", "scene": 2, "rect": {"x": 134, "y": 60, "w": 10, "h": 8}, "door": null, "poi": null, "sign": null, "artId": 307, "mode": "cover", "pending": true, "hooks": ["attributeData 训练 + 冷却（随东环 P3 启用）"]},
-  {"id": "forge", "name": "铁匠铺", "kind": "forge", "scene": 2, "rect": {"x": 134, "y": 84, "w": 10, "h": 8}, "door": null, "poi": null, "sign": null, "artId": 308, "mode": "cover", "pending": true, "hooks": ["强化/耐久 makeData（随东环 P3 启用）"]}
- ]
+  {
+   "id": "trade-hall",
+   "name": "交易大厅",
+   "kind": "hall",
+   "scene": 2,
+   "rect": {
+    "x": 76,
+    "y": 71,
+    "w": 10,
+    "h": 9
+   },
+   "door": {
+    "x": 8150,
+    "y": 8050
+   },
+   "poi": {
+    "x": 81,
+    "y": 80
+   },
+   "sign": {
+    "x": 81,
+    "y": 80
+   },
+   "artId": 311,
+   "mode": "hang",
+   "pending": false,
+   "hooks": [
+    "trade-hall T1-T4：move_to near/小地图金框/行情牌（开）；订单匹配（关至 M-B1）"
+   ]
+  },
+  {
+   "id": "bank",
+   "name": "银行",
+   "kind": "bank",
+   "scene": 102,
+   "door": {
+    "x": 650,
+    "y": 100
+   },
+   "poi": {
+    "x": 6,
+    "y": 1
+   },
+   "sign": {
+    "x": 6,
+    "y": 2
+   },
+   "artId": 311,
+   "mode": "hang",
+   "pending": false,
+   "hooks": [
+    "资产日报（开）；存取计息（关至 M-B1）"
+   ]
+  },
+  {
+   "id": "post",
+   "name": "邮局",
+   "kind": "post",
+   "scene": 109,
+   "door": {
+    "x": 275,
+    "y": 135
+   },
+   "poi": {
+    "x": 2,
+    "y": 1
+   },
+   "sign": {
+    "x": 2,
+    "y": 2
+   },
+   "artId": 311,
+   "mode": "hang",
+   "pending": false,
+   "hooks": [
+    "letter 写信（开，llm-write + 无 Key 回落）"
+   ]
+  },
+  {
+   "id": "observatory",
+   "name": "气象台",
+   "kind": "tower",
+   "scene": 2,
+   "rect": {
+    "x": 91,
+    "y": 3,
+    "w": 9,
+    "h": 9
+   },
+   "door": {
+    "x": 9500,
+    "y": 1200
+   },
+   "poi": {
+    "x": 95,
+    "y": 12
+   },
+   "sign": {
+    "x": 95,
+    "y": 12
+   },
+   "artId": 310,
+   "mode": "cover",
+   "pending": false,
+   "hooks": [
+    "明日天气预告（开）；投保（关至 M-B1）"
+   ]
+  },
+  {
+   "id": "banquet-hall",
+   "name": "宴会厅",
+   "kind": "stage",
+   "scene": 2,
+   "rect": {
+    "x": 94,
+    "y": 104,
+    "w": 5,
+    "h": 5
+   },
+   "door": {
+    "x": 9650,
+    "y": 10950
+   },
+   "poi": {
+    "x": 96,
+    "y": 107
+   },
+   "sign": {
+    "x": 96,
+    "y": 107
+   },
+   "artId": 309,
+   "mode": "cover",
+   "pending": false,
+   "hooks": [
+    "四类节日赛事锚点 + 开摊区（开摊关至 M-B1）"
+   ]
+  },
+  {
+   "id": "gym",
+   "name": "健身房",
+   "kind": "gym",
+   "scene": 2,
+   "rect": {
+    "x": 172,
+    "y": 96,
+    "w": 10,
+    "h": 9
+   },
+   "door": {
+    "x": 17100,
+    "y": 10000
+   },
+   "poi": {
+    "x": 171,
+    "y": 100
+   },
+   "sign": {
+    "x": 171,
+    "y": 100
+   },
+   "artId": 307,
+   "mode": "cover",
+   "pending": false,
+   "hooks": [
+    "attributeData 训练 + 冷却（随东环 P3 启用）"
+   ]
+  },
+  {
+   "id": "forge",
+   "name": "铁匠铺",
+   "kind": "forge",
+   "scene": 2,
+   "rect": {
+    "x": 172,
+    "y": 118,
+    "w": 10,
+    "h": 10
+   },
+   "door": {
+    "x": 17100,
+    "y": 12300
+   },
+   "poi": {
+    "x": 171,
+    "y": 123
+   },
+   "sign": {
+    "x": 171,
+    "y": 123
+   },
+   "artId": 308,
+   "mode": "cover",
+   "pending": false,
+   "hooks": [
+    "强化/耐久 makeData（随东环 P3 启用）"
+   ]
+  }
+ ],
+ "p3_shifted": true
 }

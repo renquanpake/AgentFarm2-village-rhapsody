@@ -24,6 +24,8 @@ function collectFiles(base) {
     } else {
       // index.html 已为 mod 注入服务（引用 mod/agentfarm.js），属可演进部分，不纳入
       if (rel === path.join('client', 'index.html')) continue;
+      // 清单自身不入清单（自包含会致 --check 恒报"清单被改动"）
+      if (rel === path.join('client', 'original-hash.json')) continue;
       out.push(rel);
     }
   }
