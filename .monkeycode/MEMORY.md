@@ -43,6 +43,9 @@
 - **回放态禁落盘**：`rebuildState`/`fromSnapshot` 的重建态必须 `noPersist:true`，否则一致性校验会把回放结果写进生产存档（已修）。
 - 事件库按存档位隔离：`data/saves/slotN/events.db`；切档即换库。`events` 表 seq 单调递增，崩溃后 `EventLog.init()` 读回 MAX(seq) 续增。
 - `structuredHash` 只覆盖"事件拥有"的结构化域（plant/farm/sprinkler/social/afTasks/agentPos），自由桶（mapData/playerData/knapData 等客户端可覆写）不参与——启动一致性告警属正常诊断，非错误。**已归因验证**：`git stash` 回到改动前代码、跑从未被本轮改过的 slot95，同样报 `一致性告警：重放哈希 != 运行状态哈希`（events=172），确认与新改动无关；排查该告警时不必先怀疑最近的功能改动。
+- **NaN 坐标会被误诊成地形问题**（2026-10-02）：`/agent` 的 `act move_to` 若拿不到有效 `x/y`（漏传、或误传 `target=` 等字段名），旧代码把 `NaN` 一路传进 `snapInteraction` / `astarClearance` / `bfsPath`，最后统一报「目标不可达（被障碍包围）」——把入参问题说成地形问题。`snapInteraction` 的 `walk()` 里 `x >= 0` 对 NaN 为 false，是这类静默回落的常见源头。**教训：玩家侧动作的报错必须先校验入参并点名收到的字段，否则玩家会去错误地勘察地形。**
+- **nav 的水判定不能沿用可走性**（2026-10-02）：`buildNavGrid` 对「水且 blocked」记 `kind=2, cost=-1`。若 `isWater` 写成 `walk() && kind===2`（`walk()` 要求 `cost>0`），则每格真水都因不可走被判成非水，`move_to {near:'water'}` 在真实村庄地图上恒无解——而单测用「可走水塘」（cost=2）恰好掩盖了这个 bug。**权威水标记是 `nav.kind===2`（`roads.ts` 也是这么用的），水格判定必须自带边界检查、不叠 `walk()`。补测试要用 blocked+water 形态。**
+- **文案即契约**：玩家动作的 `welcome` 通知、报错提示里出现的参数写法，实现必须能吃。`train` 的 welcome 写 `attr:力量/敏捷/亲和` 而 `trainAttr` 只收 `strength/agility/charisma`，玩家照抄指引必然失败。改这类不一致时只补**文案已公示**的写法，别顺手扩同义词（那是擅自扩契约）。
 
 ## 施工进度与续作（Workflow）
 - 当前进度与任务清单：`.monkeycode/specs/agentfarm2-playability-upgrade/tasklist.md`（先读它确认，再读同目录 requirements.md / design.md）。
