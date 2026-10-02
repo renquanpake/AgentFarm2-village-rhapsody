@@ -9,6 +9,7 @@ import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
 import { favBetween, dmUnlockedList } from '../world/social.ts';
 import { fitnessOf } from '../world/fitness.ts';
 import { activeFestival } from '../world/festival.ts';
+import { recentNotices } from '../world/notices.ts';
 import { municipalOf, municipalContext, villageNavOf, buildingTargetOf, type Building } from '../navigation/municipal.ts';
 
 /** D2 区域级障碍：12 格窗口内连续水域/树丛 -> 区域名 + 格子范围 + 绕行原则（§4.2：不喂单树坐标清单给导航） */
@@ -167,9 +168,20 @@ export function observeState(app: App, uid: string, username: string, nick: stri
   const inboxArr = notes.inboxOf(app.usernameOf(uid)).arr;
   const ops = (state.playerOps.get(uid) || []).map(o => ({ kind: o.kind, text: o.text, at: o.at }));
 
-  return {
-    nick: app.accountNick(uid),
-    uid,
+    // 任务清单（H 包）：系统任务进行中 + 委托栏
+    const tasks = (() => {
+      const pdTasks = state.playersDb.get(uid)?.get('afTasks') as { inProgress?: Array<{ name?: string; step?: number }>; delegated?: Array<{ by?: string; name?: string; reward?: number }> } | undefined;
+      const out: Record<string, unknown> = {};
+      if (pdTasks?.inProgress?.length) out.inProgress = pdTasks.inProgress;
+      if (pdTasks?.delegated?.length) out.delegated = pdTasks.delegated;
+      return Object.keys(out).length ? out : null;
+    })();
+    // 公告（H 包）：最近 5 条
+    const notices = recentNotices(state, 5);
+
+    return {
+      nick: app.accountNick(uid),
+      uid,
     scene: apos.scene ?? (pd.sceneType as number | undefined) ?? 0,
     pos: { x: apos.x ?? 0, y: apos.y ?? 0 },
     day: (pd.day as number | undefined) ?? 0, time: (pd.time as number | undefined) ?? 0, weather: (pd.weatherType as number | undefined) ?? 1,
@@ -185,6 +197,8 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     sceneFilter: notInVillageHint ? { note: notInVillageHint } : null,
     playersNear,
     social,
+    notices: notices.length ? notices : null,
+    tasks,
     dmUnlocked: dmUnlockedList(state, uid),
     farm: {
       plots: worldPlots(state).map(p => ({ gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantUID: p.plantUID })).slice(0, 12),

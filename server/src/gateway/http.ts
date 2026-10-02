@@ -81,12 +81,21 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
 
     // ---------- 账号 ----------
     if (u.pathname === '/af/register' || u.pathname === '/af/login') {
-      const body = RegisterBody.safeParse(await readJsonBody(req, 1024));
+      const rawBody = await readJsonBody(req, 1024);
+      const body = RegisterBody.safeParse(rawBody);
       if (!body.success) { text(res, 400, 'bad json'); return; }
       const uname = String(body.data.username || '').trim();
       const pw = String(body.data.password || '');
       if (!/^[\w\u4e00-\u9fa5-]{2,16}$/.test(uname) || pw.length < 4) { text(res, 400, 'bad account'); return; }
       if (u.pathname === '/af/register') {
+        // 上线锁房门（WP3）：AF_REGISTER_INVITE 邀请码 + AF_MAX_PLAYERS 玩家上限
+        const invite = process.env.AF_REGISTER_INVITE;
+        if (invite) {
+          const given = String((rawBody as Record<string, unknown>).invite ?? (rawBody as Record<string, unknown>)._afInvite ?? '');
+          if (given !== invite) { text(res, 403, '需要邀请码'); return; }
+        }
+        const cap = Number(process.env.AF_MAX_PLAYERS || 0);
+        if (cap > 0 && Object.keys(app.accounts.accounts).length >= cap) { text(res, 429, '玩家已满'); return; }
         const r = app.accounts.register(uname, pw);
         if (!r.ok) {
           if (r.msg === 'exists') { text(res, 409, 'exists'); return; }
@@ -336,6 +345,44 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       app.switchSlot(newSlot);
       console.log(`[slot] 已切换到存档${newSlot}，世界数据已重载`);
       json(res, 200, { ok: true, slot: newSlot });
+      return;
+    }
+
+    // 回放一致性探针（A1/M-O1 第九门消费端）：上次启动自检结论
+    if (u.pathname === '/af/replay-status') {
+      json(res, 200, {
+        ok: true,
+        consistent: app.replayVerify.consistent,
+        events: app.replayVerify.events,
+        ts: app.replayVerify.ts,
+        // 哈希前缀只用于人工对比，非敏感
+        replayHash: app.replayVerify.replayHash,
+        liveHash: app.replayVerify.liveHash,
+        // E 包：广播队列深度 + 内存曲线尾部
+        broadcastQueue: app.state.broadcastQueueDepth(),
+        memTail: app.memSamples.slice(-20),
+      });
+      return;
+    }
+
+    // 全村文本地图（H 包/R9 设计铁律）：数据自动生成，纯文本 LLM 自规划路线
+    if (u.pathname === '/af/mapdoc') {
+      try {
+        const nav = JSON.parse(fs.readFileSync(path.join(app.dataDir, 'nav/nav-2.json'), 'utf8'));
+        const { buildMapDoc } = await import('../world/mapdoc.ts');
+        const doc = buildMapDoc({ dataDir: app.dataDir, sceneWidth: nav.width ?? 189, sceneHeight: nav.height ?? 173, cellPx: 100 });
+        json(res, 200, { ok: true, mapdoc: doc.text, stats: { blocked: doc.blockedClusters.length, water: doc.waterClusters.length, roads: doc.roadCount } });
+      } catch (e) {
+        json(res, 500, { ok: false, msg: `mapdoc 生成失败：${String((e as Error).message)}` });
+      }
+      return;
+    }
+
+    // 公告通道（H 包）：/af/notices?since=<seq>
+    if (u.pathname === '/af/notices') {
+      const { noticesSince, lastNoticeSeq } = await import('../world/notices.ts');
+      const since = Number(new URLSearchParams(u.search).get('since') || 0);
+      json(res, 200, { ok: true, since, lastSeq: lastNoticeSeq(app.state), notices: noticesSince(app.state, since).slice(-50) });
       return;
     }
 

@@ -82,6 +82,8 @@ export class App {
 
     this.openSlot(opts?.slot ?? CURRENT_SLOT);
     this.managed = new ManagedAgentManager(this);
+    // E 包：内存曲线采样（30s/点，120 点环形；/af/replay-status.memTail 可观测）
+    this.startMemorySampler();
   }
 
   private stateOptsFor(slot: number): StateOpts {
@@ -131,6 +133,30 @@ export class App {
     this.verifyReplay();
   }
 
+  /** 最近一次启动一致性校验结果（A1/M-O1：供 /af/health 与回放一致性门消费） */
+  replayVerify = {
+    consistent: false as boolean,
+    events: 0,
+    replayHash: '',
+    liveHash: '',
+    ts: 0,
+  };
+
+  /** E 包：内存曲线环形采样（heapUsed，30s 一次，保留 120 点）+ 广播队列深度 */
+  memSamples: Array<{ ts: number; heapMB: number; rssMB: number }> = [];
+  private memTimer: NodeJS.Timeout | null = null;
+  startMemorySampler(intervalMs = 30000, cap = 120): void {
+    if (this.memTimer) return;
+    const sample = () => {
+      const m = process.memoryUsage();
+      this.memSamples.push({ ts: Date.now(), heapMB: Math.round(m.heapUsed / 1048576), rssMB: Math.round(m.rss / 1048576) });
+      if (this.memSamples.length > cap) this.memSamples.shift();
+    };
+    sample();
+    this.memTimer = setInterval(sample, intervalMs);
+    this.memTimer.unref?.();
+  }
+
   /** 启动一致性校验：重放 最近快照+其后事件，与运行状态的结构化域哈希比对（漂移仅告警） */
   verifyReplay(): void {
     try {
@@ -139,12 +165,14 @@ export class App {
       const rebuilt = rebuildState(snap?.state ?? null, events, this.stateOpts, this.tables);
       const a = structuredHash(rebuilt);
       const b = structuredHash(this.state);
+      this.replayVerify = { consistent: a === b, events: events.length, replayHash: a.slice(0, 16), liveHash: b.slice(0, 16), ts: Date.now() };
       if (a !== b) {
-        log.write('warn', 'events', '一致性告警：重放哈希 != 运行状态哈希', { replay: a.slice(0, 12), live: b.slice(0, 12), events: events.length });
+        log.write('warn', 'events', '一致性告警：重放哈希 != 运行状态哈希（启动自检，自由桶可覆写，详见 MEMORY）', { replay: a.slice(0, 12), live: b.slice(0, 12), events: events.length });
       } else {
         log.write('info', 'events', '一致性校验通过', { events: events.length, hash: a.slice(0, 12) });
       }
     } catch (e) {
+      this.replayVerify = { consistent: false, events: 0, replayHash: '', liveHash: `ERR ${String((e as Error).message).slice(0, 40)}`, ts: Date.now() };
       log.write('warn', 'events', '一致性校验失败（不影响启动）', { error: (e as Error).message });
     }
   }

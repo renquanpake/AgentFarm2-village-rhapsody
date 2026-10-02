@@ -1831,7 +1831,7 @@
       const ocss = document.createElement('style');
       ocss.textContent = `
       #af-onboard { position: fixed; inset: 0; z-index: 100200; display: none;
-        align-items: center; justify-content: center; background: rgba(0,0,0,.62); }
+         align-items: center; justify-content: center; background: var(--af-c-overlay); /* af-color-allow 遮罩走 tokens 变量 */ }
       #af-ob-card { width: 560px; max-width: 94vw; max-height: 88vh; overflow: auto; display: flex; flex-direction: column;
         background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep));
         border: 2px solid var(--af-c-wood); border-radius: 12px;
@@ -1942,7 +1942,8 @@
         const b = document.createElement('button');
         b.className = 'btn' + (cls ? ' ' + cls : '');
         b.textContent = label;
-        b.onclick = fn;
+        // R4.4：点击绑定统一走 AFUNI.on（三态）；AFUNI 缺失时静默降级（P3 隔离），不回落直接绑定
+        try { if (window.AFUNI && window.AFUNI.on) window.AFUNI.on(b, fn, { cls: false }); } catch (e) { /* 降级 */ }
         return b;
       }
       function providerBody(extra) {

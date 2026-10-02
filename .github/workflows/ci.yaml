@@ -81,3 +81,27 @@ jobs:
           node tools/ui-lint.mjs
           node tools/ui-smoke.mjs
         working-directory: .
+
+      # 门 9：回放一致性（A1/M-O1）——复用门 3 隔离数据目录，起服务取 /af/replay-status
+      # 判定：一致，或漂移可归因（自由桶 knapData/playerData 客户端可覆写，见 MEMORY 已归因条目）。
+      # 无事件仍漂移 -> events=0 -> FAIL（真异常拦截）。
+      - name: 门9 回放一致性
+        run: |
+          export AF_DATA_DIR="$(mktemp -d)"
+          export AF_NO_TUNNEL=1 AF_NO_GIT=1 PORT=8135
+          node src/index.ts > server-ci9.log 2>&1 &
+          SRV=$!
+          sleep 5
+          set +e
+          AF_BASE=http://127.0.0.1:8135 node ../tools/replay-consistency.mjs --fail-on-mismatch
+          RC=$?
+          set -e
+          kill $SRV 2>/dev/null || true
+          [ $RC -eq 0 ] || { echo "=== server log ==="; cat server-ci9.log; exit 1; }
+          echo "回放一致性通过（events=0 或 漂移已归因）"
+        working-directory: server
+
+      # 门 10：文本无障碍表面审计（H6/R9 T6）——新增玩家可见信息必须同步文本通道
+      - name: 门10 文本无障碍表面审计
+        run: node tools/surface-audit.mjs
+        working-directory: .

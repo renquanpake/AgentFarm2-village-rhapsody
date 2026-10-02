@@ -8,7 +8,7 @@ import { slotPaths } from '../config.ts';
 
 // livestockData/sprinklerData 是 world 桶（farm.ts:57、livestock.ts:3 明示），
 // 却常年不在集合里，导致这些键在客户端回写时被当作未知键静默丢弃、状态永久丢失。
-export const WORLD_KEYS = new Set(['mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData', 'socialData', 'livestockData', 'sprinklerData']);
+export const WORLD_KEYS = new Set(['mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData', 'socialData', 'livestockData', 'sprinklerData', 'claimsData', 'leaseData', 'delegatedData', 'noticeData']);
 export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks']);
 export const GLOBAL_KEYS = new Set(['audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage']);
 
@@ -285,6 +285,9 @@ export class WorldState {
   }
 
   // ---------- save 广播合并（500ms 窗口，同 key 取最新值） ----------
+  /** E 包：广播队列深度（管理端点可观测） */
+  broadcastQueueDepth(): number { return this.savePending.size; }
+
   queueSaveBroadcast(targetUid: string, kvPairs: Array<[string, unknown]>, byUid: string): void {
     let m = this.savePending.get(targetUid);
     if (!m) { m = new Map(); this.savePending.set(targetUid, m); }

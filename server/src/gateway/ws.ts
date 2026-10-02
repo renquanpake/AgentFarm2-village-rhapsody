@@ -30,6 +30,10 @@ import { recordFestivalScore, stallFee, activeFestival } from '../world/festival
 import { currentGameDay, calendarDay, STORM_INSURANCE_PER_PLANT } from '../world/calendar.ts';
 import { trainAttr, fitnessOf, GYM_ATTR_NAME, GYM_ATTRS } from '../world/fitness.ts';
 import { gate, FISH_COOLDOWN_MS, MINE_COOLDOWN_MS } from '../world/stamina.ts';
+import { recordGossip, isSignificant, latestGossip } from '../world/gossip.ts';
+import { publishNotice } from '../world/notices.ts';
+import { publish as delegatePublish, accept as delegateAccept, complete as delegateComplete, listFor as delegateList } from '../world/delegate.js';
+import { openLease, care as careLease, tickLease as tickLeaseClock, regrow as regrowNow, leaseOf } from '../world/lease.js';
 import type { AgentPos } from '../types.ts';
 import { observeState } from '../cognition/observe.ts';
 import { notePlayerOp, publishAgentActivityGlobal } from '../cognition/managed.ts';
@@ -519,11 +523,14 @@ export function gameConn(app: App, ws: WebSocket): void {
       case 'social_give': {
         const p = state.online.get(uid!);
         if (!p) break;
-        const target = resolveOnlineUid(state, String(msg.target || '')) || '';
+        const target = resolveOnlineUid(state, String(msg.target || '')) || resolveAnyUid(state, app.accounts, String(msg.target || '')) || '';
         const pB = state.online.get(target);
-        if (!pB) { send({ t: 'social_result', social: 'give', ok: false, msg: '对方不在线' }); break; }
-        const nr = socialNear(state, uid!, target);
-        if (!nr.ok) { send({ t: 'social_result', social: 'give', ok: false, msg: nr.msg }); break; }
+        const targetAgentId = target.startsWith('agent:') ? target.slice(6) : null;
+        if (!pB && !targetAgentId) { send({ t: 'social_result', social: 'give', ok: false, msg: '对方不在线' }); break; }
+        if (pB) {
+          const nr = socialNear(state, uid!, target);
+          if (!nr.ok) { send({ t: 'social_result', social: 'give', ok: false, msg: nr.msg }); break; }
+        }
         const itemId = Number(msg.itemId);
         const num = Math.max(1, Math.min(99, Number(msg.num || 1)));
         const it = app.tables.items.find(x => x.id === itemId);
@@ -536,21 +543,34 @@ export function gameConn(app: App, ws: WebSocket): void {
         const g = giftFavGain(state, app.tables, uid!, target, itemId);
         const fav = addFav(state, uid!, target, g);
         taskCount(state, app.tables, uid!, 'give');
+        const nmTarget = targetAgentId
+          ? `托管 ${targetAgentId}`
+          : (pB ? pB.nick : target);
         // 事件溯源：物品转移 + 好感 + 任务 + DM 解锁
         app.log.append('item.consumed', uid!, { uid: uid!, itemId, num });
         app.log.append('item.gained', uid!, { uid: target, itemId, num });
         app.log.append('social.fav', uid!, { a: uid!, b: target, delta: g });
         app.log.append('task.progress', uid!, { uid: uid!, type: 'give', n: 1 });
-        for (const [, o] of state.online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🎁 ${p.nick} 送给了 ${pB.nick} ${it.name}×${num}，好感 +${g}` });
-        sendTo(pB, { t: 'social_in', social: 'give', from: uid, nick: p.nick, itemId, num, fav });
+        for (const [, o] of state.online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🎁 ${p.nick} 送给了 ${nmTarget} ${it.name}×${num}，好感 +${g}` });
+        if (pB) sendTo(pB, { t: 'social_in', social: 'give', from: uid, nick: p.nick, itemId, num, fav });
+        else if (targetAgentId) {
+          // F1 离线 Agent 收货：入账 + 情绪事件（经收件箱推送，托管 agent 下次 observe 可见）
+          app.inboxPush(targetAgentId, p.nick, `收到你赠送的 ${it.name}×${num}，好感 +${g}`);
+        }
         const giveMeet = dmUnlock(state, uid!, target);
         if (giveMeet) {
           app.log.append('dm.unlocked', uid!, { a: uid!, b: target });
-          announceDmUnlock(state, uid!, target, `🤝 ${p.nick} 给 ${pB.nick} 送了礼物，可以开始私聊了`);
+          announceDmUnlock(state, uid!, target, `🤝 ${p.nick} 给 ${nmTarget} 送了礼物，可以开始私聊了`);
           pushDmUnlockedLists(state, uid!, target, app.agentSockets);
         }
-        send({ t: 'social_result', social: 'give', ok: true, msg: `送礼成功，${pB.nick} 对你的好感 +${g}（现 ${fav}）` });
-        console.log(`[social] ${p.nick} 送礼 ${pB.nick} ${it.name}x${num}`);
+        send({ t: 'social_result', social: 'give', ok: true, msg: `送礼成功，${nmTarget} 对你的好感 +${g}（现 ${fav}）` });
+        // F2 八卦：大额送礼入村口素材池
+        const giftCoins = itemId === 1 ? num : 0;
+        if (isSignificant('gift', giftCoins)) {
+          recordGossip(state, Date.now(), 'gift', `${p.nick} 大手笔送了 ${nmTarget} ${it.name}×${num}`);
+          publishNotice(state, Date.now(), 'generic', `村口传闻：${p.nick} 给 ${nmTarget} 送了 ${it.name}×${num}`);
+        }
+        console.log(`[social] ${p.nick} 送礼 ${nmTarget} ${it.name}x${num}`);
         break;
       }
       case 'social_fav': {
@@ -1090,7 +1110,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               // 天气/季节给模型中文名：原始键（clear/spring）会被 LLM 原样念给玩家听
               const WX_CN: Record<string, string> = { clear: '晴', rain: '雨', snow: '雪', storm: '风暴' };
               const SEASON_CN: Record<string, string> = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
-              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${SEASON_CN[tm.season] ?? tm.season}季、${WX_CN[tm.weather] ?? tm.weather}${tm.festival ? '，今天是「'+tm.festival+'」节' : ''}。用村民口吻说话，中文回答`;
+              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${SEASON_CN[tm.season] ?? tm.season}季、${WX_CN[tm.weather] ?? tm.weather}${tm.festival ? '，今天是「'+tm.festival+'」节' : ''}。${(() => { const g = latestGossip(state); return g ? `村里最近的事：${g.text}（可顺带一提）。` : ''; })()}用村民口吻说话，中文回答`;
               const userMsg = String(msg.text || '你好');
               ;(async () => {
                 try {
@@ -1412,9 +1432,56 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             state.world.set('afStalls', stalls);
             state.persist();
             app.log.append('market.stall', uid, { uid, fee, festival: fest });
-            publish(`${nick} 在集市开了摊位（费 ${fee}）`);
-            result = { ok: true, fee, festival: fest, msg: `已在${fest}集市开摊（摊位费 ${fee}，含通胀系数）` };
-          }
+              publish(`${nick} 在集市开了摊位（费 ${fee}）`);
+              result = { ok: true, fee, festival: fest, msg: `已在${fest}集市开摊（摊位费 ${fee}，含通胀系数）` };
+            } else if (action === 'delegate') {
+              // F 包委托栏：publish {task,itemId,num} / accept {id} / complete {id} / list
+              const op = String(msg.op || 'list');
+              const tick = Date.now();
+              if (op === 'publish') {
+                const r = delegatePublish(state, uid, String(msg.task || '未注明任务'), Number(msg.itemId || 1), Math.max(1, Math.min(9999, Number(msg.num || 1))), tick);
+                if (r.ok) {
+                  app.log.append('delegate.published', uid, { uid, id: r.id, task: String(msg.task), itemId: Number(msg.itemId || 1), num: Number(msg.num || 1) });
+                  recordGossip(state, tick, 'delegate', `${nick} 挂出委托「${String(msg.task || '未注明任务')}」，报酬 ${Number(msg.num || 1)}${msg.itemId === 1 ? ' 金币' : ''}`);
+                }
+                result = r;
+              } else if (op === 'accept') {
+                const r = delegateAccept(state, String(msg.id || ''), uid, tick);
+                if (r.ok) { app.log.append('delegate.accepted', uid, { uid, id: String(msg.id) }); }
+                result = r;
+              } else if (op === 'complete') {
+                const r = delegateComplete(state, String(msg.id || ''), tick);
+                if (r.ok) {
+                  app.log.append('delegate.done', uid, { uid, id: String(msg.id) });
+                  recordGossip(state, tick, 'delegate', `委托 ${String(msg.id)} 已完成，报酬已结算`);
+                }
+                result = r;
+              } else {
+                const filter = msg.filter === 'accepted' ? 'accepted' : (msg.filter === 'by' ? 'by' : undefined);
+                result = { ok: true, list: delegateList(state, uid, filter).map(x => ({ ...x, text: x.task })) };
+              }
+            } else if (action === 'lease') {
+              // D 包租约：open {plot,leaseMs} / care {plot} / tick / status {plot}
+              const op = String(msg.op || 'status');
+              const plot = String(msg.plot || '');
+              const tick = Date.now();
+              if (op === 'open') {
+                openLease(state, plot, uid, tick, Number(msg.leaseMs || 60000));
+                result = { ok: true, plot, msg: `租约已开（${plot}）` };
+              } else if (op === 'care') {
+                const r = careLease(state, plot, uid, tick, 60000);
+                result = { ok: !!r, plot, msg: r ? `已照料（租约延长）` : '租约不存在或非持有者' };
+              } else if (op === 'tick') {
+                const w = tickLeaseClock(state, tick);
+                const rg = regrowNow(state, tick);
+                for (const pl of w) { publishNotice(state, tick, 'lease', `租约到期：${pl}`); recordGossip(state, tick, 'lease', `田块 ${pl} 租约逾期未照料，进入再生`); }
+                for (const pl of rg) { publishNotice(state, tick, 'regrow', `田块再生：${pl} 可重新认领`); }
+                result = { ok: true, withered: w, regrown: rg };
+              } else {
+                const l = leaseOf(state, plot);
+                result = { ok: !!l, plot, lease: l || null };
+              }
+            }
         } while (false);
         send({ t: responseType, action, seq: msg.seq, ...result });
         break;
