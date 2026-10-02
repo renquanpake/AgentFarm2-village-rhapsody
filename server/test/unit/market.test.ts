@@ -10,6 +10,7 @@ import { EventLog } from '../../src/persistence/events.ts';
 import { Tables } from '../../src/world/tables.ts';
 import { knapAdd, knapHas } from '../../src/world/farm.ts';
 import { MarketService } from '../../src/market/service.ts';
+import { TRADE_FEE_RATE } from '../../src/market/economy.ts';
 
 interface H { dir: string; app: App; market: MarketService; state: WorldState; db: import('node:sqlite').DatabaseSync; log: EventLog; }
 const dirs: string[] = [];
@@ -106,8 +107,28 @@ describe('玩家间成交过户', () => {
     expect(rb.fills![0].taker).toBe('u2');
     expect(rb.fills![0].price).toBe(sellPx);
     expect(knapHas(pm(h, 'u2'), 12, 2)).toBe(true);   // 买方收物
-    expect(knapHas(pm(h, 'u1'), 1, 2 * sellPx)).toBe(true); // 卖方收钱
+    const fee = Math.round(2 * sellPx * TRADE_FEE_RATE);
+    expect(knapHas(pm(h, 'u1'), 1, 2 * sellPx - fee)).toBe(true); // 卖方实收 90%（10% 手续费烧币）
     expect(rb.resting).toBe(0);
+    h.db.close();
+  });
+});
+
+describe('交易所系统手续费（10% 烧币通缩回收）', () => {
+  it('卖方实收 90%，10% 烧币 + trade.fee 事件入库', () => {
+    const h = harness();
+    give(h, 'u1', 12, 5);
+    give(h, 'u2', 1, 1000);
+    const sellPx = Math.round(h.market.basePrice(12) * 1.05) - 1;
+    h.market.place('u1', 12, 'sell', sellPx, 5); // 挂卖（不穿越）
+    const rb = h.market.place('u2', 12, 'buy', sellPx, 2);
+    expect(rb.fills!.length).toBe(1);
+    const gross = 2 * sellPx;
+    const fee = Math.round(gross * TRADE_FEE_RATE);
+    const net = gross - fee;
+    // 卖方只拿到 90%（fee 烧掉，不入任何人）
+    expect(knapHas(pm(h, 'u1'), 1, net)).toBe(true);
+    expect(h.log.since(0).filter(e => e.type === 'trade.fee').length).toBe(1);
     h.db.close();
   });
 });

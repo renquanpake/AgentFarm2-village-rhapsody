@@ -9,6 +9,7 @@ import type { App } from '../app.ts';
 import { OrderBook, type Fill, type Side, type BookSnapshot } from './orderbook.ts';
 import { knapAdd, knapSub } from '../world/farm.ts';
 import { sellX2 } from './shop.ts';
+import { TRADE_FEE_RATE } from './economy.ts';
 import { log } from '../logging.ts';
 
 export interface PlaceResult { ok: boolean; msg?: string; orderId?: number; resting?: number; fills?: Fill[]; }
@@ -134,8 +135,15 @@ export class MarketService {
         else if (!knapAdd(this.pmOf(buyer), item, f.qty)) anomaly = true;
       }
       if (seller !== 'mm') {
-        if (seller.startsWith('npc:')) this.npcSettle(seller, 'sell', item, f.price, f.qty);
-        else if (!knapAdd(this.pmOf(seller), 1, f.price * f.qty)) anomaly = true;
+        // 交易所/银行系统手续费：卖方所得扣 10% 并烧币（通缩回收，moneySupply 随之下降）
+        const gross = f.price * f.qty;
+        const fee = Math.round(gross * TRADE_FEE_RATE);
+        const net = gross - fee;
+        if (seller.startsWith('npc:')) {
+          const led = this.npcLedger(seller);
+          if (led) this.adjustLedger(led.id, net, 0); // NPC 台账同付手续费（现金只入 net）
+        } else if (!knapAdd(this.pmOf(seller), 1, net)) anomaly = true;
+        if (fee > 0) this.app.log.append('trade.fee', seller, { item, price: f.price, qty: f.qty, fee, ts: now });
       }
       this.insertFillRow(item, f, now);
       this.app.log.append('trade.filled', f.maker, { item, price: f.price, qty: f.qty, maker: f.maker, taker: f.taker, ts: now });

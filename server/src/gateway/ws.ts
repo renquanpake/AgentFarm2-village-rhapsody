@@ -1088,7 +1088,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               const bk = v.book;
               result = {
                 ok: true, book: bk,
-                msg: `物品${itemId}订单簿 买盘[${bk.bids.map(l => `${l.price}x${l.qty}`).join('/') || '空'}] 卖盘[${bk.asks.map(l => `${l.price}x${l.qty}`).join('/') || '空'}]${bk.last ? ` 最近成交 ${bk.last.price}x${bk.last.qty}` : ''}`,
+                msg: `物品${itemId}订单簿 买盘[${bk.bids.map(l => `${l.price}x${l.qty}`).join('/') || '空'}] 卖盘[${bk.asks.map(l => `${l.price}x${l.qty}`).join('/') || '空'}]${bk.last ? ` 最近成交 ${bk.last.price}x${bk.last.qty}` : ''}（含 10% 系统手续费，卖方实收 90%）`,
               };
             } else if (op === 'cancel') {
               const cr = app.market.cancel(uid, itemId, Number(msg.orderId));
@@ -1299,8 +1299,16 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             result = r;
           } else if (action === 'build') {
             const type = String(msg.type || '');
-            const _t = normXYOf(app, msg.x, msg.y);
+            // 缺坐标时落到"自己所在格"（apos），避免 NaN 坐标落成 null 设施 + 同格防重失效（P1 刷币）
+            const hasXY = Number.isFinite(Number(msg.x)) && Number.isFinite(Number(msg.y));
+            const _t = hasXY
+              ? normXYOf(app, msg.x, msg.y)
+              : { x: Math.floor((apos.x ?? 0) / 100) * 100 + 50, y: Math.floor((apos.y ?? 0) / 100) * 100 + 50 };
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
+            if (!Number.isFinite(gx) || !Number.isFinite(gy) || gx < 0 || gy < 0 || gx >= app.tables.gridW || gy >= app.tables.gridH) {
+              result = { ok: false, msg: `建造需有效坐标（格 ${Number.isFinite(gx) ? gx : '?'},${Number.isFinite(gy) ? gy : '?'} 越界或缺 x/y），先 move 到目标格再建` };
+              continue;
+            }
             const r = buildFacility(state, uid, type as 'barn' | 'mill' | 'kitchen' | 'kiln' | 'forge', gx, gy);
             if (r.ok) {
               app.log.append('facility.built', uid, { uid, type, x: gx, y: gy });

@@ -5,6 +5,10 @@ import type { App } from '../app.ts';
 
 const DAY_MS = 86_400_000;
 
+/** 交易所/银行系统手续费（B3 通缩回收）：成交时按成交额 10% 从卖方所得扣除并烧币（不入任何账），
+ *  货币总量随之下降，对冲"打工/卖货投放"造成的通胀。固定 10%（原 feeMultiplier 动态上浮为正交的第二层回收）。 */
+export const TRADE_FEE_RATE = 0.10;
+
 export function median(xs: number[]): number | null {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -26,6 +30,7 @@ export interface EconomyReport {
   weekMedian: number | null;
   inflationIndex: number | null;
   feeMultiplier: number;
+  tradeFeeRate: number; // 交易所/银行固定手续费（通缩回收），见 TRADE_FEE_RATE
   alerts: string[];
 }
 
@@ -66,5 +71,5 @@ export function economyReport(app: App): EconomyReport {
   if (index !== null && index > 1.5) alerts.push(`通胀严重（指数 ${index.toFixed(2)}），费用已顶格上浮 1.5x`);
   else if (mult > 1) alerts.push(`通胀回收启动：费用上浮至 ${mult}x（指数 ${index!.toFixed(2)}）`);
   if (supply > 500_000) alerts.push(`货币总量偏高（${supply}），关注回收节奏`);
-  return { moneySupply: supply, todayMedian, weekMedian, inflationIndex: index, feeMultiplier: mult, alerts };
+  return { moneySupply: supply, todayMedian, weekMedian, inflationIndex: index, feeMultiplier: mult, tradeFeeRate: TRADE_FEE_RATE, alerts };
 }
