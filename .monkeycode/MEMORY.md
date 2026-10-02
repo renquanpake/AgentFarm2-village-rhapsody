@@ -67,6 +67,9 @@
 - **代码自审（2026-10-01 用户指示：每批工作完自审）**：`alibaba/open-code-review` 已装（npm 全局 `@alibaba-group/open-code-review` v1.12.11，CLI `ocr`；PyPI 无此包）。流程：`ocr delegate preview --from <base> --to <head>`（可审文件清单）→ `ocr delegate rule <files...>`（系统规则集，免 LLM）→ 宿主 Agent 对 diff 逐条套规则，产行级意见分三档（必须修复/建议修复/可以忽略）；必改项修完跑回归再提交。全自动行级评论 `ocr review` 需用户提供 LLM 端点（URL/token/model，平台自身 key 禁止接入）。git 2.39.5 低于其最低支持 2.41.0，有 warning 不影响运行。
 - 委托注意事项：flash 小模型无工具/仓库访问能力，prompt 里必须打包所需代码上下文；输出有"自言自语纠错"倾向（先写错再自行输出干净终版），主模型必须审查后取终版集成；适合独立函数/单文件脚本/文档/测试草稿等边界清晰任务，多文件重构与调试类主模型自己做更划算。
 
+## 项目知识补充
+- **上线部署决策（2026-10-02 用户拍板）**：采用「GitHub 专属单房版」——GitHub Pages 出客户端链接 + Oracle Cloud 永久免费层（A1 ARM）跑唯一村庄进程 + 用户自有域名；2-3 名玩家、0 元约束。方案全文 `docs/上线部署方案.md`（四个工作包 WP1-WP4），**游戏完工后按 §7 触发条件执行**，本会话只规划未动工。完整自架/多房版归「另一个版本」，同库配置区分禁止 fork；Cloudflare 远期候选为 Workers+Durable Objects 重写（单房版 v2 形态）。
+
 ## 安全（P0，需用户操作）
 - 17 个 `tools/` 调试脚本明文 sk- **已改读 env**（tools/env.mjs + .env.local，gitignored；a0f6dc6）；.gitleaks.toml 文件级豁免已全部移除。**密钥仍在 git 历史与 .env.local——用户需轮换 AGNES_API_KEY/DEEPSEEK_API_KEY 后更新 .env.local 才真正闭环**。
 - 本次会话出现过的 GitHub PAT 应由用户撤销（含 2026-09-30 用户在聊天中直接提供、用于绕开故障凭据服务完成推送的那枚 ghp_ 开头 PAT——聊天暴露即视为泄露，尽快轮换；本地 /root/.git-credentials 已删除）。
