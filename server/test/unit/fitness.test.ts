@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import type { App } from '../../src/app.ts';
 import { WorldState, type StateOpts } from '../../src/persistence/state.ts';
 import { Tables } from '../../src/world/tables.ts';
-import { GYM_ATTRS, TRAIN_COOLDOWN_MS, fitnessOf, trainAttr } from '../../src/world/fitness.ts';
+import { GYM_ATTRS, TRAIN_COOLDOWN_MS, fitnessOf, normalizeGymAttr, trainAttr } from '../../src/world/fitness.ts';
 
 function harness() {
   const tables = new Tables('data');
@@ -63,5 +63,62 @@ describe('fitness 训练', () => {
     expect(fitnessOf(state, 'a').attrs.strength).toBe(1);
     expect(fitnessOf(state, 'a').attrs.agility).toBeUndefined();
     expect(fitnessOf(state, 'b').attrs.agility).toBe(1);
+  });
+});
+
+// P2：welcome 文案与报错文案都写 `train {attr:力量/敏捷/亲和}`，实现却只收英文键，
+// 玩家照提示发中文必然被拒。normalizeGymAttr 把中文名/常见同义词归一到内部键。
+describe('fitness 属性别名', () => {
+  it('英文键原样通过（含大小写与空白）', () => {
+    expect(normalizeGymAttr('strength')).toBe('strength');
+    expect(normalizeGymAttr('agility')).toBe('agility');
+    expect(normalizeGymAttr('Charisma')).toBe('charisma');
+    expect(normalizeGymAttr('  strength  ')).toBe('strength');
+  });
+
+  it('中文名归一到对应键', () => {
+    expect(normalizeGymAttr('力量')).toBe('strength');
+    expect(normalizeGymAttr('敏捷')).toBe('agility');
+    expect(normalizeGymAttr('亲和')).toBe('charisma');
+    expect(normalizeGymAttr(' 力量 ')).toBe('strength');
+  });
+
+  it('未公示的同义词不认（不擅自扩契约）', () => {
+    expect(normalizeGymAttr('力气')).toBeNull();
+    expect(normalizeGymAttr('魅力')).toBeNull();
+    expect(normalizeGymAttr('力量训练')).toBeNull();
+  });
+
+  it('无法识别返回 null', () => {
+    expect(normalizeGymAttr('')).toBeNull();
+    expect(normalizeGymAttr('   ')).toBeNull();
+    expect(normalizeGymAttr('luck')).toBeNull();
+    expect(normalizeGymAttr('力量值')).toBeNull();
+  });
+
+  it('中文名训练真的生效（+1 且落正确键）', () => {
+    const { state } = harness();
+    const r = trainAttr(state, 'u5', '力量', T0);
+    expect(r.ok).toBe(true);
+    expect(r.level).toBe(1);
+    expect(fitnessOf(state, 'u5').attrs.strength).toBe(1);
+    expect(fitnessOf(state, 'u5').attrs.agility).toBeUndefined();
+  });
+
+  it('中文名与英文键走同一冷却池', () => {
+    const { state } = harness();
+    expect(trainAttr(state, 'u6', '敏捷', T0).ok).toBe(true);
+    const r = trainAttr(state, 'u6', 'agility', T0 + 1000);
+    expect(r.ok).toBe(false);
+    expect(r.waitSec).toBeGreaterThan(0);
+  });
+
+  it('报错文案同时给中文名与英文键', () => {
+    const { state } = harness();
+    const r = trainAttr(state, 'u7', '运气', T0);
+    expect(r.ok).toBe(false);
+    expect(r.msg).toContain('力量/strength');
+    expect(r.msg).toContain('敏捷/agility');
+    expect(r.msg).toContain('亲和/charisma');
   });
 });

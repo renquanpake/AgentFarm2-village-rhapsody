@@ -184,7 +184,9 @@ export function snapInteraction(nav: NavGrid, tx: number, ty: number, kind: 'wat
   const w = nav.width, h = nav.height;
   const idx = (x: number, y: number) => y * w + x;
   const walk = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && nav.blocked[idx(x, y)] !== 1 && nav.cost[idx(x, y)] > 0;
-  const isWater = (x: number, y: number) => walk(x, y) && nav.kind[idx(x, y)] === 2;
+  // 水格判定只看 kind：村庄河道是 blocked=1 && water=1（buildNavGrid 记 kind=2, cost=-1），
+  // 若沿用 walk() 前置则每格真水都因不可走而被判成非水，near=water 永远无解。
+  const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && nav.kind[idx(x, y)] === 2;
   const stand = (x: number, y: number) => walk(x, y) && (kind !== 'water' || !isWater(x, y));
   for (let r = 0; r <= maxR; r++) {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {

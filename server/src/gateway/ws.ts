@@ -927,13 +927,26 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const ring = nearRaw === 'water' || nearRaw === 'npc' ? (nearRaw as 'water' | 'npc') : undefined;
             const curScene = apos.scene ?? 2;
             const building = nearRaw && !ring ? buildingTargetOf(municipalOf(app), nearRaw) : null;
+            const muNames = Array.from(municipalOf(app).buildings.values()).flat().filter(b => !b.pending && b.door).map(b => b.name).join(' / ');
             if (nearRaw && !ring && !building) {
-              const muNames = Array.from(municipalOf(app).buildings.values()).flat().filter(b => !b.pending && b.door).map(b => b.name).join(' / ');
               result = { ok: false, msg: `near="${nearRaw}" 无法解析（可用：water / npc / 建筑名：${muNames || '无'}）` }; continue;
             }
             let targetScene = msg.scene === undefined ? curScene : Math.round(Number(msg.scene));
-            let tx = Math.floor(Number(msg.x) / 100), ty = Math.floor(Number(msg.y) / 100);
+            const numOf = (v: unknown) => (v === undefined || v === null || v === '' ? NaN : Number(v));
+            const cx0 = numOf(msg.x), cy0 = numOf(msg.y);
+            const hasXY = Number.isFinite(cx0) && Number.isFinite(cy0);
+            let tx = Math.floor(cx0 / 100), ty = Math.floor(cy0 / 100);
             if (building) { targetScene = building.scene; tx = Math.floor(building.x / 100); ty = Math.floor(building.y / 100); }
+            // 坐标既缺又非有限（如误传 target=...）时，旧路径把 NaN 一路带到 A*/BFS，
+            // 最终统一报「目标不可达（被障碍包围）」，把入参问题误诊成地形问题。
+            if (!ring && !building && !hasXY) {
+              const got = Object.keys(msg).filter(k => !['t', 'seq', 'action'].includes(k));
+              result = {
+                ok: false,
+                msg: `move_to 缺少目标坐标：请给像素坐标 x/y（如 {x:3050, y:3050}），或用 near（water / npc${muNames ? ` / 建筑名：${muNames}` : ''}）。`
+                  + `本次收到字段：${got.length ? got.join(',') : '无'}（坐标字段名是 x 与 y）`,
+              }; continue;
+            }
             console.log(`[agent-move_to] ${nick} 目标 ${building ? `「${building.name}」` : `(${msg.x},${msg.y})`} 当前 (${apos.x},${apos.y}) 场景 ${curScene}->${targetScene} near=${ring || building?.name || '-'}`);
             if (state.agentMoves.has(uid)) { result = { ok: false, msg: '上一个移动还没走完，请稍等' }; continue; }
             if (targetScene === curScene) {
@@ -941,7 +954,20 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               const sx = Math.floor((apos.x ?? 0) / 100), sy = Math.floor((apos.y ?? 0) / 100);
               const nav = navOf(app, curScene);
               // D3：目标先吸附交互环（障碍格目标不再直接不可达；near=water 吸附水边；near=npc 吸附碰撞外一格）
-              const goal = (nav && snapInteraction(nav, tx, ty, ring)) ?? [tx, ty];
+              // near 未给 x/y：以当前位置为圆心搜最近交互格。原实现把 NaN 传进 snapInteraction，
+              // 其 walk() 因 NaN>=0 为 false 恒返回 null -> 回落 [NaN,NaN]；
+              // 再经 A*/BFS 回落成"已经在目标位置"，是一次静默成功的假回报。
+              let goal: [number, number];
+              if (ring && !hasXY) {
+                const found = nav ? snapInteraction(nav, sx, sy, ring, 60) : null;
+                if (!found) {
+                  result = { ok: false, msg: ring === 'water' ? `当前位置 (${sx},${sy}) 周边 60 格内找不到可站立的水边` : `当前位置 (${sx},${sy}) 周边 60 格内找不到可交互目标` };
+                  continue;
+                }
+                goal = found;
+              } else {
+                goal = (nav && snapInteraction(nav, tx, ty, ring)) ?? [tx, ty];
+              }
               const gx = goal[0], gy = goal[1];
               if (sx === gx && sy === gy) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
               const path = (nav && astarClearance(nav, sx, sy, gx, gy, { wallHug: msg.wallHug === true })) ?? bfsPath(app.tables, sx, sy, gx, gy);
@@ -994,6 +1020,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             // 跨场景：D6 门户图 Dijkstra + 场景内 A*（planRoute 全量重规划级）
             const toNav = navOf(app, targetScene);
             if (!toNav) { result = { ok: false, msg: `场景 ${targetScene} 无导航数据（跨场景未启用）` }; continue; }
+            // near=water|npc 是「本场景内找最近交互格」，不带坐标又跨场景时无搜索圆心，直接报错
+            if (ring && !hasXY) { result = { ok: false, msg: `near="${ring}" 只能用于当前场景内寻路；跨场景请给 x/y，或用建筑名` }; continue; }
             const goal = snapInteraction(toNav, tx, ty, ring) ?? [tx, ty];
             const pr = planRoute(
               { scene: curScene, x: apos.x, y: apos.y },

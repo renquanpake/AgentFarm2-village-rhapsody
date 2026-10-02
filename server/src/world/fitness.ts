@@ -8,6 +8,18 @@ export type GymAttr = (typeof GYM_ATTRS)[number];
 /** 训练冷却（真实毫秒）：防刷，也逼 agent 把训练排进日程 */
 export const TRAIN_COOLDOWN_MS = 300_000;
 export const GYM_ATTR_NAME: Record<GymAttr, string> = { strength: '力量', agility: '敏捷', charisma: '亲和' };
+/** 中文名 -> 内部键：welcome 与报错文案都公示 `attr:力量/敏捷/亲和`，实现须能直接吃这三个中文名 */
+const ATTR_ALIAS: Record<string, GymAttr> = {
+  力量: 'strength', 敏捷: 'agility', 亲和: 'charisma',
+};
+/** 归一化 attr：英文原样、中文别名转键；无法识别返回 null */
+export function normalizeGymAttr(raw: string): GymAttr | null {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if ((GYM_ATTRS as readonly string[]).includes(lower)) return lower as GymAttr;
+  return ATTR_ALIAS[s] ?? null;
+}
 const KEY = 'fitnessData';
 
 export interface FitnessRec {
@@ -32,10 +44,10 @@ export function fitnessOf(state: WorldState, uid: string): FitnessRec {
 
 /** 训练：冷却内拒绝（带 waitSec），否则属性 +1（lastTrainAt 刷新） */
 export function trainAttr(state: WorldState, uid: string, attr: string, now: number): { ok: boolean; msg?: string; level?: number; waitSec?: number } {
-  if (!GYM_ATTRS.includes(attr as GymAttr)) {
-    return { ok: false, msg: `attr 须为 ${GYM_ATTRS.map(a => GYM_ATTR_NAME[a]).join('/')}` };
+  const a = normalizeGymAttr(attr);
+  if (!a) {
+    return { ok: false, msg: `attr 须为 ${GYM_ATTRS.map(x => `${GYM_ATTR_NAME[x]}/${x}`).join('/')}` };
   }
-  const a = attr as GymAttr;
   const r = fitnessOf(state, uid);
   const wait = TRAIN_COOLDOWN_MS - (now - (r.lastTrainAt ?? 0));
   if (wait > 0) {

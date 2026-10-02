@@ -155,6 +155,36 @@ describe('snapInteraction（D3 交互环）', () => {
     expect(snapInteraction(nav, 3, 3, 'water', 2)).toBeNull();
   });
 
+  // 村庄河道是 blocked=1 && water=1（buildNavGrid 记 kind=2, cost=-1）。
+  // 旧实现用 walk() && kind===2 判水，walk 要求 cost>0，于是每格真水都因不可走被判成非水，
+  // move_to {near:'water'} 在真实地图上恒无解。kind=2 本身才是权威水标记。
+  it('不可走的河（blocked+water）也算水边：吸附到岸上可站格', () => {
+    const w = 8, h = 8;
+    const blocked = new Array(w * h).fill(0);
+    const water = new Array(w * h).fill(0);
+    for (let x = 3; x <= 4; x++) for (let y = 1; y <= 6; y++) { water[y * w + x] = 1; blocked[y * w + x] = 1; } // 竖河，走不进去
+    const nav = buildNavGrid(2, blocked, w, h, water);
+    const r = snapInteraction(nav, 3, 4, 'water');
+    expect(r).not.toBeNull();
+    const [x, y] = r!;
+    expect(nav.blocked[y * w + x]).toBe(0);   // 站在岸上，不在河里
+    expect(nav.kind[y * w + x]).not.toBe(2);
+    const onRiver = nav.kind[(y - 1) * w + x] === 2 || nav.kind[(y + 1) * w + x] === 2 || nav.kind[y * w + x - 1] === 2 || nav.kind[y * w + x + 1] === 2;
+    expect(onRiver).toBe(true);                 // 紧邻真水
+  });
+
+  it('不可走的河也算水边：目标在河对岸时仍能吸到近岸', () => {
+    const w = 8, h = 8;
+    const blocked = new Array(w * h).fill(0);
+    const water = new Array(w * h).fill(0);
+    for (let x = 3; x <= 4; x++) for (let y = 1; y <= 6; y++) { water[y * w + x] = 1; blocked[y * w + x] = 1; }
+    const nav = buildNavGrid(2, blocked, w, h, water);
+    const r = snapInteraction(nav, 4, 4, 'water');
+    expect(r).not.toBeNull();
+    // 河占 x=3,4：最近岸格必在 x=2 或 x=5
+    expect([2, 5]).toContain(r![0]);
+  });
+
   it('非水目标贴水格：返回目标本身（水可走 cost 高但可站）', () => {
     const w = 6, h = 6;
     const blocked = new Array(w * h).fill(0);
