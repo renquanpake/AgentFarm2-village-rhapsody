@@ -974,7 +974,11 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               console.log(`[agent-move_to] 路径: ${path ? path.length + ' 步' : '不可达'}（目标吸附到 ${gx},${gy}）`);
               if (!path) { result = { ok: false, msg: '目标不可达（被障碍包围）' }; continue; }
               if (path.length < 2) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
-              if (path.length > 60) { result = { ok: false, msg: `路径过长(${path.length}步)，请分两段走（先到中途点再继续）` }; continue; }
+              // 曾经的"单段 <=60 格"硬上限是还没有航点确认环时的权宜：现在 D1 段确认环
+              // 已经把长路线按每 4 格一航点拆段、逐段等 arrive 确认+偏差重规划，长度不再靠拒绝兜底。
+              // 硬拒绝会让 70+ 步路线整段发不出去（agent 再换中途点，选中阻挡格又循环失败）。
+              // 保留一个极宽的病理上限，防止 A* 跑出天文路径。
+              if (path.length > 2000) { result = { ok: false, msg: `路径异常过长(${path.length}步)，已停止规划，请换目标` }; continue; }
               publish(`赶路中：前往 (${gx},${gy}) 附近`);
               apos.x = path[0][0] * 100 + 50; apos.y = path[0][1] * 100 + 50;
               // 航点抽稀（每 4 格一航点 + 终点；cellI = 该航点在 path 中的格序，盲推回调用）
