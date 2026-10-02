@@ -18,9 +18,10 @@
 
 ## 构建与验证（Build & Test）
 - 类型检查：`cd server && npx tsc --noEmit`（tsconfig strict + erasableSyntaxOnly，禁用 enum/namespace/参数属性）。
-- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 172 项）。
+- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 254 项/32 文件）。
 - 协议回归：起服务 `AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 node src/index.ts`，另跑 `AF_BASE=http://127.0.0.1:8080 node server/ws-test.mjs`（应 12 项全过；talk 走 agent 通道 `{t:'act',action:'talk'}`，需带 agentToken 账号）。
-- 导航门：`node tools/gen-nav.mjs --check`（村景锚点可达 + 56 条跨场景门户吸附）+ `node tools/nav-replay.mjs [--smoke|--drift]`（村景 8 起点×3 路线×10=240 例，drift=偏差重规划；+28 环后 house-9 计入，旧"210 例"已过期）+ E2E `AF_BASE=... node tools/e2e-nav-arrive.mjs`（14 项，测试服务 `PORT=8091 AF_SLOT=9 AF_NAV_ARRIVE_MS=1200`）。
+- 导航门：`node tools/gen-nav.mjs --check`（村景锚点可达 + 56 条跨场景门户吸附）+ `node tools/nav-replay.mjs [--smoke|--drift]`（2 次×8 起点×3 路线=48 例，drift=偏差重规划；旧"240/210 例"说法已过期，以 48 为准）+ E2E `AF_BASE=... node tools/e2e-nav-arrive.mjs`（14 项，测试服务 `PORT=8091 AF_SLOT=9 AF_NAV_ARRIVE_MS=1200`）。
+- CI 十道门（`ci.yaml`）：原 8 道 + 门9 回放一致性（`tools/replay-consistency.mjs` 取 `/af/replay-status`，events=0 漂移判死、自由桶归因放行）+ 门10 文本无障碍表面审计（`tools/surface-audit.mjs`，10 类玩家可见信息面缺任一文本通道判死）。联机村阶段零 A-H 全落地（`628e8b3`）：claims/lease/spawn-slots/gray-scale/delegate/gossip/mapdoc/notices 均登记 WORLD_KEYS 参与回放哈希；`/af/mapdoc` `/af/notices` 为纯文本 LLM 路线规划与公告通道（设计铁律 R9，视觉仅开发验收用）。
 - CI 八道门见 `.github/workflows/ci.yaml`（门8=旗舰UI 静态+冒烟：`tools/ui-lint.mjs` 三静态门 + `tools/ui-smoke.mjs` 17 项模块逻辑冒烟，无浏览器可跑；Cocos 实机反射归 N2）；原版外壳哈希基线 `client/original-hash.json`（`node tools/hash-manifest.mjs [--check]`，mod 层豁免）。
 - 美术管线（C6-C9）：`tools/extract-palette.py`（16 色提取）+ `tools/art-postprocess.py`（量化/抠图/网格校验，需 Pillow）+ `tools/art-prompts/`（v1 基础 + **style-v2.md 现行铁律：纯白底+单体锁定**）；CC0 素材在 `assets/cc0/`（Kenney 三包 465 张）；生图走 agnes API（`tools/art-gen.mjs` + .env 的 USER_IMG_*，用户自备 Key）。
 
