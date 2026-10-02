@@ -48,10 +48,19 @@ Updated: 2026-10-02
 - [ ] F2 显著事件白名单 → C5 八卦 → NPC talk 素材 + A9 画报 highlights
 - [ ] F3 委托栏：afTasks `delegated` 类型 + 接取/结算/破产关闭
 
+## 工作包 H：文本无障碍通道（R9，设计铁律）
+
+- [ ] H1 `world/mapdoc.ts` buildMapDoc：nav kind 簇（阻挡/水/路）连通分量 bbox + 建筑门位 + 地标 + 矿点 + 门户 + 自规划示例；`/af/mapdoc` 公开 GET
+- [ ] H2 公告通道：world/notices.ts（环形 100 条，noticeData 桶登记 WORLD_KEYS）+ 节日/风暴/租约/复生事件挂钩 + observe.notices + /af/notices
+- [ ] H3 observe.tasks 任务视图（系统任务 + 委托栏）
+- [ ] H4 observe.festival 扩展计分板与摊位列表
+- [ ] H5 `tools/eval-textonly.mjs` 文本盲测：真实 LLM Agent 零视觉完整游戏日（门 M-O4）
+- [ ] H6 表面审计清单进 CI（新增玩家可见信息必须同步文本通道，否则门失败）
+
 ## 收口
 
 - [ ] G1 全量回归绿（tsc / vitest / gen-nav / nav-replay / f4 / security / 一致性第九门）
-- [ ] G2 实机视觉验收（shot-client 截图判读：双开出生、住宅、共砍树）
+- [ ] G2 实机视觉验收（shot-client 截图判读：双开出生、住宅、共砍树）——仅开发验收用，Agent 决策回路零视觉
 - [ ] G3 tasklist/MEMORY 登记 + 推送
 - [ ] G4 按 `docs/上线部署方案.md` 启动上线（R8）
 
@@ -60,4 +69,5 @@ Updated: 2026-10-02
 - M-O1: 回放零告警（A 包完成即达）
 - M-O2: 双账号实机「各有家、共争树」演示通过（B+C 包）
 - M-O3: 10 账号灰度哈希稳定（E 包）
-- M-O4: 上线链接发出（G4）
+- M-O4: 文本盲测通过——LLM 零视觉完整游戏日（H 包）
+- M-O5: 上线链接发出（G4）

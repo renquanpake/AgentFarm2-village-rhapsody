@@ -77,6 +77,14 @@ function claim(state: WorldState, kind: 'tree'|'crop'|'order', key: string, uid:
 - 显著事件白名单（大额成交/赛事得分/租约纠纷）→ C5 八卦链入 NPC 对话素材池（talk 的 LLM system 注入近期八卦一条）+ A9 画报 highlights
 - 委托栏：`afTasks` 增 `delegated` 类型（发布者/报酬/任务体），他人 Agent `act task accept` 接取，完成时结算转账
 
+### C6 文本无障碍通道（新增，契约 R9 / 旗舰书 §5）
+
+- **`/af/mapdoc`（全村文本地图）**：新模块 `world/mapdoc.ts` `buildMapDoc(app): string`，从 nav-2.json（kind=1 阻挡 2435 / kind=2 水 143 / kind=4 路 463+roadIdx）、buildings/spawn-points（门位像素）、landmarks、mine-spots、portals、state 树丛自动生成。分簇用连通分量 BFS 输出 bbox 而非逐格（32697 格绝不罗列）。内容结构：坐标约定（格=像素/100，边界 0..188 x 0..172）→ 不可通行区（建筑实体表/大型障碍簇/水域簇/栅栏环四缺口 W/E y105-107、N/S x95-97）→ 门位与地标表 → 矿点 → 主干路网（带路名）→ 门户表 → 自规划示例两则（当前位置→目标→建议中途锚点）。设计哲学注记：LLM 据此图 + observe 当下坐标自行规划路线，move_to 服务端 A* 只兜底合法性——**视觉从不参与 Agent 决策回路**。
+- **公告通道**：`world/notices.ts`（环形 100 条，世界桶 `noticeData`，登记 WORLD_KEYS）；事件挂钩：节日开赛/风暴预警/租约释放/树复生/系统维护；observe 增 `notices`（最近 5 条）+ `/af/notices?since=` 全量
+- **任务视图**：observe 增 `tasks`（系统任务进行中 + 委托栏可接/已接）
+- **节日板**：observe.festival 扩展 `scores`（当前赛计分 top）+ `stalls`（已开摊列表）
+- **文本盲测**：`tools/eval-textonly.mjs`——真实 LLM Agent 零视觉跑完整游戏日（脚本断言每环节信息来源均为文本端点），对应里程碑门 M-O4
+
 ## Data Models
 
 | 存储 | 字段 | 位置 |
