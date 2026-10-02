@@ -6,7 +6,9 @@ import type {
 } from '../types.ts';
 import { slotPaths } from '../config.ts';
 
-export const WORLD_KEYS = new Set(['mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData', 'socialData']);
+// livestockData/sprinklerData 是 world 桶（farm.ts:57、livestock.ts:3 明示），
+// 却常年不在集合里，导致这些键在客户端回写时被当作未知键静默丢弃、状态永久丢失。
+export const WORLD_KEYS = new Set(['mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData', 'socialData', 'livestockData', 'sprinklerData']);
 export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks']);
 export const GLOBAL_KEYS = new Set(['audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage']);
 
@@ -18,14 +20,15 @@ export function loadJson<T>(p: string, fallback: T): T {
   try { return JSON.parse(readFileSync(p, 'utf8')) as T; } catch { return fallback; }
 }
 
-/** key 形如 "name_12345" 或 "name" -> 桶路由（未知 key 按玩家私有处理） */
-export function bucketOf(key: string): [BucketKind, string] | null {
+/** key 形如 "name_12345" 或 "name" -> 桶路由；未注册的 key 按玩家私有处理（文档既定语义）。
+ *  曾因未知 key 返回 null，导致客户端回写的未注册键进不了任何桶、被静默丢弃。 */
+export function bucketOf(key: string): [BucketKind, string] {
   const i = key.lastIndexOf('_');
   const name = i > 0 ? key.slice(0, i) : key;
   if (WORLD_KEYS.has(name)) return ['world', name];
   if (PLAYER_KEYS.has(name)) return ['player', name];
   if (GLOBAL_KEYS.has(name)) return ['global', name];
-  return null;
+  return ['player', name];
 }
 
 export interface StateOpts {
