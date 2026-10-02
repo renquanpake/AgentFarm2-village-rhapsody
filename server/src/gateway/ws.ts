@@ -1087,7 +1087,10 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             if (persona && app.cognition?.llm) {
               const day = currentGameDay(state, Date.now());
               const tm = calendarDay(day);
-              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${tm.weather}${tm.festival ? ' 节日'+tm.festival : ''}`;
+              // 天气/季节给模型中文名：原始键（clear/spring）会被 LLM 原样念给玩家听
+              const WX_CN: Record<string, string> = { clear: '晴', rain: '雨', snow: '雪', storm: '风暴' };
+              const SEASON_CN: Record<string, string> = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
+              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${SEASON_CN[tm.season] ?? tm.season}季、${WX_CN[tm.weather] ?? tm.weather}${tm.festival ? '，今天是「'+tm.festival+'」节' : ''}。用村民口吻说话，中文回答`;
               const userMsg = String(msg.text || '你好');
               ;(async () => {
                 try {

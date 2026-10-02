@@ -20,12 +20,21 @@ export interface LlmOps {
 export function createLlmOps(app: App, agentUid: string, accountUid?: string): LlmOps {
   const accounts = app.accounts;
   const owner = accountUid ?? (accounts?.findAccountByUid ? (accounts.findAccountByUid(agentUid)?.uid ?? agentUid) : agentUid);
-  const p = app.provider ?? { url: '', key: '', model: '' };
-  const global = { url: p.url ?? '', key: p.key ?? '', model: p.model ?? '' };
-  const hasKey = !!(global.url && global.key) || (keyvaultAvailable() && !!readLlmKey(app.db, owner)?.hasCipher);
+  // 房间 provider 必须在【每次调用时】现读：orchestrator 会按 agent 长期缓存 ops 实例，
+  // 若在创建时闭包捕获 app.provider，玩家在引导面板「测试连接/保存」换模型后，
+  // 旧引用（空配置）会一直被用到重启——表现为配好模型 NPC 对话仍走 tagline 兜底。
+  const roomProvider = () => {
+    const p = app.provider ?? { url: '', key: '', model: '' };
+    return { url: p.url ?? '', key: p.key ?? '', model: p.model ?? '' };
+  };
+  const hasKey = () => {
+    const g = roomProvider();
+    return !!(g.url && g.key) || (keyvaultAvailable() && !!readLlmKey(app.db, owner)?.hasCipher);
+  };
   return {
-    available: hasKey,
+    available: hasKey(),
     chat: async (agent, system, user, taskType = 'write') => {
+      const global = roomProvider();
       const m = meteredRoute(app.db, global, owner, agent, taskType, `${system}|${user}`, moduleCache);
       if (m.hit) return String(moduleCache.get(m.cacheKey).value ?? '');
       if (m.call.source === 'none' || !m.call.key) return null; // 降级
@@ -53,6 +62,7 @@ export function createLlmOps(app: App, agentUid: string, accountUid?: string): L
       } catch { return null; } // 网络/超时 -> 降级（规则兜底）
     },
     embed: async (agent, text) => {
+      const global = roomProvider();
       const m = meteredRoute(app.db, global, owner, agent, 'embed', text, moduleCache);
       if (m.hit) return moduleCache.get(m.cacheKey).value as number[] | null;
       if (m.call.source === 'none' || !m.call.key) return pseudoEmbed(text); // 无 Key -> 伪向量
