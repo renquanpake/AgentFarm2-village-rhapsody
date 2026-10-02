@@ -1096,7 +1096,9 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                 } catch { /* llm 不可用：已发价目表，对话降级 */ }
               })();
             }
-            result = { ok: true, msg: pricePart, priceList: priceLines, dialogue: null };
+            // 无 persona / 无认知栈时同步给一句 tagline，不让玩家的搭话落空（dialogue=null 像哑巴）
+            const syncReply = persona ? persona.tagline : `……（${npc.name}似乎不太想说话）`;
+            result = { ok: true, msg: `${pricePart}\n${npc.name}：${syncReply}`, priceList: priceLines, dialogue: syncReply };
           } else if (action === 'buy') {
             const itemId = Number(msg.itemId || msg.item);
             const count = Math.max(1, Number(msg.count || 1));
@@ -1149,7 +1151,21 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                 result = { ok: false, msg: pr.msg };
               }
             }
-          } else if (action === 'till') {
+          } else if (['till', 'water', 'plant', 'harvest', 'chop', 'place'].includes(action)) {
+            // 近邻格动作统一入参门：缺有效 x/y 会让 normXY 产出 NaN，
+            // 随后「Math.abs(NaN-px)>1」恒真 → 误报"离目标太远"，把入参问题说成位置问题。
+            // 在此点名收到什么、给正确写法（与 move_to 的 hasXY 前置校验同一模式）。
+            const nx = msg.x === undefined ? undefined : Number(msg.x);
+            const ny = msg.y === undefined ? undefined : Number(msg.y);
+            if (!Number.isFinite(nx) || !Number.isFinite(ny)) {
+              const got: string[] = [];
+              if (msg.x === undefined && msg.y === undefined) got.push('x 和 y 都没传');
+              else { if (!Number.isFinite(nx)) got.push(`x 收到 ${JSON.stringify(msg.x)}`); if (!Number.isFinite(ny)) got.push(`y 收到 ${JSON.stringify(msg.y)}`); }
+              result = { ok: false, msg: `${action} 需要目标格像素坐标 x/y（如 {x:13350, y:5850}，站在目标相邻格）；${got.join('，')}` };
+              continue;
+            }
+          }
+          if (action === 'till') {
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);

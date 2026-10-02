@@ -3,7 +3,7 @@ import type { App } from '../app.ts';
 import type { WorldState } from '../persistence/state.ts';
 import {
   worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cropAtWorld, treeOf,
-  soilAt, waterAt, plotAt,
+  soilAt, waterAt, plotAt, WORLD_SCENE_TYPE,
 } from '../world/farm.ts';
 import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
 import { favBetween, dmUnlockedList } from '../world/social.ts';
@@ -78,9 +78,16 @@ export function observeState(app: App, uid: string, username: string, nick: stri
   };
 
   const gx = Math.floor((apos.x ?? 0) / 100), gy = Math.floor((apos.y ?? 0) / 100);
+  const sceneId = apos.scene ?? (pd.sceneType as number | undefined) ?? 2;
+
+  // 植物桶只服务村景（WORLD_SCENE_TYPE=2）：玩家在其它场景（房屋 101+/河/田）时，
+  // 村景 3 格内的树/作物/地块对玩家毫无操作意义，照报会把别处的东西说成眼前之物。
+  // 场景过滤后置空清单并给一句说明，agent 据此先 move_to 村景。
+  const inVillage = sceneId === WORLD_SCENE_TYPE;
+  const notInVillageHint = inVillage ? undefined : '当前不在村景，以下村庄地块/植物/树清单为空；可 move_to {near:"村纪念碑"} 回村';
 
   // 周围植物（3 格内）：玩家/Agent 种的作物 + 可砍的树
-  const plantsNear = growPlants(state)
+  const plantsNear = !inVillage ? [] : growPlants(state)
     .filter(p => (p.farmType === 1 || treeOf(p)) && Math.abs(p.x - gx) <= 3 && Math.abs(p.y - gy) <= 3)
     .map(p => {
       const crop = tables.cropOf(p.plantId);
@@ -94,14 +101,13 @@ export function observeState(app: App, uid: string, username: string, nick: stri
 
   // 附近可砍的树（默认 3 格内供 chop 定位；10 格清单仅在 AF_NAV_DEBUG_TREES=1 调试时输出——§4.2 不喂导航级树坐标清单）
   const treeRadius = process.env.AF_NAV_DEBUG_TREES === '1' ? 10 : 3;
-  const treesNear = growPlants(state)
+  const treesNear = !inVillage ? [] : growPlants(state)
     .filter(p => treeOf(p) && Math.abs(p.x - gx) <= treeRadius && Math.abs(p.y - gy) <= treeRadius)
     .map(p => ({ gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantId: p.plantId, hp: p.hp }));
   // D2 区域级障碍（水域/树丛：区域名 + 格子范围 + 绕行原则）
   const obstacles = obstacleRegions(app, state, gx, gy);
 
   // L3 市政指引（roads-landmarks §4）：当前路名 + 最近地标方位（场景级地标；村景带路名反查）
-  const sceneId = apos.scene ?? (pd.sceneType as number | undefined) ?? 2;
   const mu = municipalOf(app);
   const landmarksHere = mu.landmarks.get(sceneId) || []; // 场景坐标空间各自独立，不回退村景
   const munNav = sceneId === 2 ? villageNavOf(app) : null;
@@ -121,10 +127,10 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     .sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id))
     .slice(0, 6);
 
-  // 附近可犁地 / 已犁地块（3 格内）
+  // 附近可犁地 / 已犁地块（3 格内；仅村景）
   const tillableNear: Array<Record<string, unknown>> = [];
   const plotsNear: Array<Record<string, unknown>> = [];
-  for (let dy = -3; dy <= 3; dy++) {
+  if (inVillage) for (let dy = -3; dy <= 3; dy++) {
     for (let dx = -3; dx <= 3; dx++) {
       const nx = gx + dx, ny = gy + dy;
       if (nx < 0 || ny < 0 || nx >= (tables.farm ? tables.farm.soilW : 999) || ny >= (tables.farm ? tables.farm.soilH : 999)) continue;
@@ -176,6 +182,7 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     treesNear,
     tillableNear,
     plotsNear,
+    sceneFilter: notInVillageHint ? { note: notInVillageHint } : null,
     playersNear,
     social,
     dmUnlocked: dmUnlockedList(state, uid),
