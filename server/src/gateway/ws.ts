@@ -29,6 +29,7 @@ import { placeDecor, removeDecor, courtyardScore, courtyardCompletion, courtyard
 import { recordFestivalScore, stallFee, activeFestival } from '../world/festival.ts';
 import { currentGameDay, calendarDay, STORM_INSURANCE_PER_PLANT } from '../world/calendar.ts';
 import { trainAttr, fitnessOf, GYM_ATTR_NAME, GYM_ATTRS } from '../world/fitness.ts';
+import { gate, FISH_COOLDOWN_MS, MINE_COOLDOWN_MS } from '../world/stamina.ts';
 import type { AgentPos } from '../types.ts';
 import { observeState } from '../cognition/observe.ts';
 import { notePlayerOp, publishAgentActivityGlobal } from '../cognition/managed.ts';
@@ -1262,6 +1263,9 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               for (let dx = -1; dx <= 1; dx++) if (waterAt(app.tables, px + dx, py + dy)) { nearWater = true; break; }
             if (!nearWater) { result.msg = `不在水边（当前位置 (${px},${py}) 附近没有水域）。请 move_to 到河边再钓`; continue; }
             if (!knapHas(pm, 6, 1)) { result.msg = '没有鱼竿（id=6）'; continue; }
+            // 采集冷却：脚本无法原地无限刷鱼（资源守恒，防通胀）
+            const fg = gate(state, uid, 'fish', FISH_COOLDOWN_MS, Date.now());
+            if (!fg.ok) { result.msg = `鱼还没上钩（甩竿后需等 ${fg.waitSec} 秒）`; result.waitSec = fg.waitSec; continue; }
             const fseed = freshSeed();
             const fid = pickWeightedSeeded(FISH_POOL, fseed);
               knapAdd(pm, fid, 1);
@@ -1278,6 +1282,9 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const nearSpot = app.tables.mineSpots.some(sp => Math.abs(sp.gx - px) <= 2 && Math.abs(sp.gy - py) <= 2);
             if (!nearSpot) { result.msg = '附近没有矿山（在村庄边缘的矿点附近才能挖矿）'; continue; }
             if (!knapHas(pm, 58, 1)) { result.msg = '没有镐（id=58）'; continue; }
+            // 采集冷却：挖矿更耗体力，冷却更长
+            const mg = gate(state, uid, 'mine', MINE_COOLDOWN_MS, Date.now());
+            if (!mg.ok) { result.msg = `还没缓过劲来（挖一镐后需歇 ${mg.waitSec} 秒）`; result.waitSec = mg.waitSec; continue; }
             const mseed = freshSeed();
             const mid = pickWeightedSeeded(MINE_POOL, mseed);
             knapAdd(pm, mid, 1);
