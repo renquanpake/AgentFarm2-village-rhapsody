@@ -18,7 +18,7 @@
 
 ## 构建与验证（Build & Test）
 - 类型检查：`cd server && npx tsc --noEmit`（tsconfig strict + erasableSyntaxOnly，禁用 enum/namespace/参数属性）。
-- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 163 项）。
+- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 172 项）。
 - 协议回归：起服务 `AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 node src/index.ts`，另跑 `AF_BASE=http://127.0.0.1:8080 node server/ws-test.mjs`（应 12 项全过；talk 走 agent 通道 `{t:'act',action:'talk'}`，需带 agentToken 账号）。
 - 导航门：`node tools/gen-nav.mjs --check`（村景锚点可达 + 56 条跨场景门户吸附）+ `node tools/nav-replay.mjs [--smoke|--drift]`（村景 8 起点×3 路线×10=240 例，drift=偏差重规划；+28 环后 house-9 计入，旧"210 例"已过期）+ E2E `AF_BASE=... node tools/e2e-nav-arrive.mjs`（14 项，测试服务 `PORT=8091 AF_SLOT=9 AF_NAV_ARRIVE_MS=1200`）。
 - CI 八道门见 `.github/workflows/ci.yaml`（门8=旗舰UI 静态+冒烟：`tools/ui-lint.mjs` 三静态门 + `tools/ui-smoke.mjs` 17 项模块逻辑冒烟，无浏览器可跑；Cocos 实机反射归 N2）；原版外壳哈希基线 `client/original-hash.json`（`node tools/hash-manifest.mjs [--check]`，mod 层豁免）。
@@ -36,12 +36,13 @@
 - **talk 走 agent 通道**：`act`（含 talk）只在 `/agent?token=` 外部通道，游戏通道 `/ws` 无 `act` case；ws-test 的 talk 断言需用带 `agentToken` 账号（`data/accounts.json`）连 agent 通道。
 - **经济回收 10% 交易手续费（2026-10-02 用户拍板，防通胀）**：`economy.ts` `TRADE_FEE_RATE=0.10`（固定 10%，与 feeMultiplier 动态上浮正交的第二层回收）。成交结算时**卖方实收 90%，10% 烧币**（不入任何账 → `moneySupply` 自动下降），记 `trade.fee` 事件；`/af/economy` 增 `tradeFeeRate` 字段；看盘口 book msg 注明"含 10% 系统手续费，卖方实收 90%"。实机验：卖 item3@52×10 买方吃单，卖方币 +468（=520×0.9）非全额。
 - **P1 build 空坐标刷币已修**：`normXY` 对 undefined 坐标返 NaN，`act build` 不传 x/y → NaN 设施 + 同格防重(NaN!==NaN)失效 → 无限 200 币刷。修：build 缺坐标回落"自身所在格"（apos）+ 校验有限/边界，防重恢复生效。实机验 3 连 build 仅落 1 条有效坐标、0 null 设施。
-- **玩家视角审计工具**：`tools/player-cli.mjs`（observe/act/book 走 /agent+HTTP，供 LLM 玩家 agent 游玩挑刺）+ `tools/llm-player.mjs`（self/trade）。审计法：起隔离 slot 实例 + 种子 1 玩家（注册密码须 >=4 位，否则 400）+ 派 1 子 Agent 完整游玩逐项挑刺。已知待修（审计发现）：P1 砍树只读 sceneType=1 桶（跨桶树砍不到+同格多桶数据冲突）、P2 买入跨价不退价差/train 只认英文键但报错给中文/near=water 静默回落/move_to target 误报/挖矿钓鱼无冷却刷钱。
+- **玩家视角审计工具**：`tools/player-cli.mjs`（observe/act/book 走 /agent+HTTP，供 LLM 玩家 agent 游玩挑刺）+ `tools/llm-player.mjs`（self/trade）。审计法：起隔离 slot 实例 + 种子 1 玩家（注册密码须 >=4 位，否则 400）+ 派 1 子 Agent 完整游玩逐项挑刺。已知待修（审计发现）：P2 买入跨价不退价差/train 只认英文键但报错给中文/near=water 静默回落/move_to target 误报/挖矿钓鱼无冷却刷钱。P1 砍树已修（见下条）。
+- **原版 SceneType 枚举实测值（2026-10-02，22a9c2b，重要/难重发现）**：从 `client/assets/main/index.e6d95.js` 提取 —— **1=HOME_MAP 出生小岛 / 2=VILLAGE_MAP 村庄 / 3=RIVER_MAP / 4=PADDY_MAP / 5=NUNNERY_MAP / 6=HOTSPRING_MAP / 7=BAOLONG_MAP / 8=MINEGATE_MAP / 9=CEMETERY_MAP / 10=TRAIL_MAP / 11=BRIDGE_MAP / 12=HILLTOP_MAP / 13=FOREST_MAP / 14=CABLEWAY_MAP / 101+=各 HOUSE**。**服务端唯一服务的地图就是村 = scene 2**（判据：`village-farm/collision` 189×173 + `/af/mapgrid` 下发 `origW:77 origH:61` 恰为村存档格 0..76/0..60 + observe/出生场景默认 2 + 市政道路建筑地标全在 scene 2 键）。据此修掉 P1：`farm.ts` 原来写死 `sceneType===1`（= 出生小岛），只加载 29×29 的角，村桶 173 棵tree 有 139棵（80%）玩家永远砍不到；现 `WORLD_SCENE_TYPE=2`，`PLOT_SCENE_TYPE=1`（原版 `farmData.plotDatas` 记在 HOME 桶，世界坐标已落在村图内）。**不能并桶**：HOME∩VILLAGE 43 个坐标、VILLAGE∩RIVER 32 个坐标重叠，并桶会同格多树、砍错对象。配套：①`migratePlantBucket()` 只搬 `farmType=1` 玩家作物，装饰留原桶，标记 `afPlantBucketVillage`（**必须登记进 `GLOBAL_KEYS`**，否则 `importSave` 按 `bucketOf` 丢弃该键导致每次启动重跑）；②迁移**重发 uId**——slot94 实测玩家作物 uId=1365 与村桶装饰重号，搬运会撞号，须同步改写地块 `plantUID`；③新增 `cropAtWorld()`——村桶 1018 株装饰与玩家作物**同格并存是常态**，`plantAtWorld` 的 `find()` 会先撞装饰株导致玩家收不到自己的麦子（harvest 报"这是场景植物"），占位判定仍用 `plantAtWorld`，water/harvest/observe 预览用 `cropAtWorld`（无作物回退场景株以保留提示文案）。
 ## 排障要点（Troubleshooting）
 - **测试隔离**：`config.ts` 在模块加载时读 `AF_DATA_DIR`。单测必须直接构造 `WorldState`/`EventLog`（临时目录），**不要**在单测里 `new App()`（会把测试夹具写进真实 `data/saves/`——曾发生，已隔离）。
 - **回放态禁落盘**：`rebuildState`/`fromSnapshot` 的重建态必须 `noPersist:true`，否则一致性校验会把回放结果写进生产存档（已修）。
 - 事件库按存档位隔离：`data/saves/slotN/events.db`；切档即换库。`events` 表 seq 单调递增，崩溃后 `EventLog.init()` 读回 MAX(seq) 续增。
-- `structuredHash` 只覆盖"事件拥有"的结构化域（plant/farm/sprinkler/social/afTasks/agentPos），自由桶（mapData/playerData/knapData 等客户端可覆写）不参与——启动一致性告警属正常诊断，非错误。
+- `structuredHash` 只覆盖"事件拥有"的结构化域（plant/farm/sprinkler/social/afTasks/agentPos），自由桶（mapData/playerData/knapData 等客户端可覆写）不参与——启动一致性告警属正常诊断，非错误。**已归因验证**：`git stash` 回到改动前代码、跑从未被本轮改过的 slot95，同样报 `一致性告警：重放哈希 != 运行状态哈希`（events=172），确认与新改动无关；排查该告警时不必先怀疑最近的功能改动。
 
 ## 施工进度与续作（Workflow）
 - 当前进度与任务清单：`.monkeycode/specs/agentfarm2-playability-upgrade/tasklist.md`（先读它确认，再读同目录 requirements.md / design.md）。
