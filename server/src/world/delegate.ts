@@ -2,7 +2,7 @@
 // 世界桶 delegatedData（结构化域，回放可重放）。
 // 接取前报酬锁定于发布方「冻结金」（frozen）；完成 -> 转账接取方；破产（冻结方金币不足）-> 自动关闭。
 import type { WorldState } from '../persistence/state.js';
-import { knapAdd, knapSub, knapHas } from './farm.js';
+import { knapAdd, knapSub, knapHas } from './farm.ts';
 
 export const DELEGATE_KEY = 'delegatedData';
 

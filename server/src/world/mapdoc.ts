@@ -62,10 +62,10 @@ export function buildMapDoc(opts: MapDocOpts): MapDoc {
   const { dataDir, sceneWidth: W, sceneHeight: H, cellPx } = opts;
   const nav = loadJson<{ kind: number[]; roadIdx?: (number | null)[]; roadNames?: Record<number, string> }>(dataDir, 'nav/nav-2.json');
   const buildingsRaw = loadJson<unknown>(dataDir, 'buildings.json');
-  const landmarks = loadJson<Array<{ id: string; name: string; x: number; y: number; type?: string }>>(dataDir, 'landmarks.json');
-  const mines = loadJson<Array<{ gx: number; gy: number }>>(dataDir, 'mine-spots.json');
+  const landmarksRaw = loadJson<unknown>(dataDir, 'landmarks.json');
+  const minesRaw = loadJson<unknown>(dataDir, 'mine-spots.json');
   const portalsRaw = loadJson<unknown>(dataDir, 'nav/portals.json');
-  const spawns = loadJson<{ scene?: number; houses: Array<{ id: number; type?: string; door: { x: number; y: number } }> }>(dataDir, 'spawn-points.json');
+  const spawnsRaw = loadJson<unknown>(dataDir, 'spawn-points.json');
 
   // 兼容数组 / 对象分场景两种形态：拍平取全部条目
   const flatten = (raw: unknown): Array<Record<string, unknown>> => {
@@ -82,6 +82,12 @@ export function buildMapDoc(opts: MapDocOpts): MapDoc {
   };
   const bldArr = flatten(buildingsRaw) as Array<{ name?: string; door?: { x: number; y: number }; scene?: number }>;
   const portals = flatten(portalsRaw) as Array<{ scene: number; toScene: number; x?: number; y?: number; name?: string; gridX?: number; gridY?: number }>;
+  const landmarks = flatten(landmarksRaw) as Array<{ id: string; name: string; x: number; y: number; type?: string }>;
+  const mines = flatten(minesRaw) as Array<{ gx: number; gy: number }>;
+  const spawns = (spawnsRaw && typeof spawnsRaw === 'object' && !Array.isArray(spawnsRaw)
+    ? spawnsRaw
+    : { houses: [] }) as { scene?: number; houses: Array<{ id: number; type?: string; door: { x: number; y: number } }> };
+  if (!spawns.houses) spawns.houses = [];
 
   const grid = nav.kind || [];
   const blocked = clusterOf(1, grid, W, H);

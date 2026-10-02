@@ -32,8 +32,8 @@ import { trainAttr, fitnessOf, GYM_ATTR_NAME, GYM_ATTRS } from '../world/fitness
 import { gate, FISH_COOLDOWN_MS, MINE_COOLDOWN_MS } from '../world/stamina.ts';
 import { recordGossip, isSignificant, latestGossip } from '../world/gossip.ts';
 import { publishNotice } from '../world/notices.ts';
-import { publish as delegatePublish, accept as delegateAccept, complete as delegateComplete, listFor as delegateList } from '../world/delegate.js';
-import { openLease, care as careLease, tickLease as tickLeaseClock, regrow as regrowNow, leaseOf } from '../world/lease.js';
+import { publish as delegatePublish, accept as delegateAccept, complete as delegateComplete, listFor as delegateList } from '../world/delegate.ts';
+import { openLease, care as careLease, tickLease as tickLeaseClock, regrow as regrowNow, leaseOf } from '../world/lease.ts';
 import type { AgentPos } from '../types.ts';
 import { observeState } from '../cognition/observe.ts';
 import { notePlayerOp, publishAgentActivityGlobal } from '../cognition/managed.ts';

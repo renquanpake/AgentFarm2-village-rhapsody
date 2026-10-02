@@ -368,9 +368,14 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
     // 全村文本地图（H 包/R9 设计铁律）：数据自动生成，纯文本 LLM 自规划路线
     if (u.pathname === '/af/mapdoc') {
       try {
-        const nav = JSON.parse(fs.readFileSync(path.join(app.dataDir, 'nav/nav-2.json'), 'utf8'));
+        const fs = await import('node:fs');
+        const navPath = path.join(app.dataDir, 'nav/nav-2.json');
+        const repoData = path.resolve(process.cwd(), '..', 'data');
+        const dataDir = fs.existsSync(navPath) ? app.dataDir
+          : (fs.existsSync(path.join(repoData, 'nav/nav-2.json')) ? repoData : app.dataDir);
+        const nav = JSON.parse(fs.readFileSync(path.join(dataDir, 'nav/nav-2.json'), 'utf8'));
         const { buildMapDoc } = await import('../world/mapdoc.ts');
-        const doc = buildMapDoc({ dataDir: app.dataDir, sceneWidth: nav.width ?? 189, sceneHeight: nav.height ?? 173, cellPx: 100 });
+        const doc = buildMapDoc({ dataDir, sceneWidth: nav.width ?? 189, sceneHeight: nav.height ?? 173, cellPx: 100 });
         json(res, 200, { ok: true, mapdoc: doc.text, stats: { blocked: doc.blockedClusters.length, water: doc.waterClusters.length, roads: doc.roadCount } });
       } catch (e) {
         json(res, 500, { ok: false, msg: `mapdoc 生成失败：${String((e as Error).message)}` });
