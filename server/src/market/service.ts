@@ -133,6 +133,18 @@ export class MarketService {
       if (buyer !== 'mm') {
         if (buyer.startsWith('npc:')) this.npcSettle(buyer, 'buy', item, f.price, f.qty);
         else if (!knapAdd(this.pmOf(buyer), item, f.qty)) anomaly = true;
+        // 限价改善退差：成交价取挂单方（maker）价格，买方限价更优时把价差退回买方。
+        // place() 已按限价预留 price*qty —— 未成交部分撤单时退（见 cancel），
+        // 但已成交部分的价差此前凭空消失：既没给卖方、也没记 trade.fee，
+        // 是一笔无日志的漏账（对买方不公平，对 moneySupply 是隐性回收）。
+        // maker 即买方时（side==='sell'）成交价就是其挂单价，refund 恒为 0。
+        const buyerLimit = side === 'buy' ? price : f.price;
+        const refund = Math.max(0, (buyerLimit - f.price) * f.qty);
+        if (refund > 0) {
+          if (buyer.startsWith('npc:')) { const led = this.npcLedger(buyer); if (led) this.adjustLedger(led.id, refund, 0); }
+          else if (!knapAdd(this.pmOf(buyer), 1, refund)) anomaly = true;
+          this.app.log.append('trade.refund', buyer, { item, price: f.price, qty: f.qty, limit: buyerLimit, refund, ts: now });
+        }
       }
       if (seller !== 'mm') {
         // 交易所/银行系统手续费：卖方所得扣 10% 并烧币（通缩回收，moneySupply 随之下降）

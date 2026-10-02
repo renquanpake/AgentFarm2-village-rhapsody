@@ -169,3 +169,65 @@ describe('持久化与 OHLC', () => {
     b.db.close();
   });
 });
+
+describe('买入限价改善退差（价格改善归买方）', () => {
+  it('吃单方低价挂单：买方拿回限价与成交价之差', () => {
+    const h = harness();
+    give(h, 'u1', 12, 5);
+    give(h, 'u2', 1, 1000);
+    const sellPx = Math.round(h.market.basePrice(12) * 1.05) - 1;
+    h.market.place('u1', 12, 'sell', sellPx, 5);
+    const limit = sellPx + 3; // 买方限价更高
+    const coins = (uid: string) => Number(((pm(h, uid).get('knapData') as { props: Array<{ id: number; num?: number }> }).props.find(p => p.id === 1)?.num) || 0);
+    const before = coins('u2');
+    const rb = h.market.place('u2', 12, 'buy', limit, 2);
+    expect(rb.fills!.length).toBe(1);
+    expect(rb.fills![0].price).toBe(sellPx); // 成交价取挂单方
+    // 价差 (limit - sellPx) * 2 全额退回
+    expect(before - coins('u2')).toBe(2 * sellPx);
+    expect(h.log.since(0).filter(e => e.type === 'trade.refund').length).toBe(1);
+    h.db.close();
+  });
+
+  it('限价等于成交价不产生退款事件', () => {
+    const h = harness();
+    give(h, 'u1', 12, 5);
+    give(h, 'u2', 1, 1000);
+    const sellPx = Math.round(h.market.basePrice(12) * 1.05) - 1;
+    h.market.place('u1', 12, 'sell', sellPx, 5);
+    h.market.place('u2', 12, 'buy', sellPx, 2);
+    expect(h.log.since(0).filter(e => e.type === 'trade.refund').length).toBe(0);
+    h.db.close();
+  });
+
+  it('买方才挂单被卖方吃掉：成交价即买方挂单价，无退款', () => {
+    const h = harness();
+    give(h, 'u1', 12, 5);
+    give(h, 'u2', 1, 1000);
+    const base = h.market.basePrice(12);
+    const buyPx = Math.round(base * 0.95) + 1; // 高于做市买盘 -> 挂簿
+    const rb = h.market.place('u2', 12, 'buy', buyPx, 2);
+    expect(rb.fills!.length).toBe(0);
+    const rs = h.market.place('u1', 12, 'sell', buyPx, 2); // 卖方主动来吃
+    expect(rs.fills!.length).toBe(1);
+    expect(rs.fills![0].maker).toBe('u2');
+    expect(h.log.since(0).filter(e => e.type === 'trade.refund').length).toBe(0);
+    h.db.close();
+  });
+
+  it('守恒：买方净支出=成交总价，卖方=gross-fee，烧币=fee', () => {
+    const h = harness();
+    give(h, 'u1', 12, 5);
+    give(h, 'u2', 1, 1000);
+    const sellPx = Math.round(h.market.basePrice(12) * 1.05) - 1;
+    h.market.place('u1', 12, 'sell', sellPx, 5);
+    const coins = (uid: string) => Number(((pm(h, uid).get('knapData') as { props: Array<{ id: number; num?: number }> }).props.find(p => p.id === 1)?.num) || 0);
+    const b0 = coins('u2'), s0 = coins('u1');
+    h.market.place('u2', 12, 'buy', sellPx + 4, 2);
+    const gross = 2 * sellPx;
+    const fee = Math.round(gross * TRADE_FEE_RATE);
+    expect(b0 - coins('u2')).toBe(gross);          // 退差后只付成交总价
+    expect(coins('u1') - s0).toBe(gross - fee);     // 卖方收 90%
+    h.db.close();
+  });
+});
