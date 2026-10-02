@@ -78,6 +78,7 @@ export const SwitchSlotBody = z.object({ slot: z.number() });
 export const RenameSlotBody = z.object({ slot: z.number().optional(), name: z.string().optional() });
 export const JoinRoomBody = z.object({ code: z.string() });
 export const GiveCoinsBody = z.object({ amount: z.number().optional() });
+export const GiveItemBody = z.object({ itemId: z.number().optional(), amount: z.number().optional() });
 export const AgentSetupBody = z.object({
   personality: z.string().optional(), name: z.string().optional(),
   playstyle: z.string().optional(), phrase: z.string().optional(),

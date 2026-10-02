@@ -7,7 +7,7 @@ import type { App } from '../app.ts';
 import { loadJson } from '../persistence/state.ts';
 import { AccountStore } from '../persistence/accounts.ts';
 import { PROVIDER_FILE, SAVES_DIR, PORT, slotPaths } from '../config.ts';
-import { readJsonBody, RegisterBody, AgentProviderBody, AgentControlBody, SwitchSlotBody, RenameSlotBody, JoinRoomBody, GiveCoinsBody, AgentSetupBody } from './protocol.ts';
+import { readJsonBody, RegisterBody, AgentProviderBody, AgentControlBody, SwitchSlotBody, RenameSlotBody, JoinRoomBody, GiveCoinsBody, GiveItemBody, AgentSetupBody } from './protocol.ts';
 import { resolveProvider } from '../cognition/managed.ts';
 import { runLocalBackup } from '../persistence/backup.ts';
 import { log } from '../logging.ts';
@@ -323,6 +323,27 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       pm.set('knapData', kn);
       app.state.persist();
       json(res, 200, { ok: true, coins: coinsProp ? coinsProp.num : add });
+      return;
+    }
+
+    // Dev: 给玩家加物品（测试用；P2P 交易需可卖库存）
+    if (u.pathname === '/af/dev/give-item' && req.method === 'POST') {
+      const raw = await readJsonBody(req, 1024);
+      const b = GiveItemBody.safeParse(raw || {});
+      const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const pm = app.state.playersDb.get(a.uid);
+      if (!pm) { json(res, 404, { ok: false, msg: 'no player data' }); return; }
+      const itemId = (b.success ? b.data.itemId : Number((raw || {}).itemId)) || 1;
+      const add = (b.success ? b.data.amount : Number((raw || {}).amount)) || 10;
+      const kn = (pm.get('knapData') as { props?: Array<{ id: number; num?: number }> } | undefined) || { props: [] };
+      kn.props = kn.props || [];
+      const prop = kn.props.find(p => p.id === itemId);
+      if (prop) prop.num = (prop.num || 0) + add;
+      else kn.props.push({ id: itemId, num: add });
+      pm.set('knapData', kn);
+      app.state.persist();
+      json(res, 200, { ok: true, itemId, num: prop ? prop.num : add });
       return;
     }
 
