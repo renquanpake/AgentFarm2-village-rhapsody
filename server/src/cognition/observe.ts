@@ -2,7 +2,7 @@
 import type { App } from '../app.ts';
 import type { WorldState } from '../persistence/state.ts';
 import {
-  worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, treeOf,
+  worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cropAtWorld, treeOf,
   soilAt, waterAt, plotAt,
 } from '../world/farm.ts';
 import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
@@ -133,7 +133,7 @@ export function observeState(app: App, uid: string, username: string, nick: stri
       }
       if (plotAt(state, nx, ny)) {
         const pl = worldPlots(state).find(q => q.x === nx && q.y === ny);
-        const pp = pl && pl.plantUID ? plantAtWorld(state, nx, ny) : null;
+        const pp = pl && pl.plantUID ? cropAtWorld(state, nx, ny) : null;
         const crop = pp ? tables.cropOf(pp.plantId) : null;
         plotsNear.push({
           gx: nx, gy: ny, px: nx * 100 + 50, py: ny * 100 + 50,

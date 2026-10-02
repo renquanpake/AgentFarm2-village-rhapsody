@@ -13,7 +13,7 @@ import {
   RELATION_DEFS,
 } from '../world/social.ts';
 import { TASK_DEFS, tasksOf, taskCount } from '../world/tasks.ts';
-import { worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, knapAdd, knapHas, knapSub, treeOf, nextPlantUid, soilAt, waterAt, plotAt } from '../world/farm.ts';
+import { worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cropAtWorld, knapAdd, knapHas, knapSub, treeOf, nextPlantUid, soilAt, waterAt, plotAt } from '../world/farm.ts';
 import { PLANT_CROPS, pickWeighted, FISH_POOL, MINE_POOL } from '../world/tables.ts';
 import { freshSeed, pickWeightedSeeded } from '../world/rng.ts';
 import { WORLD_KEYS } from '../persistence/state.ts';
@@ -1137,7 +1137,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
             if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
-            const p = plantAtWorld(state, gx, gy);
+            const p = cropAtWorld(state, gx, gy);
             if (!p) { result.msg = '这个格子上没有作物可浇'; continue; }
             if (p.farmType !== 1) { result.msg = '这是场景植物，不需要浇水'; continue; }
             const crop = app.tables.cropOf(p.plantId);
@@ -1179,7 +1179,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
             if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
-            const p = plantAtWorld(state, gx, gy);
+            const p = cropAtWorld(state, gx, gy);
             if (!p) { result.msg = '这个格子上没有作物'; continue; }
             if (p.farmType !== 1) { result.msg = '这不是你种的作物（是场景植物）'; continue; }
             const crop = app.tables.cropOf(p.plantId);

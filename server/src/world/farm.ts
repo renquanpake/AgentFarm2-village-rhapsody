@@ -6,24 +6,50 @@ import { CROP_BY_PLANT_ID, SPRINKLER_RANGE } from './tables.ts';
 
 type CropsTables = Tables;
 
-// 世界植物（sceneType=1 村庄；world 桶共享 —— 玩家与 agent 共同耕种）
-export function worldPlants(state: WorldState): PlantRec[] {
-  let pd = state.world.get('plantData') as { datas?: Array<{ sceneType: number; plants?: PlantRec[] }> } | undefined;
-  if (!pd) {
-    pd = { datas: [{ sceneType: 3, plants: [] }, { sceneType: 2, plants: [] }, { sceneType: 1, plants: [] }] };
-    state.world.set('plantData', pd);
-  }
-  let sc = (pd.datas || []).find(d => d.sceneType === 1);
-  if (!sc) { sc = { sceneType: 1, plants: [] }; (pd.datas = pd.datas || []).push(sc); }
+// 原版 GD.SceneType 枚举实测值（client/assets/main/index.e6d95.js）：
+//   1=HOME_MAP 出生小岛 / 2=VILLAGE_MAP 村庄 / 3=RIVER_MAP 河流 / 4=PADDY_MAP 稻田
+//   5=NUNNERY_MAP / 6=HOTSPRING_MAP / 7=BAOLONG_MAP / 8=MINEGATE_MAP / 9=CEMETERY_MAP
+//   10=TRAIL_MAP / 11=BRIDGE_MAP / 12=HILLTOP_MAP / 13=FOREST_MAP / 14=CABLEWAY_MAP
+//   101=PLAYER_HOUSE 起
+export const SCENE_HOME_MAP = 1;
+export const SCENE_VILLAGE_MAP = 2;
+export const SCENE_RIVER_MAP = 3;
+
+// 服务端只服务一张地图：data/village-farm.json 189x173，LEFT/TOP=56，
+// 原版村庄范围 origW=77 / origH=61（= VILLAGE_MAP 存档格 0..76 / 0..60），
+// 碰撞/水域/土壤/道路/建筑/地标也全部是 scene 2。故世界植物桶 = VILLAGE_MAP。
+// HOME_MAP(269 株/44 树，x56..84) 与 RIVER_MAP(170 株/25 树) 属未加载场景，
+// 且与村庄桶有 43 / 32 个坐标重叠，直接并入会造成同格多树与误砍。
+export const WORLD_SCENE_TYPE = SCENE_VILLAGE_MAP;
+
+// 原版 farmData.plotDatas 把玩家农田记在 HOME_MAP 桶（存档 x13..15/y15..16），
+// 世界坐标落在村庄图内，读取方式与渲染无关，保持原位不迁移。
+export const PLOT_SCENE_TYPE = SCENE_HOME_MAP;
+
+export type PlantBucket = { sceneType: number; plants?: PlantRec[] };
+
+/** 取（必要时创建）指定 sceneType 的植物桶 */
+export function scenePlantBucket(state: WorldState, sceneType: number): PlantBucket {
+  let pd = state.world.get('plantData') as { datas?: PlantBucket[] } | undefined;
+  if (!pd) { pd = { datas: [] }; state.world.set('plantData', pd); }
+  const datas = (pd.datas = pd.datas || []);
+  let sc = datas.find(d => d.sceneType === sceneType);
+  if (!sc) { sc = { sceneType, plants: [] }; datas.push(sc); }
   if (!sc.plants) sc.plants = [];
-  return sc.plants;
+  return sc;
+}
+
+// 世界植物（VILLAGE_MAP 桶；world 桶共享 —— 玩家与 agent 共同耕种与采伐）
+export function worldPlants(state: WorldState): PlantRec[] {
+  return scenePlantBucket(state, WORLD_SCENE_TYPE).plants!;
 }
 
 export function worldPlots(state: WorldState): PlotRec[] {
   let fd = state.world.get('farmData') as { plotDatas?: Array<{ sceneType: number; plots?: PlotRec[] }> } | undefined;
-  if (!fd) { fd = { plotDatas: [{ sceneType: 1, plots: [] }] }; state.world.set('farmData', fd); }
-  let sc = (fd.plotDatas || []).find(d => d.sceneType === 1);
-  if (!sc) { sc = { sceneType: 1, plots: [] }; (fd.plotDatas = fd.plotDatas || []).push(sc); }
+  if (!fd) { fd = { plotDatas: [] }; state.world.set('farmData', fd); }
+  const datas = (fd.plotDatas = fd.plotDatas || []);
+  let sc = datas.find(d => d.sceneType === PLOT_SCENE_TYPE);
+  if (!sc) { sc = { sceneType: PLOT_SCENE_TYPE, plots: [] }; datas.push(sc); }
   if (!sc.plots) sc.plots = [];
   return sc.plots;
 }
@@ -109,6 +135,23 @@ export function sprinklerAutoWater(state: WorldState, tables: Tables): { watered
 
 export function plantAtWorld(state: WorldState, gx: number, gy: number): PlantRec | undefined {
   return growPlants(state).find(p => p.x === gx && p.y === gy);
+}
+
+/**
+ * 取坐标上的作物（farmType=1）。
+ * VILLAGE_MAP 桶同时装着 1018 株场景装饰（farmType=2）与玩家作物，同格并存是常态
+ * （玩家犁的地块可能正压着原版场景植物），按坐标 find() 会先撞上装饰株。
+ * 耕地/播种的占位判定仍用 plantAtWorld（任何植物都占位）；
+ * 浇水/收获/observe 预览必须用本函数，优先返回作物，无作物时回退场景植物以保留提示文案。
+ */
+export function cropAtWorld(state: WorldState, gx: number, gy: number): PlantRec | undefined {
+  let scene: PlantRec | undefined;
+  for (const p of growPlants(state)) {
+    if (p.x !== gx || p.y !== gy) continue;
+    if (p.farmType === 1) return p;
+    if (!scene) scene = p;
+  }
+  return scene;
 }
 
 // 树（可砍）：原版树 plantId 14-19

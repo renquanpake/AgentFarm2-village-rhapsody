@@ -8,10 +8,11 @@ import { slotPaths } from '../config.ts';
 
 export const WORLD_KEYS = new Set(['mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData', 'socialData']);
 export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks']);
-export const GLOBAL_KEYS = new Set(['audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated']);
+export const GLOBAL_KEYS = new Set(['audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage']);
 
 const SEED_PLAYER_UID = '100001';
 const MIGRATED_KEY = 'afCoordMigrated';
+const PLANT_BUCKET_KEY = 'afPlantBucketVillage';
 
 export function loadJson<T>(p: string, fallback: T): T {
   try { return JSON.parse(readFileSync(p, 'utf8')) as T; } catch { return fallback; }
@@ -131,6 +132,7 @@ export class WorldState {
 
     // 一次性坐标迁移（地图扩展 14 格，旧档植物/农田 +14）
     if (!(this.globals.get(MIGRATED_KEY) as { val?: number } | undefined)?.val) this.migrateWorldCoords();
+    if (!(this.globals.get(PLANT_BUCKET_KEY) as { val?: number } | undefined)?.val) this.migratePlantBucket();
 
     this.spawnCount = Number((this.globals.get('afSpawnCount') as { val?: number } | undefined)?.val || 0);
   }
@@ -157,7 +159,45 @@ export class WorldState {
     if (fd) for (const sc of (fd.plotDatas || [])) for (const pl of (sc.plots || [])) { pl.x += this.farmLeft; pl.y += this.farmLeft; }
     this.globals.set(MIGRATED_KEY, { val: 1 });
     this.persist();
-    console.log('[migrate] 世界坐标已迁移（植物/农田 +14 格）');
+    console.log(`[migrate] 世界坐标已迁移（植物/农田 +${this.farmLeft} 格）`);
+  }
+
+  /**
+   * 世界植物桶归位：原版 HOME_MAP(1) 桶 -> VILLAGE_MAP(2) 桶。
+   * 只搬玩家作物（farmType=1）；场景装饰（farmType=2）留在原桶不动。
+   * 搬运会重发 uId：旧桶 uId 与村庄桶数值域重叠（slot94 实测 1365 两桶皆有），
+   * 直接搬会造成同 uId 两株，地块 plantUID 引用随之改写。
+   */
+  migratePlantBucket(): void {
+    const pd = this.world.get('plantData') as { datas?: Array<{ sceneType: number; plants?: Array<{ uId: number; farmType: number }> }> } | undefined;
+    let moved = 0;
+    if (pd) {
+      const datas = pd.datas || [];
+      const home = datas.find(d => d.sceneType === 1);
+      const vil = datas.find(d => d.sceneType === 2);
+      if (home && vil && home.plants && vil.plants) {
+        const crops = home.plants.filter(p => p.farmType === 1);
+        if (crops.length) {
+          const used = new Set(vil.plants.map(p => p.uId));
+          let next = vil.plants.reduce((m, p) => Math.max(m, p.uId), 0);
+          const fd = this.world.get('farmData') as { plotDatas?: Array<{ plots?: Array<{ plantUID?: number }> }> } | undefined;
+          for (const c of crops) {
+            next++;
+            while (used.has(next)) next++;
+            used.add(next);
+            const old = c.uId;
+            c.uId = next;
+            for (const sc of (fd?.plotDatas || [])) for (const pl of (sc.plots || [])) if (pl.plantUID === old) pl.plantUID = next;
+          }
+          vil.plants.push(...crops);
+          home.plants = home.plants.filter(p => p.farmType !== 1);
+          moved = crops.length;
+        }
+      }
+    }
+    this.globals.set(PLANT_BUCKET_KEY, { val: 1 });
+    this.persist();
+    console.log(`[migrate] 玩家作物桶归位 VILLAGE_MAP：${moved} 株`);
   }
 
   /** 出生点表：新玩家按加入顺序分配到村扩展区宅基地 */
