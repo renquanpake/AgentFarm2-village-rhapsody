@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-29T15:00:04.607Z",
-  "base": "http://127.0.0.1:8131",
+  "at": "2026-10-02T10:57:31.634Z",
+  "base": "http://127.0.0.1:8097",
   "results": [
     {
       "name": "1 登录进游戏（join/welcome + 他人视角 move 广播）",
@@ -10,22 +10,22 @@
     {
       "name": "2 交易（/af/economy feeMultiplier/inflationIndex + /af/market/1 订单簿）",
       "pass": true,
-      "evidence": "feeMult=1 通胀=null 订单簿={\"bids\":[{\"price\":48,\"qty\":50}],\"asks\":[{\"price\":53,\"qty\":50}],\"last\":null,\"openOrders\":2}"
+      "evidence": "feeMult=1 通胀=null 订单簿={\"bids\":[{\"price\":12,\"qty\":25}],\"asks\":[],\"last\":{\"taker\":\"u80cb09b627e4\",\"maker\":\"u124bebbed6c4\",\"i"
     },
     {
       "name": "3 画报（/af/daily-report eventCount/byType/highlights/reportHash）",
       "pass": true,
-      "evidence": "eventCount=27 reportHash=cc62f7f8e8…"
+      "evidence": "eventCount=500 reportHash=18f4633155…"
     },
     {
       "name": "4 影子（/af/shadow?days=1）",
       "pass": true,
-      "evidence": "items=0（14 日观察期数据逐日增长）"
+      "evidence": "items=3（14 日观察期数据逐日增长）"
     },
     {
       "name": "5 NPC/动物/天气（calendar+npc-schedule 快照+animals）",
       "pass": true,
-      "evidence": "day0 6时 clear NPC=26 家（例：家石伯 村口晨间问好） animals=0（新存档 0 正常）"
+      "evidence": "day0 0时 clear NPC=26 家（例：家石伯 睡觉） animals=0（新存档 0 正常）"
     },
     {
       "name": "6 LLM（/af/llm-key 加密保管 + /af/llm-usage 计量）",

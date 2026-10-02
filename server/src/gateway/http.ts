@@ -9,6 +9,7 @@ import { AccountStore } from '../persistence/accounts.ts';
 import { PROVIDER_FILE, SAVES_DIR, PORT, slotPaths } from '../config.ts';
 import { readJsonBody, RegisterBody, AgentProviderBody, AgentControlBody, SwitchSlotBody, RenameSlotBody, JoinRoomBody, GiveCoinsBody, GiveItemBody, AgentSetupBody } from './protocol.ts';
 import { resolveProvider } from '../cognition/managed.ts';
+import { probeProvider } from '../cognition/provider-probe.ts';
 import { runLocalBackup } from '../persistence/backup.ts';
 import { log } from '../logging.ts';
 import { keyvaultAvailable, upsertLlmKey, readLlmKey, usageSummary } from '../persistence/keyvault.ts';
@@ -116,24 +117,82 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
     if (u.pathname === '/af/agent-provider') {
       if (req.method === 'POST') {
         const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
-        if (!a) { text(res, 401, 'bad token'); return; }
+        if (!a) { json(res, 401, { ok: false, msg: '登录状态已失效，请刷新页面重新登录' }); return; }
         const raw = await readJsonBody(req, 4096);
         const body = AgentProviderBody.safeParse(raw);
-        if (!body.success) { text(res, 400, 'bad json'); return; }
+        if (!body.success) { json(res, 400, { ok: false, msg: '请求格式不对（需要 url / model / key 三个字段）' }); return; }
         const url = String(body.data.url || '').trim();
         const model = String(body.data.model || '').trim() || 'deepseek-v4-flash';
-        if (!/^https?:\/\//.test(url)) { text(res, 400, 'url must start with http(s)://'); return; }
         const key = body.data.key && String(body.data.key).trim() ? String(body.data.key).trim()
           : (loadJson<{ key?: string }>(PROVIDER_FILE, {}).key || '');
         const next = { url, model, key };
-        app.provider = resolveProvider({}, next); // 以文件配置为准
-        fs.mkdirSync(path.dirname(PROVIDER_FILE), { recursive: true });
-        fs.writeFileSync(PROVIDER_FILE, JSON.stringify(next, null, 1));
-        console.log(`[provider] ${a.nick || a.uid} 更新模型配置: ${next.url} / ${next.model}`);
-        json(res, 200, { ok: true, msg: `模型已配置：${next.url} / ${next.model}` });
+        // 探通记录：只有「测试连接」成功过才算验证通过。改地址/改模型后旧记录立即失效，
+        // 否则玩家改完配置仍看到"已验证"，托管失败时反而找不到原因。
+        const prevFile = loadJson<{ url?: string; model?: string; verifiedAt?: number }>(PROVIDER_FILE, {});
+        const carriedVerifiedAt = prevFile.url === next.url && prevFile.model === next.model
+          && Number.isFinite(prevFile.verifiedAt) ? prevFile.verifiedAt : undefined;
+        // 校验 + 落盘统一走一处，保证 test 模式与普通模式对 url 的判定完全一致
+        const save = (verifiedAt?: number) => {
+          const rec = { url: next.url, model: next.model, key: next.key, ...(verifiedAt ? { verifiedAt } : {}) };
+          app.provider = resolveProvider({}, rec); // 以文件配置为准
+          fs.mkdirSync(path.dirname(PROVIDER_FILE), { recursive: true });
+          fs.writeFileSync(PROVIDER_FILE, JSON.stringify(rec, null, 1));
+          console.log(`[provider] ${a.nick || a.uid} 更新模型配置: ${next.url} / ${next.model}${verifiedAt ? '（已验证）' : ''}`);
+        };
+        // test=1（接入引导的「测试连接」）：先探活，探通才落盘，失败不回写坏配置
+        if ((raw as { test?: unknown }).test === true) {
+          const p = await probeProvider(next.url, next.key, next.model);
+          if (p.ok) save(Date.now());
+          json(res, 200, { ok: p.ok, saved: p.ok, msg: p.msg, detail: p.detail || '', latencyMs: p.latencyMs ?? null });
+          return;
+        }
+        if (!/^https?:\/\//.test(url)) { json(res, 400, { ok: false, msg: 'API 地址需以 http(s):// 开头', detail: `收到：${url || '(空)'}` }); return; }
+        save(carriedVerifiedAt);
+        json(res, 200, { ok: true, saved: true, msg: `模型已配置：${next.url} / ${next.model}` });
         return;
       }
       json(res, 200, { ok: true, url: app.provider.url || '', model: app.provider.model || 'deepseek-v4-flash', keySet: !!(app.provider.key || '').length });
+      return;
+    }
+
+    // ---------- 登录接入引导：一次往返给全客户端需要的接入状态 ----------
+    // 玩家进游戏只看到「Agent 未连接」而无处可接：这里把"能不能接、还差什么、下一步做什么"
+    // 一次说清，客户端引导层直接照此渲染，不用猜。
+    if (u.pathname === '/af/onboarding') {
+      const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
+      if (!a) { text(res, 401, 'bad token'); return; }
+      const pk = readLlmKey(app.db, a.uid);
+      const s = app.agentSockets.get(a.uid);
+      const online = !!(s && s.size);
+      const providerReady = !!(app.provider.url && app.provider.key);
+      // 探通过 ≠ 配齐了：接入引导要区分「已配置未验证」和「已验证」，
+      // 否则坏 Key 也会被当成"模型就绪"，玩家点启动托管后才炸在看不见的地方。
+      const providerVerifiedAt = Number(
+        loadJson<{ verifiedAt?: number }>(PROVIDER_FILE, {}).verifiedAt || 0,
+      );
+      const providerVerified = providerReady && providerVerifiedAt > 0;
+      const playerKeyReady = keyvaultAvailable() && !!pk?.hasCipher;
+      // 还差什么：按玩家能自己做的顺序给出唯一阻塞项
+      const missing: string[] = [];
+      if (!providerReady && !playerKeyReady) missing.push('model');   // 既没服务端模型，也没自带 Key
+      if (!a.agentToken) missing.push('token');                      // 托管会自动铸造，仅提示
+      json(res, 200, {
+        ok: true,
+        nick: a.nick || null,
+        uid: a.uid,
+        agentOnline: online,
+        agentTokenSet: !!a.agentToken,
+        providerReady, providerUrl: app.provider.url || '', providerModel: app.provider.model || '',
+        providerVerified, providerVerifiedAt: providerVerifiedAt || null,
+        playerKeySet: playerKeyReady, playerKeyUrl: pk?.baseUrl || '', playerKeyModel: pk?.model || '',
+        keyvault: keyvaultAvailable(),
+        managedRunning: app.managed.isRunning(a.uid),
+        // 可托管 = 任一可用模型来源就绪
+        canHost: providerReady || playerKeyReady,
+        missing,
+        // 引导层下一步指引
+        nextStep: online ? 'none' : (!providerReady && !playerKeyReady ? 'config-model' : 'start-hosting'),
+      });
       return;
     }
 

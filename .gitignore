@@ -10,6 +10,9 @@
 /data/dm-logs/
 /data/saves/
 
+# 玩家自备 LLM 凭据（接入引导里填的 API 地址/Key/模型名；key 明文落此文件）
+/data/agent-provider.json
+
 # 依赖（本机/容器 node_modules，勿提交；克隆后需运行 npm install）
 node_modules/
 server/node_modules/

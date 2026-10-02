@@ -33,7 +33,7 @@ export class ManagedAgentManager {
     return !!c && !c.killed;
   }
 
-  start(acc: Account): { ok: boolean; msg?: string; source?: string } {
+  start(acc: Account): { ok: boolean; msg?: string; detail?: string; source?: string } {
     const app = this.app;
     // M7：优先玩家自带 Key（解密到进程内存注入；服务端零池化密钥），回落全局 provider
     let p: Provider = app.provider;
@@ -45,9 +45,19 @@ export class ManagedAgentManager {
         source = 'player-key';
       }
     } catch { /* 回落全局 provider */ }
-    if (!p.url || !p.key) return { ok: false, msg: '服务端未配置 AF_LLM_URL 和 AF_LLM_KEY，无法启动托管' };
+    if (!p.url || !p.key) {
+      // 原实现直接回「服务端未配置 AF_LLM_URL 和 AF_LLM_KEY」——那是服务端环境变量名，
+      // 玩家既改不了也不知道下一步。改为给可执行指引，技术细节放 detail。
+      return {
+        ok: false,
+        msg: source === 'player-key'
+          ? '你的 LLM Key 没能取出来（密钥保管不可用），请重新保存一次自带 Key'
+          : '还没配置模型：点「🤖 模型设置」填 API 地址、API Key、模型名，保存后再启动托管',
+        detail: `no provider: url=${p.url ? 'set' : 'empty'} key=${p.key ? 'set' : 'empty'}（服务端环境变量 AF_LLM_URL / AF_LLM_KEY 亦为空）`,
+      };
+    }
     const existing = this.children.get(acc.uid);
-    if (existing && !existing.killed) return { ok: false, msg: '该账号的 Agent 已在启动或运行中' };
+    if (existing && !existing.killed) return { ok: false, msg: '该账号的 Agent 已在运行中' };
     let token = acc.agentToken;
     if (!token) {
       token = AccountStore.genToken();

@@ -19,6 +19,12 @@ const ROOT = join(__dirname, '..');
 const ALL = process.argv.includes('--all');
 
 const SENSITIVE_FILE_RE = /(^|\/)(\.env(\.local)?|id_rsa[^/]*|credentials[^/]*|secrets?\.[^/]*|[^/]*\.(pem|key|p12|pfx))$/i;
+// 运行时凭据文件：内容里存的是明文 API Key / 接入码，即使文件名不像密钥也禁止入库。
+// data/agent-provider.json 就是这样漏网过（接入引导让玩家填 API Key，明文落盘）。
+const RUNTIME_CRED_FILES = [
+  'data/agent-provider.json',
+  'data/accounts.json',
+];
 
 const SECRET_RULES = [
   { name: 'sk-style-api-key', re: /\bsk-[A-Za-z0-9]{20,}\b/g },
@@ -57,6 +63,12 @@ for (const rel of files) {
   const abs = join(ROOT, rel);
   if (SENSITIVE_FILE_RE.test(rel)) {
     console.error(`[security] FAIL 敏感文件入库: ${rel}`);
+    violations++;
+    continue;
+  }
+  if (RUNTIME_CRED_FILES.includes(rel)) {
+    console.error(`[security] FAIL 运行时凭据文件入库（内含明文 API Key/接入码）: ${rel}`);
+    console.error(`[security]   处置：确认已在 .gitignore 中忽略该路径，并从索引移除（git rm --cached ${rel}）`);
     violations++;
     continue;
   }

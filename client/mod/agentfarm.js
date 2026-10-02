@@ -383,7 +383,7 @@
       } catch (e) { return 0; }
     };
     try { hud.setCoins(readCoins()); setInterval(() => hud.setCoins(readCoins()), 30000); } catch (e) {}
-    // BR 托管状态胶囊（承接原 #af-agent-status；agent_status 推送经 renderAgentStatus 双写）
+    // BR 托管状态胶囊：Agent 连接状态的唯一常驻展示入口（agent_status 推送经 renderAgentStatus 写入）
     const brZone = hud.zone('br');
     if (brZone && !document.getElementById('af-hud-agent')) {
       const chip = document.createElement('div');
@@ -1538,12 +1538,6 @@
       #af-interrupt-btn { top: 126px; color: var(--af-c-danger); border-color: var(--af-c-wood); }
       #af-resume-btn { top: 126px; right: 88px; color: var(--af-c-success); border-color: var(--af-c-moss); }
       #af-agent-btn:hover, #af-interrupt-btn:hover, #af-resume-btn:hover { background: var(--af-c-glass-solid); }
-      #af-agent-status { position: fixed; top: 166px; right: 10px; z-index: 99990; cursor: default;
-        padding: 5px 12px; border-radius: 6px; font: 12px "Microsoft YaHei", sans-serif;
-        box-shadow: 0 2px 6px var(--af-c-black-40); max-width: 320px; }
-      #af-agent-status.on { background: var(--af-c-glass-moss); color: var(--af-c-success); border: 1px solid var(--af-c-moss); }
-      #af-agent-status.waiting { background: var(--af-c-glass-wood); color: var(--af-c-danger); border: 1px solid var(--af-c-wood-dark); }
-        #af-agent-status.off { background: var(--af-c-glass-panel); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
         #af-hud-agent { padding: 4px 10px; border-radius: 6px; font: 12px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); max-width: 300px; }
         #af-hud-agent.on { background: var(--af-c-glass-moss); color: var(--af-c-success); border: 1px solid var(--af-c-moss); }
         #af-hud-agent.waiting { background: var(--af-c-glass-wood); color: var(--af-c-danger); border: 1px solid var(--af-c-wood-dark); }
@@ -1586,14 +1580,9 @@
     resBtn.id = 'af-resume-btn';
     resBtn.textContent = '▶ 恢复';
     resBtn.title = '让 Agent 恢复之前的行动';
-    const status = document.createElement('div');
-    status.id = 'af-agent-status';
-    status.className = 'off';
-    status.textContent = '🤖 Agent 未连接';
     document.body.appendChild(btn);
     document.body.appendChild(intBtn);
     document.body.appendChild(resBtn);
-    document.body.appendChild(status);
 
     // 托管状态更新（agent_status 推送 / 轮询兜底）
     let agentOnline = false, agentNick = '', agentActivity = '', agentWaiting = false;
@@ -1603,12 +1592,6 @@
       e.stopImmediatePropagation();
     }, true);
     function renderAgentStatus() {
-      if (document.getElementById('af-agent-status')) {
-        const st = document.getElementById('af-agent-status');
-        if (!agentOnline) { st.textContent = '🤖 Agent 未连接'; st.className = 'off'; }
-        else if (agentWaiting) { st.textContent = '⏸ Agent 已让位 · ' + (agentActivity || '等你指挥'); st.className = 'waiting'; }
-        else { st.textContent = '🤖 自动执行 · ' + (agentActivity || '运行中'); st.className = 'on'; }
-      }
       const chip = document.getElementById('af-hud-agent');
       if (chip) {
         if (!agentOnline) { chip.textContent = '🤖 Agent 未连接'; chip.className = 'af-hud-agent off'; }
@@ -1691,9 +1674,14 @@
           .then(d => {
             if (!d || !d.ok || !d.days || !d.days[0]) return;
             const t = d.days[0];
-            vd.innerHTML = '📅 第' + t.day + '日 · ' + (SEASON_CN[t.season] || t.season) + ' · ' + (WX[t.weather] || t.weather)
-              + (t.festival ? ' · <span class="fx">' + t.festival + '</span>' : '');
-            vd.style.display = '';
+            // 日期与天气由右上角 HUD 时钟唯一承载；这个盒子只补 HUD 之外的节日信息，
+            // 两者同时显示会让同一行字在屏幕上出现两遍。
+            if (t.festival) {
+              vd.innerHTML = '🎉 <span class="fx">' + t.festival + '</span>';
+              vd.style.display = '';
+            } else {
+              vd.style.display = 'none';
+            }
             if (window.__AF_HUD__ && window.__AF_HUD__.setClock) {
               window.__AF_HUD__.setClock('📅 第' + t.day + '日 · ' + (SEASON_CN[t.season] || t.season) + ' · ' + (WX[t.weather] || t.weather) + (t.festival ? ' · ' + t.festival : ''));
             }
@@ -1831,6 +1819,293 @@
       setInterval(pollDecor, 60000);
     }
 
+// ---------- 接入引导层（玩家进游戏不再撞「Agent 未连接」死路） ----------
+    // 原问题：HUD 只被动显示「🤖 Agent 未连接」，真正的出口（模型设置 + 启动托管）藏在
+    // 📮 指挥面板里的二级「🤖 模型设置」折叠区；启动失败还回服务端环境变量名
+    // （AF_LLM_URL / AF_LLM_KEY），玩家既改不了也不知道下一步。此层把接入做成
+    // 进游戏就看到、点状态胶囊就能重开的三步向导，并提供「测试连接」自查。
+    const OB_KEY = 'af.onboard.seen';
+    let obState = null;
+    function injectOnboarding() {
+      if (document.getElementById('af-onboard')) return;
+      const ocss = document.createElement('style');
+      ocss.textContent = `
+      #af-onboard { position: fixed; inset: 0; z-index: 100200; display: none;
+        align-items: center; justify-content: center; background: rgba(0,0,0,.62); }
+      #af-ob-card { width: 560px; max-width: 94vw; max-height: 88vh; overflow: auto; display: flex; flex-direction: column;
+        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep));
+        border: 2px solid var(--af-c-wood); border-radius: 12px;
+        box-shadow: 0 10px 40px var(--af-c-black-70); font: 13px "Microsoft YaHei", sans-serif; }
+      #af-ob-card .hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;
+        border-bottom: 1px solid var(--af-c-panel); }
+      #af-ob-card .hd b { color: var(--af-c-gold); font-size: 16px; }
+      #af-ob-card .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 18px; padding: 0 6px; }
+      #af-ob-card .hd .x:hover { color: var(--af-c-danger); }
+      #af-ob-card .bd { padding: 14px 16px; color: var(--af-c-text); line-height: 1.75; }
+      #af-ob-steps { display: flex; gap: 6px; margin-bottom: 12px; }
+      #af-ob-steps .st { flex: 1; padding: 6px 4px; text-align: center; font-size: 12px; border-radius: 6px;
+        background: var(--af-c-bg); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
+      #af-ob-steps .st.cur { background: var(--af-c-glass-moss); color: var(--af-c-gold); border-color: var(--af-c-moss); font-weight: bold; }
+      #af-ob-steps .st.done { color: var(--af-c-success); border-color: var(--af-c-moss); }
+      #af-ob-field { margin-bottom: 9px; }
+      #af-ob-field label { display: block; font-size: 11px; color: var(--af-c-text-dim); margin-bottom: 3px; }
+      #af-ob-field input { width: 100%; box-sizing: border-box; padding: 7px 9px; background: var(--af-c-bg);
+        color: var(--af-c-light-soft); border: 1px solid var(--af-c-panel); border-radius: 6px;
+        font: 13px "Microsoft YaHei", sans-serif; outline: none; }
+      #af-ob-field input:focus { border-color: var(--af-c-moss); }
+      #af-ob-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+      #af-ob-card .btn { flex: 1; min-width: 110px; padding: 9px; border: 0; border-radius: 6px;
+        font-size: 13px; cursor: pointer; background: var(--af-c-bg); color: var(--af-c-text);
+        border: 1px solid var(--af-c-panel); }
+      #af-ob-card .btn-primary { background: var(--af-c-amber); color: var(--af-c-bg); font-weight: bold; border-color: var(--af-c-amber); }
+      #af-ob-card .btn-primary:hover { filter: brightness(1.1); }
+      #af-ob-card .btn:disabled { opacity: .5; cursor: not-allowed; }
+      #af-ob-msg { margin-top: 10px; font-size: 12px; min-height: 18px; }
+      #af-ob-msg.ok { color: var(--af-c-success); }
+      #af-ob-msg.err { color: var(--af-c-danger); }
+      #af-ob-msg.warn { color: var(--af-c-gold); }
+      #af-ob-msg .d { display: block; margin-top: 3px; color: var(--af-c-text-dim); font-size: 11px; word-break: break-all; }
+      #af-ob-foot { padding: 10px 16px; border-top: 1px solid var(--af-c-panel); display: flex; gap: 8px; align-items: center; }
+      #af-ob-foot .btn { flex: 0 0 auto; min-width: 84px; }
+      #af-ob-status { font-size: 11px; color: var(--af-c-text-dim); margin-right: auto; }
+      #af-hud-agent.hintable { cursor: pointer; border-color: var(--af-c-amber) !important; color: var(--af-c-gold) !important; }
+      #af-hud-agent.hintable:hover { background: var(--af-c-glass-solid); }
+      `;
+      document.head.appendChild(ocss);
+
+      const root = document.createElement('div');
+      root.id = 'af-onboard';
+      root.innerHTML = `
+        <div id="af-ob-card">
+          <div class="hd"><b>🤖 连接你的 Agent</b><span class="x" id="af-ob-x">✕</span></div>
+          <div class="bd">
+            <div id="af-ob-steps">
+              <div class="st" id="af-ob-s1">1 了解</div>
+              <div class="st" id="af-ob-s2">2 配模型</div>
+              <div class="st" id="af-ob-s3">3 启动托管</div>
+            </div>
+            <div id="af-ob-note"></div>
+            <div id="af-ob-form" style="display:none">
+              <div id="af-ob-field"><label>API 地址（OpenAI 兼容，通常带 /v1）</label>
+                <input id="af-ob-url" placeholder="例：https://api.deepseek.com/v1" autocomplete="off"></div>
+              <div id="af-ob-field"><label>API Key（已配置时留空则保留原来的）</label>
+                <input id="af-ob-key" type="password" placeholder="sk-..." autocomplete="off"></div>
+              <div id="af-ob-field"><label>模型名</label>
+                <input id="af-ob-model" placeholder="例：deepseek-chat" autocomplete="off"></div>
+            </div>
+            <div id="af-ob-msg"></div>
+            <div id="af-ob-row"></div>
+          </div>
+          <div class="hd" id="af-ob-foot">
+            <span id="af-ob-status">正在读取接入状态…</span>
+            <button class="btn" id="af-ob-skip">稍后再说</button>
+          </div>
+        </div>`;
+      document.body.appendChild(root);
+      const $ = (id) => root.querySelector(id);
+      const noteEl = $('#af-ob-note'), msgEl = $('#af-ob-msg'), rowEl = $('#af-ob-row');
+      const steps = [$('#af-ob-s1'), $('#af-ob-s2'), $('#af-ob-s3')];
+
+      function say(kind, text, detail) {
+        msgEl.className = kind || '';
+        msgEl.innerHTML = '';
+        msgEl.appendChild(document.createTextNode(text || ''));
+        if (detail) { const d = document.createElement('span'); d.className = 'd'; d.textContent = detail; msgEl.appendChild(d); }
+      }
+      function markStep(cur, doneList) {
+        steps.forEach((el, i) => {
+          let c = 'st';
+          if (doneList && doneList[i]) c += ' done';
+          if (i + 1 === cur) c += ' cur';
+          el.className = c;
+        });
+      }
+      function obFetch(path, opts) {
+        return fetch(SERVER + path + (path.indexOf('?') < 0 ? '?' : '&') + 'token=' + encodeURIComponent(token), opts)
+          .then(r => r.text().then(t => {
+            try { return JSON.parse(t); }
+            catch (e) { return { ok: false, msg: '服务返回了非 JSON（HTTP ' + r.status + '）：' + String(t).slice(0, 120) }; }
+          }));
+      }
+      function loadState() {
+        return obFetch('/af/onboarding').then(d => {
+          if (!d || !d.ok) throw new Error((d && d.msg) || '读取失败');
+          obState = d;
+          $('#af-ob-status').textContent = d.agentOnline ? '状态：Agent 已连接'
+            : d.canHost && !d.providerVerified && !d.playerKeySet ? '状态：模型已配置，未验证过连接'
+            : d.canHost ? '状态：模型就绪，托管未启动'
+            : '状态：尚未配置模型';
+          return d;
+        });
+      }
+      function mkBtn(label, cls, fn) {
+        const b = document.createElement('button');
+        b.className = 'btn' + (cls ? ' ' + cls : '');
+        b.textContent = label;
+        b.onclick = fn;
+        return b;
+      }
+      function providerBody(extra) {
+        return Object.assign({
+          url: $('#af-ob-url').value.trim(),
+          model: $('#af-ob-model').value.trim(),
+          key: $('#af-ob-key').value,
+        }, extra || {});
+      }
+      function showIntro() {
+        markStep(1, []);
+        noteEl.innerHTML = '<b>这是你村庄里的常驻 Agent。</b><br>'
+          + '它替你种地、赶集、钓鱼、记账、记事；<br>'
+          + '你也可以随时用 📮 指挥它，或用 ⏸ 打断它自己来操作。';
+        rowEl.innerHTML = '';
+        rowEl.appendChild(mkBtn('下一步：配置模型', 'btn-primary', () => showForm(true)));
+        rowEl.appendChild(mkBtn('我已配置好，直接启动', '', () => showHost()));
+        say('');
+      }
+      function showForm(visible) {
+        $('#af-ob-form').style.display = visible ? 'block' : 'none';
+        if (!visible) { showIntro(); return; }
+        if (obState) {
+          $('#af-ob-url').value = obState.playerKeySet ? obState.playerKeyUrl : obState.providerUrl;
+          $('#af-ob-model').value = obState.playerKeySet ? obState.playerKeyModel : obState.providerModel;
+        }
+        markStep(2, [true, false, false]);
+        noteEl.innerHTML = '<b>还差这一步就能接上：给 Agent 配一个大脑模型。</b><br>'
+          + '需要一个 OpenAI 兼容的 LLM 接口（API 地址 + Key + 模型名）。<br>'
+          + '配好后存在房间服务器，<b>一次配置全房间通用</b>；Key 只用于调用模型，不会回显。';
+        rowEl.innerHTML = '';
+        rowEl.appendChild(mkBtn('🔌 测试连接', '', (e) => testAndSave(e.target)));
+        rowEl.appendChild(mkBtn('保存并继续', 'btn-primary', (e) => saveOnly(e.target)));
+        rowEl.appendChild(mkBtn('上一步', '', showIntro));
+        say('');
+      }
+      function showHost() {
+        const d = obState;
+        if (d && !d.canHost) { showForm(true); return; }
+        markStep(3, [true, true, false]);
+        const usePlayerKey = !!(d && d.playerKeySet);
+        const which = usePlayerKey ? '你自己的 Key（已加密保管）'
+          : '房间模型 ' + ((d && d.providerUrl) || '') + ' / ' + ((d && d.providerModel) || '');
+        // 房间模型从没探通过 = 坏 Key/错地址的概率很高。先劝玩家点一次「测试连接」，
+        // 别等托管起来后才在日志里看到失败。
+        const unverified = !usePlayerKey && d && !d.providerVerified;
+        noteEl.innerHTML = unverified
+          ? '<b>模型已配置，还没验证过能不能连通：</b>' + which + '<br>'
+            + '建议先回上一步点「🔌 测试连接」，确认能调通再启动托管。'
+          : '<b>模型就绪：</b>' + which + '<br>点「启动托管」，Agent 就会接管村庄。'
+            + '<br>托管在房间服务器上跑，无需你本地装任何东西。';
+        rowEl.innerHTML = '';
+        if (unverified) rowEl.appendChild(mkBtn('🔌 先测试连接', 'btn-primary', () => showForm(true)));
+        else rowEl.appendChild(mkBtn(d && d.managedRunning ? '托管启动中…' : '🚀 启动托管', 'btn-primary', (e) => startHosting(e.target)));
+        rowEl.appendChild(mkBtn('换模型', '', () => showForm(true)));
+        say(d && d.managedRunning ? 'warn' : '', d && d.managedRunning ? '托管进程已在拉起，稍等几秒…' : '');
+      }
+      function showDone() {
+        markStep(3, [true, true, true]);
+        noteEl.innerHTML = '<b>Agent 已经接管这个村庄了。</b>它会自己种地、赶集、钓鱼、记事。<br>'
+          + '下指令用右下角 <b>📮 指挥</b>，想让它停下用 <b>⏸ 打断</b>。';
+        rowEl.innerHTML = '';
+        say('ok', '托管运行中。');
+      }
+      function render() {
+        const d = obState;
+        if (!d) { noteEl.innerHTML = '正在读取接入状态…'; rowEl.innerHTML = ''; return; }
+        if (d.agentOnline) return showDone();
+        if (d.canHost) return showHost();
+        showForm(true);
+      }
+      function testAndSave(btn) {
+        btn.disabled = true; say('warn', '正在测试连接…');
+        obFetch('/af/agent-provider', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(providerBody({ test: true })),
+        }).then(d => {
+          btn.disabled = false;
+          if (!d) { say('err', '✗ 测试失败：服务无响应'); return; }
+          say(d.ok ? 'ok' : 'err', d.ok ? '✓ ' + (d.msg || '连接成功') : '✗ ' + (d.msg || '连接失败'), d.detail);
+          if (d.ok) { toast('模型连接成功', 'ok'); loadState().then(showHost).catch(() => {}); }
+        }).catch(e => { btn.disabled = false; say('err', '✗ 测试失败：' + e.message); });
+      }
+      function saveOnly(btn) {
+        btn.disabled = true; say('warn', '正在保存…');
+        obFetch('/af/agent-provider', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(providerBody({})),
+        }).then(d => {
+          btn.disabled = false;
+          if (!d || !d.ok) { say('err', '✗ 保存失败：' + ((d && d.msg) || '未知错误')); return; }
+          say('ok', '✓ ' + (d.msg || '已保存'), '建议再点「测试连接」确认这个接口真的能用');
+          loadState().then(showHost).catch(() => {});
+        }).catch(e => { btn.disabled = false; say('err', '✗ 保存失败：' + e.message); });
+      }
+      function startHosting(btn) {
+        btn.disabled = true; say('warn', '正在启动托管…');
+        fetch(SERVER + '/af/agent-control', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, action: 'start' }),
+        }).then(r => r.json()).then(d => {
+          if (!d || !d.ok) {
+            btn.disabled = false;
+            say('err', '✗ ' + ((d && d.msg) || '启动失败'), d && d.detail);
+            loadState().then(() => { if (obState && !obState.canHost) showForm(true); }).catch(() => {});
+            return;
+          }
+          say('ok', '托管已启动，正在连接…');
+          pollOnline();
+        }).catch(e => { btn.disabled = false; say('err', '✗ 启动失败：' + e.message); });
+      }
+      function pollOnline(n) {
+        const i = n || 0;
+        if (i > 24) { say('warn', '托管进程已拉起但还没连上，稍后点右上角状态胶囊查看'); return; }
+        setTimeout(() => {
+          fetch(SERVER + '/af/agent-status?token=' + encodeURIComponent(token))
+            .then(r => r.json()).then(d => {
+              if (d && d.online) {
+                updateAgentStatus(true, d.nick);
+                say('ok', '✓ Agent 已连接，村庄交给它了');
+                toast('Agent 已接管村庄', 'ok');
+                if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', 'Agent 已连接并接管村庄。用右下角 📮 给它下指令。');
+                setTimeout(close, 1400);
+              } else pollOnline(i + 1);
+            }).catch(() => pollOnline(i + 1));
+        }, 1000);
+      }
+      function open() {
+        root.style.display = 'flex';
+        say('');
+        $('#af-ob-form').style.display = 'none';
+        loadState().then(render).catch(e => {
+          noteEl.innerHTML = '<b>读取接入状态失败：</b>' + e.message + '<br>可点「稍后再说」，之后点右上角状态胶囊重试。';
+          rowEl.innerHTML = '';
+        });
+      }
+      function close() { root.style.display = 'none'; try { localStorage.setItem(OB_KEY, '1'); } catch (e) {} }
+      window.__AF_OPEN_ONBOARD__ = open;
+
+      AFUNI.on($('#af-ob-x'), close, { cls: false });
+      AFUNI.on($('#af-ob-skip'), close, { cls: false });
+      // 状态胶囊升级成入口：离线时高亮可点
+      function markHintable() {
+        ['af-hud-agent'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const off = (' ' + el.className + ' ').indexOf(' off ') >= 0;
+          el.classList.toggle('hintable', off);
+          if (off && !el.__afBound) {
+            el.__afBound = true;
+            el.title = '点击接入你的 Agent';
+            AFUNI.on(el, () => window.__AF_OPEN_ONBOARD__ && window.__AF_OPEN_ONBOARD__());
+          }
+        });
+      }
+      const prevRender = renderAgentStatus;
+      renderAgentStatus = function () { prevRender(); markHintable(); };
+      updateAgentStatus(false);
+      markHintable();
+      let seen = false;
+      try { seen = !!localStorage.getItem(OB_KEY); } catch (e) {}
+      if (!seen) setTimeout(open, 1500);
+    }
     const panel = document.createElement('div');
     panel.id = 'af-agent';
     panel.innerHTML = `
@@ -1932,6 +2207,7 @@
     });
     window.__AF_AGENT_STATUS__ = updateAgentStatus;
     updateAgentStatus(false);
+    injectOnboarding();
   }
 
   // ---------- 游戏内小地图 → 扩展版（133×117，含 7 个新宅基地） ----------
