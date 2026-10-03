@@ -1459,7 +1459,7 @@
   function onSocialIn(msg) {
     try {
       if (!window.__AF_CHAT_ADD__) return;
-      if (msg.social === 'talk') window.__AF_CHAT_ADD__(msg.nick + ' 对你说', '“' + msg.text + '”（好感 +2，点他名字可回复）');
+      if (msg.social === 'talk') window.__AF_CHAT_ADD__(msg.nick + ' 对你说', '“' + msg.text + '”（好感 +2）');
       else if (msg.social === 'give') window.__AF_CHAT_ADD__(msg.nick, '送给你 ' + msg.num + ' 个礼物（物品 ' + msg.itemId + '）！你对 TA 的好感 +' + (msg.fav || ''));
       else if (msg.social === 'bind') window.__AF_CHAT_ADD__('系统', '💍 ' + msg.nick + ' 想和你结为「' + msg.relName + '」！');
     } catch (e) {}
@@ -1476,6 +1476,8 @@
   // 已解锁的私聊对象：首次见面（打招呼/送礼）后服务器标记 pair.dmUnlocked
   let dmUnlockedPeers = new Map(); // uid -> nick
   const dmCache = { logs: new Map(), target: '', lastSent: '' }; // logs: targetUid -> 最近私聊历史数组
+  // esc 在本作用域不可见（别处是局部函数）—— 自备一个，否则 renderDmLog 抛错导致历史刷不出来
+  const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function renderDmLog() {
     const box = document.getElementById('af-dm-log');
     if (!box) return;
@@ -1495,13 +1497,19 @@
     dmUnlockedPeers = new Map();
     for (const p of (msg.peers || [])) dmUnlockedPeers.set(p.other, p.nick);
     refreshDmPeerList();
+    if (dmPanelOpen()) {
+      const cur = dmCache.target;
+      if (!cur && dmUnlockedPeers.size) selectDmPeer([...dmUnlockedPeers.keys()][0]);
+    }
   }
   function onDmIn(msg) {
     if (msg.from === uid) return;
     const log = dmCache.logs.get(msg.from);
     if (log) log.push({ from: msg.from, nick: msg.nick, text: msg.text, at: Date.now() });
-    if (dmCache.target === msg.from) renderDmLog();
-    if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('私聊·' + msg.nick, msg.text + '（点 💬 打开私聊面板回复）');
+    // 收到谁的消息就定位到谁：此前必须先在左侧手动点一次人才能看到内容（实机发现面板打开是空的）
+    dmCache.target = msg.from;
+    if (dmPanelOpen()) selectDmPeer(msg.from); else renderDmLog();
+    if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('私聊·' + msg.nick, msg.text);
   }
   function onDmResult(msg) {
     if (!window.__AF_CHAT_ADD__) return;
@@ -1539,8 +1547,12 @@
   function openDmPanel(peerUid) {
     const panel = document.getElementById('af-dm-panel');
     if (panel) panel.style.display = 'flex';
+    // 主动拉一次已解锁对象：服务端支持 dm_unlocked 请求。此前只在登录时被动收一次推送，
+    // 于是「后来才见面解锁的人」永远不出现在面板里（2026-10-03 实机发现：面板空）
+    if (connected) ws.send(JSON.stringify({ t: 'dm_unlocked' }));
     refreshDmPeerList();
-    if (peerUid && dmUnlockedPeers.has(peerUid)) selectDmPeer(peerUid);
+    const auto = peerUid || dmCache.target || (dmUnlockedPeers.size === 1 ? [...dmUnlockedPeers.keys()][0] : '');
+    if (auto && (dmUnlockedPeers.has(peerUid) || dmCache.logs.has(auto))) selectDmPeer(auto);
     else {
       document.getElementById('af-dm-name').textContent = '未选择';
       document.getElementById('af-dm-status').textContent = '';
@@ -1565,7 +1577,7 @@
     for (const [pu, pn] of dmUnlockedPeers) {
       const div = document.createElement('div');
       div.className = 'dm-peer';
-      div.textContent = '💬 ' + pn;
+      div.textContent = pn;
       AFUNI.on(div, () => selectDmPeer(pu), { cls: false });
       list.appendChild(div);
     }
@@ -1890,6 +1902,8 @@
     function updateAgentStatus(online, nick) {
       agentOnline = online;
       hostedAgentOnline = online;
+      // 「托管过的老玩家」标记：避免每次开游戏都被首次引导弹窗盖住主界面
+      if (online) { try { localStorage.setItem('af.hosted.seen', '1'); } catch (e) {} }
       if (!online && agentStopTimer) { clearTimeout(agentStopTimer); agentStopTimer = null; }
       const toggle = document.getElementById('af-agent-toggle');
       if (toggle) toggle.textContent = online ? '停止托管' : '启动托管';
@@ -2393,7 +2407,10 @@
       markHintable();
       let seen = false;
       try { seen = !!localStorage.getItem(OB_KEY); } catch (e) {}
-      if (!seen) setTimeout(open, 1500);
+      // 老玩家不再自动弹：已经托管过或已经配过模型的账号，开游戏就被糊一脸引导会盖住主界面
+      let veteran = false;
+      try { veteran = !!(localStorage.getItem('af_token') && localStorage.getItem('af.hosted.seen')); } catch (e) {}
+      if (!seen && !veteran) setTimeout(open, 1500);
     }
     const panel = document.createElement('div');
     panel.id = 'af-agent';
