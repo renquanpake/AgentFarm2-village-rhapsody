@@ -4,44 +4,14 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import zlib from 'node:zlib';
+import { loadVillageLayers } from './village-layers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CLIENT = join(__dirname, '..', 'client', 'assets', 'resources', 'import');
-const VILLAGE_JSON = join(CLIENT, 'eb', 'eb97a692-7760-4a32-b8c2-415ba9cf22e5.96519.json');
 const SPAWNS_JSON = join(__dirname, '..', 'data', 'spawn-points.json');
 const OUT = join(__dirname, '..', 'data', 'village-collision.json');
 
-// 解密 client 资源
-const KEY = Buffer.from('qingyoo0316', 'utf8');
-function decrypt(buf) {
-  const out = Buffer.allocUnsafe(buf.length - KEY.length);
-  for (let i = 0; i < out.length; i++) out[i] = buf[KEY.length + i] ^ KEY[i % KEY.length];
-  return out;
-}
-const raw = JSON.parse(decrypt(readFileSync(VILLAGE_JSON)).toString('utf8'));
-const s = JSON.stringify(raw);
-const ni = s.indexOf('"daditu"');
-let i = ni + 8; while (s[i] !== '"') i++;
-let j = i + 1; while (j < s.length) { if (s[j] === '\\') { j += 2; continue; } if (s[j] === '"') break; j++; }
-const xml = JSON.parse(s.slice(i, j + 1));
-const W = +xml.match(/width="(\d+)"/)[1], H = +xml.match(/height="(\d+)"/)[1];
-const ORIG_W = 77, ORIG_H = 61;
-const MARGIN = Math.round((W - ORIG_W) / 2);
+const { W, H, ORIG_W, ORIG_H, MARGIN, layers, getT, onRoad, inOrig } = loadVillageLayers(join(__dirname, '..'));
 console.log(`地图 ${W}x${H}（原版 ${ORIG_W}x${ORIG_H}，边距 ${MARGIN}）`);
-
-// 提取各层
-const layerRe = /<layer\b[^>]*name="([^"]+)"[^>]*>[\s\S]*?<data[^>]*>([\s\S]*?)<\/data>/g;
-const layers = {};
-for (const m of xml.matchAll(layerRe)) {
-  const b64 = m[2].replace(/\s/g, '');
-  const arr = Array.from(new Uint32Array(zlib.inflateSync(Buffer.from(b64, 'base64')).buffer));
-  layers[m[1]] = arr.map(v => v & 0x0fffffff);
-}
-const getT = (n, x, y) => (layers[n] ? layers[n][y * W + x] : 0);
-// 沙/石 = 路（栅栏悬于路上不挡：原版广场重叠装饰保持可走）
-const onRoad = (x, y) => getT('caodi', x, y) === 0 || getT('shilu', x, y) !== 0;
-const inOrig = (x, y) => x >= MARGIN && x < MARGIN + ORIG_W && y >= MARGIN && y < MARGIN + ORIG_H;
 
 const blocked = new Array(W * H).fill(0);
 for (let y = 0; y < H; y++) {
