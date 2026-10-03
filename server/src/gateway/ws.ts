@@ -886,6 +886,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               if (v) { result.msg = v; continue; }   // B4：家门口是私有槽位，不能串门
             }
             apos.x = nx; apos.y = ny;
+            taskCount(state, app.tables, uid, 'move');   // 任务链「找到水边/到达某处」靠它推进
+            app.log.append('task.progress', uid, { uid, type: 'move', n: 1 });
             publishAgentMove(app, state, uid, apos);
             persistAgentPosition(app, state, uid, apos);
             publish('移动中 (' + Math.round(apos.x) + ',' + Math.round(apos.y) + ')');
@@ -1113,7 +1115,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                 segMs: app.navArriveTimeoutMs,
                 ...(road ? { road } : {}),
               };
-              responseType = 'move_started';
+              taskCount(state, app.tables, uid, 'move_to');   // 任务链「到达某处」以发起寻路为准（走完还有 arrive 确认环）
+responseType = 'move_started';
               continue;
             }
             // 跨场景：D6 门户图 Dijkstra + 场景内 A*（planRoute 全量重规划级）
@@ -1150,7 +1153,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               next: { index: 0, x: wps2[0].x, y: wps2[0].y },
               segMs: app.navArriveTimeoutMs,
             };
-            responseType = 'move_started';
+            taskCount(state, app.tables, uid, 'move_to');   // 任务链「到达某处」以发起寻路为准（走完还有 arrive 确认环）
+responseType = 'move_started';
           } else if (action === 'arrive') {
             // D1 确认环：agent/客户端确认到达第 i 个航点（偏差超限由服务端自动重规划；连续 3 次超限终止路线）
             const idx = Number(msg.index ?? 0);
@@ -1195,6 +1199,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             }
             // 无 persona / 无认知栈时同步给一句 tagline，不让玩家的搭话落空（dialogue=null 像哑巴）
             const syncReply = persona ? persona.tagline : `……（${npc.name}似乎不太想说话）`;
+            taskCount(state, app.tables, uid, 'talk');   // 任务链「询价/搭话」：NPC 对话也算 talk
+            app.log.append('task.progress', uid, { uid, type: 'talk', n: 1 });
             result = { ok: true, msg: `${pricePart}\n${npc.name}：${syncReply}`, priceList: priceLines, dialogue: syncReply };
           } else if (action === 'buy') {
             const itemId = Number(msg.itemId || msg.item);

@@ -105,9 +105,9 @@
     {
      "id": "r1",
      "name": "找到水边",
-     "type": "move",
+     "type": "move_to",
      "count": 1,
-     "desc": "move_to {near:\"water\"} 走到可钓鱼的岸边交互环",
+     "desc": "act move_to {near:\"water\"} 走到可钓鱼的岸边交互环（自动寻路，别用单步 move 硬撞）",
      "reward": {
       "id": 1,
       "num": 60

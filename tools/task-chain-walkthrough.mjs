@@ -142,6 +142,10 @@ const exec = {
   async till(o) {
     const c = findTillCell(o);
     if (!c) return { done: false, why: '附近 3 格内没有可犁地（需回村景开阔处）' };
+    // 观察半径 3 格、动作要求相邻格：先走过去再动作（玩家真实交互就是两步）
+    const go = await A.call('move_to', { x: c.px, y: c.py });
+    if (!go.ok) return { done: false, why: '走不到候选格：' + String(go.msg).slice(0, 50) };
+    const o2 = (await A.observe()) || o;
     const r = await A.call('till', { x: c.px, y: c.py });
     return { done: r.ok, why: r.msg };
   },
@@ -208,8 +212,12 @@ const exec = {
   },
   async chop(o) {
     const t = o?.treesNear?.find(x => x);
-    if (!t) return { done: false, why: '附近 3 格内没有树' };
-    const r = await A.call('chop', { x: t.px, y: t.py });
+    if (!t) return { done: false, why: '附近 3 格内没有树（换到有树的区域）' };
+    const go = await A.call('move_to', { x: t.px, y: t.py });
+    if (!go.ok) return { done: false, why: '走不到树边：' + String(go.msg).slice(0, 50) };
+    const o2 = (await A.observe()) || o;
+    const t2 = o2?.treesNear?.find(x => x) || t;
+    const r = await A.call('chop', { x: t2.px, y: t2.py });
     return { done: r.ok, why: r.msg };
   },
   async buy(o) {
@@ -316,6 +324,7 @@ while (progress && iter++ < 80) {
       const fn = exec[st.type];
       if (!fn) { report.blocked.push({ chain: c.id, stage: st.id, name: st.name, type: st.type, why: '走查器没有该动作的执行器（需要补）' }); continue; }
       if (!c.unlocked) { report.blocked.push({ chain: c.id, stage: st.id, name: st.name, type: st.type, why: `第 ${c.unlockDay} 天解锁（当前第 ${obs.day} 天）` }); continue; }
+      obs = (await A.observe()) || obs;   // 动作前刷新（join 后 playerPos 才落定，旧 obs 会误报「附近没有可犁地」）
       const res = await fn(obs);
       obs = (await A.observe()) || obs;
       const after = (await A.call('tasks')).chains?.find(x => x.id === c.id)?.stages?.find(x => x.id === st.id);
