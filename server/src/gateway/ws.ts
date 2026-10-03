@@ -43,6 +43,7 @@ import { navGridFromTables } from '../navigation/navgen.ts';
 import { applyRoads, roadOf, type RoadLine } from '../navigation/roads.ts';
 import { municipalOf, buildingTargetOf } from '../navigation/municipal.ts';
 import { astarClearance, checkArrive, snapInteraction, planRoute } from '../navigation/hpath.ts';
+import { cellKindOf, bestStandCell, moveFailMsg } from '../navigation/reloc.ts';
 import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { cook, buildFacility } from '../world/cooking.ts';
 import { placeDecor, removeDecor, courtyardScore, courtyardCompletion, courtyardContest } from '../world/decor.ts';
@@ -1061,7 +1062,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               if (ring && !hasXY) {
                 const found = nav ? snapInteraction(nav, sx, sy, ring, 60) : null;
                 if (!found) {
-                  result = { ok: false, msg: ring === 'water' ? `当前位置 (${sx},${sy}) 周边 60 格内找不到可站立的水边` : `当前位置 (${sx},${sy}) 周边 60 格内找不到可交互目标` };
+                  const altStand = nav ? bestStandCell(nav, sx, sy, [sx, sy], 60) : null;
+                  result = { ok: false, msg: (ring === 'water' ? `当前位置 (${sx},${sy}) 周边 60 格内找不到可站立的水边` : `当前位置 (${sx},${sy}) 周边 60 格内找不到可交互目标`) + (altStand ? `；建议 move_to ${altStand[0] * 100 + 50},${altStand[1] * 100 + 50}` : '') };
                   continue;
                 }
                 goal = found;
@@ -1072,7 +1074,12 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               if (sx === gx && sy === gy) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
               const path = (nav && astarClearance(nav, sx, sy, gx, gy, { wallHug: msg.wallHug === true })) ?? bfsPath(app.tables, sx, sy, gx, gy);
               console.log(`[agent-move_to] 路径: ${path ? path.length + ' 步' : '不可达'}（目标吸附到 ${gx},${gy}）`);
-              if (!path) { result = { ok: false, msg: '目标不可达（被障碍包围）' }; continue; }
+              if (!path) {
+                const kind = nav ? cellKindOf(nav, gx, gy) : 'out';
+                const alt = nav ? bestStandCell(nav, gx, gy, [sx, sy]) : null;
+                if (nav) result = { ok: false, msg: moveFailMsg([sx, sy], [gx, gy], nav, nav) };
+                else result = { ok: false, msg: `目标不可达（被障碍包围）：从 ${sx},${sy} 到 ${gx},${gy}（无场景导航数据）` }; continue;
+              }
               if (path.length < 2) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
               // 曾经的"单段 <=60 格"硬上限是还没有航点确认环时的权宜：现在 D1 段确认环
               // 已经把长路线按每 4 格一航点拆段、逐段等 arrive 确认+偏差重规划，长度不再靠拒绝兜底。
@@ -1133,7 +1140,12 @@ responseType = 'move_started';
               { scene: targetScene, x: goal[0] * 100 + 50, y: goal[1] * 100 + 50 },
               (sc) => navOf(app, sc), portalsOf(app), { wallHug: msg.wallHug === true },
             );
-            if (!pr.ok) { result = { ok: false, msg: pr.msg || '跨场景不可达' }; continue; }
+            if (!pr.ok) {
+              const gk: 'open' | 'block' | 'water' | 'tree' | 'out' = toNav ? cellKindOf(toNav, goal[0], goal[1]) : 'out';
+              const gkCn = { open: '空地', block: '建筑/障碍', water: '水面', tree: '树丛', out: '越界' } as Record<'open' | 'block' | 'water' | 'tree' | 'out', string>;
+              const altStand = toNav ? bestStandCell(toNav, goal[0], goal[1], [tx, ty]) : null;
+              result = { ok: false, msg: `${pr.msg || '跨场景不可达'}；目标格 ${goal[0]},${goal[1]}（${gkCn[gk]}）${altStand ? `；建议改投 ${altStand[0] * 100 + 50},${altStand[1] * 100 + 50}` : ''}` }; continue;
+            }
             if (pr.waypoints.length < 1) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
             publish(`跨场景赶路中：${curScene} -> ${targetScene}（${pr.waypoints.length} 航点）`);
             const wps2: Array<{ scene: number; x: number; y: number; cellI: number }> = pr.waypoints.map((w, i) => ({ scene: w.scene, x: w.x, y: w.y, cellI: i }));

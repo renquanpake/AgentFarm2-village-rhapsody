@@ -202,6 +202,11 @@ if (mvN?.ok) {
 send(A, { t: 'act', action: 'move_to', near: '不存在的楼宇', seq: 21 });
 const mvBad = await AQ.next(m => m.t === 'result' && m.seq === 21).catch(() => null);
 check('near 无法解析时返回可用建筑名清单', !!mvBad && mvBad.ok === false && /无法解析/.test(mvBad.msg || ''), mvBad?.msg || 'timeout');
+// E.2b 跨场景不可达点名坐标：场景 14 无村门 → planRoute 跨场景失败，文案点名目标格坐标+kind
+send(A, { t: 'act', action: 'move_to', x: 3050, y: 3050, scene: 14, seq: 30 });
+const mvX = await AQ.next(m => m.t === 'result' && m.seq === 30).catch(() => null);
+check('跨场景不可达文案点名目标格坐标', !!mvX && mvX.ok === false && /目标格 30,30/.test(mvX.msg || ''), mvX?.msg || 'timeout');
+
 // E.3 邮局 letter（收件人 = 游戏通道昵称「导航验证」）
 send(A, { t: 'act', action: 'letter', to: '导航验证', body: 'e2e 测试信件：交易大厅在村中央，门朝广场。', seq: 22 });
 const lt = await AQ.next(m => m.t === 'result' && m.action === 'letter' && m.seq === 22).catch(() => null);
