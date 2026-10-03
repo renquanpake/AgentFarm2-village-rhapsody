@@ -12,7 +12,12 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = `${__dirname}/..`;
-const REPEATS = process.argv.includes('--smoke') ? 2 : 10;
+// 模式：--smoke=2 次/例（CI 门 6）| --matrix=10 次/例（nightly 完整矩阵）| 默认=10 次/例
+// --drift=叠加 D1 偏差重规划模拟（航点按 rng 偏 2 格，超限从实际位置重规划）
+// 注：--matrix 曾是未识别旗标，静默落入默认分支（2026-10-03 修：显式解析 + 模式回显）
+const SMOKE = process.argv.includes('--smoke');
+const MATRIX = process.argv.includes('--matrix');
+const REPEATS = SMOKE ? 2 : 10;
 const DRIFT = process.argv.includes('--drift');
 const G_RATIO_TOL = 1.1;
 
@@ -164,5 +169,5 @@ if (!DRIFT && Object.keys(BASELINE).length === 0 && Object.keys(costSeen).length
   writeFileSync(BASELINE_FILE, JSON.stringify(costSeen, null, 1), 'utf8');
   console.log(`[nav-replay] 成本比基线已记录 -> ${BASELINE_FILE}（${Object.keys(costSeen).length} 路线；后续运行 g 比须 ≤ ${G_RATIO_TOL}）`);
 }
-console.log(`nav-replay: ${pass} pass / ${fail} fail（${REPEATS} 次 x ${starts.length} 起点 x ${targets.length} 路线${DRIFT ? '，drift 模式' : ''}）`);
+console.log(`nav-replay: ${pass} pass / ${fail} fail（${REPEATS} 次 x ${starts.length} 起点 x ${targets.length} 路线${DRIFT ? '，drift 模式' : ''}；模式 ${MATRIX ? 'matrix' : SMOKE ? 'smoke' : 'default'}${DRIFT ? '+drift' : ''}）`);
 if (fail > 0) process.exit(1);

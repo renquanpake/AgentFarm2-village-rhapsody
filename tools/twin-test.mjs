@@ -50,8 +50,9 @@ console.log('B 收到聊天: ' + JSON.stringify(afterB));
 const aUid = A.state.uid, bUid = B.state.uid;
 console.log('uid 不同: ' + (aUid !== bUid) + ' (' + aUid + ' vs ' + bUid + ')');
 
-// 服务器在线状态
-const online = await (await fetch('http://127.0.0.1:8080/af/players')).json();
+// 服务器在线状态（D18 起 /af/players 需 token：用 A 的玩家 token）
+const onlineTok = (A.state && A.state.token) || process.env.AF_TOKEN || '';
+const online = await (await fetch('http://127.0.0.1:8080/af/players' + (onlineTok ? `?token=${encodeURIComponent(onlineTok)}` : ''))).json();
 console.log('服务器在线: ' + JSON.stringify(online));
 
 await A.page.screenshot({ path: 'D:\\agent社区\\AgentFarm2\\_twinA.png' });

@@ -24,10 +24,14 @@ const argVal = (k, d = null) => {
   }[k] || '')] || d);
 };
 const TOKEN = argVal('--token', '');
-const _wsBase = argVal('--ws', 'ws://127.0.0.1:8080/agent');
+// 端点：--ws 显式 > AF_AGENT_WS > ws://127.0.0.1:<PORT>/agent（PORT 缺省 8080）
+// 事故背景（2026-10-03）：托管端曾写死 8080，服务端跑在隔离端口时子进程静默连不上，
+// 且 managed.ts 用 stdio:'ignore' 把错误吞掉 —— 托管「启动成功但从不在线」。
+const _wsBase = argVal('--ws', process.env.AF_AGENT_WS || `ws://127.0.0.1:${process.env.PORT || 8080}/agent`);
 const _sep = _wsBase.includes('?') ? '&' : '?';
 const WS_URL = _wsBase + _sep + 'token=' + TOKEN;
 const ROUNDS = Number(argVal('--rounds', '5'));
+let llmBackoffMs = 0;   // 429 退避（指数，封顶 120s）
 const LLM_URL = argVal('--llm-url', 'https://api.deepseek.com/v1').replace(/\/$/, '');
 const LLM_KEY = argVal('--llm-key', '');
 const LLM_MODEL = argVal('--llm-model', 'deepseek-v4-flash');
@@ -94,12 +98,15 @@ const NOTE_TOOLS = [
 ];
 const GAME_TOOLS = [
   { name: 'game_observe', description: '查看游戏世界状态：场景/坐标/天数/背包(所有物品+金币)/NPC/附近植物(含成熟状态)/地块(已犁/未成熟/成熟可收)/附近可犁地/附近玩家位置/水边/矿山/收件箱未读。返回 JSON。', params: { type: 'object', properties: {} } },
-  { name: 'game_act', description: '在游戏世界执行行动。action：move_to(寻路移动 x,y) / talk(NPC问价 npcId) / buy(买物品 itemId+count) / chat(说话 text) / plant(播种：itemId=种子id + x,y) / harvest(收菜：x,y) / chop(砍树：x,y) / fish(钓鱼) / mine(挖矿) / till(犁地：x,y 可耕种土地) / water(浇水：x,y 未成熟作物) / place(安装洒水器：itemId=洒水器id + x,y)。', params: { type: 'object', properties: { action: { type: 'string', enum: ['move_to', 'talk', 'buy', 'chat', 'plant', 'harvest', 'chop', 'fish', 'mine', 'till', 'water', 'place'] }, x: { type: 'integer' }, y: { type: 'integer' }, npcId: { type: 'integer' }, itemId: { type: 'integer' }, count: { type: 'integer' }, text: { type: 'string' } }, required: ['action'] } },
+  { name: 'game_act', description: '在游戏世界执行行动。action：move_to(寻路移动 x,y) / talk(NPC问价 npcId) / buy(买物品 itemId+count) / chat(说话 text) / plant(播种：itemId=种子id + x,y) / harvest(收菜：x,y) / chop(砍树：x,y) / fish(钓鱼) / mine(挖矿) / till(犁地：x,y 可耕种土地) / water(浇水：x,y 未成熟作物) / place(安装洒水器：itemId=洒水器id + x,y) / tasks(任务链) / onboarding(新手引导) / season(时令事件) / claim(认领资源 kind+x,y) / claims(我的认领) / lease(田块租约 op+plot) / give(送礼 target+itemId) / letter(写信 to+body) / recap(我刚才干了什么 n) / reply(给主人回话 text)。', params: { type: 'object', properties: { action: { type: 'string', enum: ['move_to', 'talk', 'buy', 'chat', 'plant', 'harvest', 'chop', 'fish', 'mine', 'till', 'water', 'place', 'tasks', 'onboarding', 'season', 'claim', 'claims', 'lease', 'give', 'letter', 'recap', 'reply'] }, x: { type: 'integer' }, y: { type: 'integer' }, npcId: { type: 'integer' }, itemId: { type: 'integer' }, count: { type: 'integer' }, text: { type: 'string' } }, required: ['action'] } },
   { name: 'game_inbox', description: '拉取玩家（我的主人）发来的指挥消息。返回全部未读消息（读后清除）。', params: { type: 'object', properties: {} } },
   { name: 'game_chat_log', description: '查看玩家频道最近的聊天记录（玩家和 agent 都在里面，isAgent=true 的是 agent 发言）。', params: { type: 'object', properties: {} } },
   { name: 'game_dm', description: '给已解锁私聊的对象发 1:1 消息（微信式，无距离限制）。observe 的 dmUnlocked 列出可私聊的 uid/昵称。', params: { type: 'object', properties: { target: { type: 'string', description: '对方 uid 或昵称' }, text: { type: 'string', description: '消息内容' } }, required: ['target', 'text'] } },
   { name: 'game_dm_log', description: '拉取与某对象的 1:1 聊天记录（最近 50 条）。', params: { type: 'object', properties: { target: { type: 'string', description: '对方 uid 或昵称' } }, required: ['target'] } },
   { name: 'game_dm_unlocked', description: '列出所有已解锁私聊的对象（uid + 昵称）。', params: { type: 'object', properties: {} } },
+  { name: 'game_recap', description: '读取我（Agent）过去的行为流水（服务端记录的事实，含时间/动作/结果/失败原因）。回答主人「你刚才干了什么」时必须先读它，不要凭记忆作答。', params: { type: 'object', properties: { n: { type: 'integer', description: '最近多少条（默认 12，上限 50）' } } } },
+  { name: 'game_reply', description: '给主人回一句话（唯一可靠的回程通道：写进主人信箱，主人在指挥面板与聊天框都能看到）。主人提问后必须用它作答。', params: { type: 'object', properties: { text: { type: 'string', description: '要说的话（≤500 字）' } }, required: ['text'] } },
+  { name: 'game_mail', description: '读主人信箱（我之前回过的话）。', params: { type: 'object', properties: { n: { type: 'integer' } } } },
 ];
 
 // ---------- 工具执行 ----------
@@ -108,7 +115,7 @@ async function runTool(name, a) {
     case 'game_observe': return await gameCall('observe');
     case 'game_act': {
       const params = { action: String(a.action || '') };
-      for (const k of ['dir', 'x', 'y', 'npcId', 'itemId', 'count', 'text']) if (a[k] !== undefined) params[k] = a[k];
+      for (const k of ['dir', 'x', 'y', 'npcId', 'itemId', 'count', 'text', 'kind', 'n', 'target', 'body', 'op', 'plot', 'near']) if (a[k] !== undefined) params[k] = a[k];
       return await gameCall('act', params);
     }
     case 'game_inbox': return await gameCall('inbox', {}, 'inbox');
@@ -116,6 +123,9 @@ async function runTool(name, a) {
     case 'game_dm': return await gameCall('dm_send', { target: String(a.target || ''), text: String(a.text || '') }, 'dm_result');
     case 'game_dm_log': return await gameCall('dm_log', { target: String(a.target || '') }, 'dm_log');
     case 'game_dm_unlocked': return await gameCall('dm_unlocked', {}, 'dm_unlocked_list');
+    case 'game_recap': return await gameCall('act', { action: 'recap', n: Number(a.n || 12) });
+    case 'game_reply': return await gameCall('act', { action: 'reply', text: String(a.text || '') });
+    case 'game_mail': return await gameCall('act', { action: 'mail', n: Number(a.n || 5) });
     case 'note_list': return { ok: true, notes: noteList() };
     case 'note_read': try { return { ok: true, content: noteRead(String(a.name || '')) }; } catch (e) { return { ok: false, msg: e.message }; }
     case 'note_write': try { return { ok: true, msg: noteWrite(String(a.name || ''), a.content) }; } catch (e) { return { ok: false, msg: e.message }; }
@@ -217,6 +227,16 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
 - **收到私聊**：玩家或 agent 给你发的私聊会实时推送到 agent socket（t:'dm_in'），在 LLM 对话里能看到并回应
 - 私聊不打断你当前行动，属于"聊天类"操作
 
+## 主人提问必须回答（最高优先级，硬规则）
+- 主人从指挥面板给你发问（例："你刚才干了什么？"）时，**这一轮先做两件事，顺序不能变**：
+  1. TOOL:game_recap {"n":12} —— 读你过去的行为流水（服务端记录的事实）。每行格式：
+     「多久前 第N天 动作（未成）：结果」—— 动作是中文（前往/犁地/钓鱼/砍树/收获…），
+     （未成）表示那一步失败了，后面跟服务端的失败原因原文。
+  2. TOOL:game_reply {"text":"..."} —— 用一句话回主人，**只讲流水里有的事**，不许编。
+- **没有回程通道的替代品不存在**：game_dm 不能发给主人（他就是你的账号），回话只能用 game_reply。
+- 若流水为空（刚上线还没行动），如实说"我刚上线，还没动"，不要编造做过的事。
+- 被问"某件事为什么没做成"时，从流水里的（未成）条目读 msg 原文回答。
+
 ## 玩家指挥与打断（重要）
 - 你的主人（玩家）会通过"指挥"给你发消息：observe 的 inbox.unread > 0 时用 game_inbox 拉取消息。
   **指挥消息不会打断你**：手头的事做完（或告一段落）再回应；任务型指令（去钓鱼/种地/买东西）尽量完成。
@@ -238,6 +258,9 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
 
 ## 工具调用方式（重要，别搞混）
 - game_act 只用于游戏动作：move_to / talk / buy / chat / plant / harvest / chop / fish / mine / till / water / place
+  以及只读与回话类：tasks(任务链) / onboarding(引导) / season(时令) / claim+claims(资源认领) / lease(租约) / give(送礼) / letter(写信) / recap(行为流水) / reply(回主人话)
+- 事实类工具（回答问题前先查，别凭记忆）：TOOL:game_recap {"n":12} / TOOL:game_mail {"n":5}
+- 回话工具：TOOL:game_reply {"text":"..."}（主人提问后必用）
 - **洒水器系统**：杂货店(NPC 13)卖洒水器(初级77=200金,中级78=500金,高级79=1200金)。买好后用 place 安装到田地格子，覆盖范围内作物每天自动浇水2次。
 - 笔记是独立工具，**直接单独输出一行**，不要包进 game_act：
   TOOL:note_list
@@ -423,7 +446,20 @@ async function main() {
       turns++;
       let msg;
       try { msg = await llmChat(messages); }
-      catch (e) { console.error('[agent] LLM 错误:', e.message); break; }
+      catch (e) {
+        // 429/限流要退避，不能紧循环硬打（免费档实测：紧循环打满后玩家 Key 与服务端都被拖累）
+        const m = String(e.message || '');
+        if (/\b429\b|rate.?limit|限流/i.test(m)) {
+          llmBackoffMs = Math.min(llmBackoffMs ? llmBackoffMs * 2 : 5000, 120000);
+          console.error('[agent] LLM 限流(429)：退避 ' + (llmBackoffMs / 1000) + ' 秒后重试（模型额度用尽时属正常等待）');
+          await new Promise(r => setTimeout(r, llmBackoffMs));
+          break;
+        }
+        llmBackoffMs = 0;
+        console.error('[agent] LLM 错误:', m.slice(0, 200));
+        break;
+      }
+      llmBackoffMs = 0;
 
       const content = msg.content || '';
       if (content) console.log('[agent]', content.slice(0, 300));

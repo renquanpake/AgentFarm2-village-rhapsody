@@ -1,5 +1,8 @@
-# 夜间任务：导航回放矩阵（设计 M6.4 门6 的夜间完整版）
-# M3（B5 导航数据生产 + B6 分层寻路）落地 tools/nav-replay.mjs 后自动启用；此前跳过。
+# 夜间任务：导航回放完整矩阵（设计 M6.4 门6 的夜间完整版）
+# 两遍各 240 例（8 宅 x 3 POI x 10 次）：
+#   --matrix      理想回放，锁航点确认 + 成本比基线（g 比 ≤ 1.1）
+#   --matrix --drift  D1 偏差重规划闭环（2026-10-03 接入：此前 nightly 只跑理想回放，
+#                              且 --matrix 是 nav-replay 未识别的旗标，静默落入默认分支）
 name: nav-replay-nightly
 
 on:
@@ -15,10 +18,42 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: 导航路线回放 x10 场景矩阵（M3/B6 落地前占位）
+      - name: 导航路线回放 理想矩阵 + drift 闭环矩阵
         run: |
           if [ -f tools/nav-replay.mjs ]; then
             node tools/nav-replay.mjs --matrix
+            node tools/nav-replay.mjs --matrix --drift
           else
             echo "tools/nav-replay.mjs 尚未落地（M3 B5/B6 交付前跳过）；验收标准见 design.md F3。"
           fi
+
+  # 抢占原子性行为验证（C 包 / M-O2）：40 并发抢同一资源，必须恰好 1 个成功。
+  # 需要真实服务端（隔离数据目录 + 静态数据），故独立 job。
+  stress-claims:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 准备隔离数据目录
+        run: |
+          echo "AF_DATA_DIR=$(mktemp -d)" >> "$GITHUB_ENV"
+          bash tools/ci-seed-datadir.sh "$AF_DATA_DIR"
+      - name: 起服务
+        env:
+          AF_NO_TUNNEL: '1'
+          AF_NO_GIT: '1'
+          AF_NO_MERCHANTS: '1'
+          AF_NO_NPC_SCHED: '1'
+          AF_GROW_MS: '600000'
+          PORT: '8177'
+        run: |
+          cd server
+          node src/index.ts > ../stress-server.log 2>&1 &
+          sleep 6
+      - name: 40 并发抢同一资源
+        run: AF_BASE=http://127.0.0.1:8177 node tools/stress-claims.mjs --players 40 --rounds 3
+      - name: 服务端日志（失败时）
+        if: failure()
+        run: cat stress-server.log || true

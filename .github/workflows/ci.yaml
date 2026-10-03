@@ -1,4 +1,8 @@
-# CI 六道门（设计 M6.4）：typecheck -> 单测 -> 协议回归 -> 秘密扫描 -> 原版哈希 -> 导航回放（后者夜间）
+# CI 十二道门（设计 M6.4 起，2026-10-03 补门11/门12）：
+#   门1 typecheck / 门2 vitest / 门3 协议回归 / 门4 秘密扫描 / 门5 原版哈希 / 门6 导航校验
+#   门7 角色扮演评测 / 门8 旗舰 UI 静态+冒烟 / 门9 回放一致性 / 门10 文本无障碍表面审计
+#   门11 存档键审计（新增世界桶必须登记，否则重启静默丢数据）
+#   门12 路由鉴权矩阵（既无 token 又不在公开白名单的 /af 路由判死 + 文档与代码同步）
 name: CI
 
 on:
@@ -33,9 +37,13 @@ jobs:
         run: npx vitest run
 
       # 门 3：协议回归（起真实服务端 + ws-test 全量用例；隔离数据目录）
+      # 隔离要点：saves/accounts 写临时目录（不污染仓库），但静态游戏数据（npcs/items/collision/
+      # spawn-points/recipes/decor…）要复制进去 —— AF_DATA_DIR 是整目录替换，缺文件会让
+      # Tables 回落空数组（表现为「没有这个 NPC」）。2026-10-03 修复：门3 此前必然红。
       - name: 门3 协议回归
         run: |
           export AF_DATA_DIR="$(mktemp -d)"
+          bash ../tools/ci-seed-datadir.sh "$AF_DATA_DIR"
           export AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 PORT=8123
           node src/index.ts > server-ci.log 2>&1 &
           SRV=$!
@@ -62,12 +70,16 @@ jobs:
         working-directory: .
 
       # 门 6：导航数据校验（B5 村景 + 27 场景 collide 层）+ 市政路网三档 + 路线回放（M3/B6 已落地）
+      # 回放跑两遍：--smoke 理想回放（48 例，锁航点确认与成本比基线）+ --smoke --drift 偏差重规划
+      # （D1 闭环核心，2026-10-03 接入；此前 drift 只在手工跑过，nightly 传的 --matrix 还是未识别旗标）
       - name: 门6 导航校验
         run: |
           node tools/gen-nav.mjs --check
           node tools/build-scene-collisions.mjs --check
+          node tools/gen-home-slots.mjs --check
           node tools/check-roads.mjs
           node tools/nav-replay.mjs --smoke
+          node tools/nav-replay.mjs --smoke --drift
         working-directory: .
 
       # 门 7：角色扮演评测（F2；自主行为占比 >= 0.3 + 动作多样性熵 >= 0.6，防退化）
@@ -84,10 +96,12 @@ jobs:
 
       # 门 9：回放一致性（A1/M-O1）——复用门 3 隔离数据目录，起服务取 /af/replay-status
       # 判定：一致，或漂移可归因（自由桶 knapData/playerData 客户端可覆写，见 MEMORY 已归因条目）。
-      # 无事件仍漂移 -> events=0 -> FAIL（真异常拦截）。
+      # 无事件仍漂移 -> events=0 -> FAIL（真异常拦截）。D18 起该端点需 token，
+      # 工具优先用 AF_ADMIN_TOKEN，无则自备账号（register/login 是公开通道）。
       - name: 门9 回放一致性
         run: |
           export AF_DATA_DIR="$(mktemp -d)"
+          bash ../tools/ci-seed-datadir.sh "$AF_DATA_DIR"
           export AF_NO_TUNNEL=1 AF_NO_GIT=1 PORT=8135
           node src/index.ts > server-ci9.log 2>&1 &
           SRV=$!
@@ -104,4 +118,16 @@ jobs:
       # 门 10：文本无障碍表面审计（H6/R9 T6）——新增玩家可见信息必须同步文本通道
       - name: 门10 文本无障碍表面审计
         run: node tools/surface-audit.mjs
+        working-directory: .
+
+      # 门 11：存档键审计（进化书 §3.1）——服务端写入 world/globals 的键必须登记注册表，
+      # 否则 importSave 把它判成玩家私有键落进 uid='' 幽灵桶，重启静默丢失
+      - name: 门11 存档键审计
+        run: node tools/save-key-audit.mjs
+        working-directory: .
+
+      # 门 12：路由鉴权矩阵（D18）——/af 路由要么带 token，要么在公开白名单登记理由；
+      # 同时校验 docs/鉴权矩阵.md 与代码同源（改路由必须 --write 重生成）
+      - name: 门12 路由鉴权矩阵
+        run: node tools/auth-matrix.mjs --check
         working-directory: .

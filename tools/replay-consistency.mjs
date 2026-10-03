@@ -9,10 +9,31 @@ import http from 'node:http';
 const BASE = process.env.AF_BASE || 'http://127.0.0.1:8080';
 const failOn = process.argv.includes('--fail-on-mismatch');
 
-function getJSON(path) {
+// D18 起 /af/replay-status 需 token：优先 AF_ADMIN_TOKEN，其次 AF_REPLAY_TOKEN，
+// 都没有就自备一个账号（register/login 是公开通道，CI 全新 checkout 也能跑）
+async function resolveToken() {
+  if (process.env.AF_ADMIN_TOKEN) return process.env.AF_ADMIN_TOKEN;
+  if (process.env.AF_REPLAY_TOKEN) return process.env.AF_REPLAY_TOKEN;
+  const username = `afp${Date.now().toString(36).slice(-8)}`; // 注册用户名上限 16 字符
+  const password = 'probe_pw_1234';
+  const post = (p, body) => new Promise((resolve) => {
+    const u = new URL(BASE + p);
+    const req = http.request({ host: u.hostname, port: u.port, path: u.pathname, method: 'POST', headers: { 'content-type': 'application/json' } }, (res) => {
+      let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({ ok: false }); } });
+    });
+    req.on('error', () => resolve({}));
+    req.end(JSON.stringify(body));
+  });
+  let r = await post('/af/register', { username, password });
+  if (!r || !r.token) r = await post('/af/login', { username, password });
+  return (r && r.token) || null;
+}
+
+function getJSON(path, token) {
   return new Promise((resolve, reject) => {
     const u = new URL(BASE + path);
-    http.get({ host: u.hostname, port: u.port, path: u.pathname, headers: { 'accept': 'application/json' } }, (res) => {
+    const q = token ? `?token=${encodeURIComponent(token)}` : '';
+    http.get({ host: u.hostname, port: u.port, path: u.pathname + q, headers: { 'accept': 'application/json' } }, (res) => {
       let d = '';
       res.on('data', (c) => (d += c));
       res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(d); } });
@@ -20,7 +41,8 @@ function getJSON(path) {
   });
 }
 
-const r = await getJSON('/af/replay-status').catch(e => ({ ok: false, error: String(e.message) }));
+const TOKEN = await resolveToken();
+const r = await getJSON('/af/replay-status', TOKEN).catch(e => ({ ok: false, error: String(e.message) }));
 if (!r.ok) {
   console.log(`[replay-consistency] 无法访问 ${BASE}/af/replay-status：${r.error || '非 ok 响应'}`);
   process.exit(failOn ? 1 : 0);

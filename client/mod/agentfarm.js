@@ -23,48 +23,81 @@
 
   // ---------- 账号登录（一个账号 = 一个角色/存档，无 token 则先登录） ----------
   const LS = window.localStorage;
+  // 本地存储占用估算（配额提示用）：逐 key 累加 value 长度，失败返回 0
+  LS.usedBytes = function () {
+    try { let n = 0; for (let i = 0; i < LS.length; i++) { const k = LS.key(i); n += (k ? k.length : 0) + (LS.getItem(k) || '').length; } return n; }
+    catch (e) { return 0; }
+  };
   let uid = LS.getItem('af_uid') || '';
   let nick = LS.getItem('af_nick') || '';
   let token = LS.getItem('af_token') || '';
   let bootReady = false; // 登录成功且存档就绪后置 true
 
   // 同步拉取权威存档（登录后调用；boot 前必须完成）
+  // 返回值语义（2026-10-03 修正）：
+  //   { ok:true }                    存档已就绪
+  //   { ok:false, reason:'auth' }    token 无效 —— 调用方应清凭证并提示重新登录
+  //   { ok:false, reason:'quota' }   浏览器本地存储写不下 —— **必须保留凭证**，只提示重试/清理
+  //   { ok:false, reason:'network' } 拉档失败（网络/服务异常）—— 同样保留凭证
+  // 事故背景：主档 villagedb_10000 单键可达数 MB，QuotaExceeded 会抛出到外层 catch，
+  // 旧实现一律 return false，tryAutoLogin 随即清掉 af_token 并弹「登录已过期」——
+  // 玩家明明是存储满，却被告知登录过期，越点越进不去。
   function loadWorldFromServer() {
+    let xhr;
     try {
-      const xhr = new XMLHttpRequest();
+      xhr = new XMLHttpRequest();
       xhr.open('GET', SERVER + '/af/save?uid=' + encodeURIComponent(uid) + '&token=' + encodeURIComponent(token), false);
       xhr.send();
-      if (xhr.status === 200) {
-        const data = JSON.parse(xhr.responseText);
-        // 宅基地表（服务器下发）：新房子碰撞注入用
-        if (data._af && data._af.spawns) window.__AF_SPAWNS__ = data._af.spawns;
-        const datas = [];
-        for (const d of (data.datas || [])) {
-          const sk = serverKey(d.key);
-          const ck = clientKey(d.key);
-          const v = typeof d.val === 'string' ? d.val : JSON.stringify(d.val);
-          serverCache.set(sk, v);
-          datas.push({ key: ck, val: d.val }); // 翻译成客户端 key
-        }
-        // 关键：原版 Web 模式读档只认 localStorage['villagedb_10000'] 单 key（WebApi.loadStorageData）
-        // 浏览器模式 uid 固定 1e4 -> storageFileName='villagedb_10000'
-        // ★ 先写主档（必须成功）；per-key 镜像有配额风险（世界档含 picData 等转义后可达数 MB），尽力而为
-        LS.setItem('villagedb_10000', JSON.stringify({ version: 4, datas }));
-        try {
-          for (const d of (data.datas || [])) {
-            const ck = clientKey(d.key);
-            LS.setItem(ck, typeof d.val === 'string' ? d.val : JSON.stringify(d.val));
-          }
-        } catch (e) {
-          console.warn('[AF] 存档镜像部分跳过（存储配额）:', e.name);
-        }
-        syncReady = true;
-        console.log('[AF] 权威存档已同步:', datas.length, '条');
-        return true;
+    } catch (e) {
+      console.warn('[AF] 存档拉取异常:', e);
+      return { ok: false, reason: 'network', msg: '连接服务器失败：' + (e && e.message || e) };
+    }
+    if (xhr.status === 401 || xhr.status === 403) return { ok: false, reason: 'auth' };
+    if (xhr.status !== 200) return { ok: false, reason: 'network', msg: '拉取存档失败（HTTP ' + xhr.status + '）' };
+
+    let data;
+    try { data = JSON.parse(xhr.responseText); }
+    catch (e) { return { ok: false, reason: 'network', msg: '存档解析失败' }; }
+
+    // 宅基地表（服务器下发）：新房子碰撞注入用
+    if (data._af && data._af.spawns) window.__AF_SPAWNS__ = data._af.spawns;
+    const datas = [];
+    try {
+      for (const d of (data.datas || [])) {
+        const sk = serverKey(d.key);
+        const ck = clientKey(d.key);
+        const v = typeof d.val === 'string' ? d.val : JSON.stringify(d.val);
+        serverCache.set(sk, v);
+        datas.push({ key: ck, val: d.val }); // 翻译成客户端 key
       }
-      console.warn('[AF] 存档拉取失败 status=', xhr.status);
-    } catch (e) { console.warn('[AF] 存档拉取异常:', e); }
-    return false;
+      // 关键：原版 Web 模式读档只认 localStorage['villagedb_10000'] 单 key（WebApi.loadStorageData）
+      // 浏览器模式 uid 固定 1e4 -> storageFileName='villagedb_10000'
+      let bytes = 0;
+      try { bytes = LS.usedBytes ? LS.usedBytes() : 0; } catch (e) { /* ignore */ }
+      LS.setItem('villagedb_10000', JSON.stringify({ version: 4, datas }));
+      try {
+        for (const d of (data.datas || [])) {
+          const ck = clientKey(d.key);
+          LS.setItem(ck, typeof d.val === 'string' ? d.val : JSON.stringify(d.val));
+        }
+      } catch (e) {
+        console.warn('[AF] 存档镜像部分跳过（存储配额）:', e.name);
+      }
+    } catch (e) {
+      // 主档写不下：明确告诉玩家是存储问题，别再伪装成登录过期
+      const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+      console.warn('[AF] 存档写入失败:', e && e.name, e && e.message, 'bytes≈', bytes);
+      return {
+        ok: false,
+        reason: quota ? 'quota' : 'network',
+        msg: quota
+          ? '浏览器本地存储空间不足（这个房间的存档约需 ' + (bytes ? Math.round(bytes / 1024 / 1024) + 'MB' : '数 MB') + '）。请在登录页点「清除本地凭证」后重试，或换一个浏览器/隐身窗口。'
+          : '存档写入失败：' + (e && e.message || e),
+      };
+    }
+    syncReady = true;
+    console.log('[AF] 权威存档已同步:', datas.length, '条');
+    return { ok: true };
   }
 
   // 登录成功后：记录身份 → 切换存档位（如有）→ 拉存档 → 放行 boot
@@ -87,8 +120,12 @@
       startGame();
     }
     function startGame() {
-      const ok = loadWorldFromServer();
-      if (!ok) { showLoginUI('服务器连接失败，请重试'); return; }
+      const r = loadWorldFromServer();
+      if (!r.ok) {
+        if (r.reason === 'auth') { LS.removeItem('af_token'); LS.removeItem('af_uid'); LS.removeItem('af_nick'); token = ''; showLoginUI('登录已过期，请重新登录'); }
+        else showLoginUI(r.msg || '服务器连接失败，请重试');
+        return;
+      }
       const loginEl = document.getElementById('af-login');
       if (loginEl) loginEl.remove();
       bootReady = true;
@@ -296,15 +333,29 @@
       if (xhr.status === 200) {
         const me = JSON.parse(xhr.responseText);
         uid = me.uid; nick = me.nick || uid;
-        if (loadWorldFromServer()) {
+        const r = loadWorldFromServer();
+        if (r.ok) {
           bootReady = true;
           if (window.__AF_ORIG_BOOT__) window.__AF_ORIG_BOOT__();
           startNetwork();
           return;
         }
+        // 只有「凭证无效」才清身份；存储配额/网络问题保留凭证并给出可执行提示
+        if (r.reason === 'auth') {
+          LS.removeItem('af_token'); LS.removeItem('af_uid'); LS.removeItem('af_nick');
+          token = '';
+          showLoginUI('登录已过期，请重新登录');
+        } else {
+          showLoginUI(r.msg || '载入存档失败，请重试');
+        }
+        return;
       }
-    } catch (e) {}
-    // token 失效或出错 → 清掉重新登录
+    } catch (e) {
+      // boot/开网阶段的异常绝不能被当成「登录过期」：那会把玩家永久挡在门外且原因完全误导
+      console.warn('[AF] 自动登录流程异常（凭证保留，可重试）:', e && (e.stack || e.message || e));
+      showLoginUI('进入游戏时出错：' + (e && e.message || e) + '（凭证已保留，可直接重试）');
+      return;
+    }
     LS.removeItem('af_token'); LS.removeItem('af_uid'); LS.removeItem('af_nick');
     token = '';
     showLoginUI('登录已过期，请重新登录');
@@ -515,6 +566,14 @@
           break;
         }
         case 'chat': onChat(msg.nick, msg.text); break;
+        case 'agent_reply':
+          // Agent 回话：进聊天框 + 指挥面板信箱区（此前 Agent 无回程通道，玩家永远看不到回答）
+          if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('Agent·' + (msg.from || ''), msg.text);
+          if (window.__AF_LOAD_RECAP__) window.__AF_LOAD_RECAP__();   // 面板内函数不在 WS 作用域，走全局钩子
+          break;
+        case 'agent_msg_ack':
+          if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', msg.msg || (msg.delivered ? '已送达' : '未送达'));
+          break;
         case 'chat_warn': if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', msg.msg || '发言太快'); break;
         case 'kicked':
         case 'join_deny': {
@@ -2113,7 +2172,8 @@
       <div class="hd"><b>📮 指挥我的 Agent</b><span class="x" id="af-agent-x">✕</span></div>
       <div class="bd">
         <p>消息会送进 Agent 的收件箱。<b>不打断</b>它当前行动——它做完手头的事（或告一段落）就会回应。任务型指令（去钓鱼/种地/买东西）它会尽量完成。</p>
-        <textarea id="af-agent-input" placeholder="例：去河边钓一条鱼回来 / 去杂货店买 2 个小麦种子"></textarea>
+        <textarea id="af-agent-input" placeholder="问它：刚才你干了什么？ / 派活：去河边钓一条鱼回来"></textarea>
+        <div id="af-agent-ask-echo" class="tip" style="min-height:16px;"></div>
         <div class="row">
           <button class="btn" id="af-agent-toggle">启动托管</button>
           <button class="btn btn-primary" id="af-agent-send">发送指挥</button>
@@ -2131,7 +2191,15 @@
             <button class="btn btn-primary" id="af-model-save">保存模型配置</button>
           </div>
         </div>
-        <div class="tip">Agent 的回复会出现在左下角聊天框（带 Agent 标记）。⏸ 打断会立即停下它；▶ 恢复让它继续原计划；右上角状态条显示托管中。</div>
+        <div class="row">
+          <button class="btn" id="af-agent-recap-btn">📖 他做了什么</button>
+          <span class="tip" id="af-agent-recap-state"></span>
+        </div>
+        <div id="af-agent-mail" style="margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;display:none;">
+          <p style="margin:0 0 6px;color:var(--af-c-gold);font-size:13px;">Agent 回话</p>
+          <div id="af-agent-mail-list" style="max-height:150px;overflow:auto;font-size:12px;line-height:1.6;color:var(--af-c-text);"></div>
+        </div>
+        <div class="tip">Agent 的回话会显示在这里并同步到左下角聊天框；「他做了什么」读的是它过去的行为流水（不是它的自述）。⏸ 打断会立即停下它；▶ 恢复让它继续原计划。</div>
       </div>`;
     document.body.appendChild(panel);
     const input = panel.querySelector('#af-agent-input');
@@ -2171,6 +2239,39 @@
         else modelState.textContent = '保存失败：' + (d.msg || r.status);
       } catch (e) { modelState.textContent = '保存失败：' + e.message; }
     });
+    // ---------- 「他做了什么」= 服务端行为流水（事实源，不是 Agent 自述） ----------
+    // esc 在本作用域不可见（别处是局部函数）—— 自备一个，避免「读取失败：esc is not defined」
+    const escText = (s2) => String(s2).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const recapBtn = panel.querySelector('#af-agent-recap-btn');
+    const recapState = panel.querySelector('#af-agent-recap-state');
+    const mailBox = panel.querySelector('#af-agent-mail');
+    const mailList = panel.querySelector('#af-agent-mail-list');
+    function renderMail(mail) {
+      if (!mail || !mail.length) { mailBox.style.display = 'none'; return; }
+      mailBox.style.display = 'block';
+      mailList.innerHTML = mail.map(m => {
+        const q = m.replyTo ? '<div style="opacity:.6">&gt; ' + escText(m.replyTo) + '</div>' : '';
+        return '<div style="margin-bottom:8px;">' + q + '<div><b style="color:var(--af-c-gold)">' + escText(m.from) + '：</b>' + escText(m.text) + '</div></div>';
+      }).join('');
+    }
+    async function loadRecap() {
+      recapState.textContent = '读取中…';
+      try {
+        const r = await fetch(SERVER + '/af/agent-recap?token=' + encodeURIComponent(token) + '&n=12');
+        const d = await r.json();
+        if (!d || !d.ok) { recapState.textContent = '读取失败（未登录？）'; return; }
+        const lines = (d.recap && d.recap.lines) || [];
+        recapState.textContent = lines.length ? ('共 ' + d.recap.total + ' 条，显示最近 ' + lines.length + ' 条') : '还没有行为记录';
+        recapBox = lines;
+        renderMail(d.mail);
+        window.__AF_RECAP__ = { agentOnline: d.agentOnline, total: (d.recap && d.recap.total) || 0, lines, mail: d.mail || [] };
+        if (window.__AF_CHAT_ADD__) {
+          window.__AF_CHAT_ADD__('系统', d.agentOnline ? 'Agent 托管中' : 'Agent 未托管（他的行为流水仍在）');
+        }
+      } catch (e) { recapState.textContent = '读取失败：' + e.message; }
+    }
+    AFUNI.on(recapBtn, loadRecap);
+    window.__AF_LOAD_RECAP__ = loadRecap;
     function openPanel() { panel.style.display = 'flex'; input.focus(); }
     function closePanel() { panel.style.display = 'none'; }
     function sendMsg() {
@@ -2179,7 +2280,8 @@
       if (connected) ws.send(JSON.stringify({ t: 'agent_msg', text: t }));
       else if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '尚未连接服务器，稍后再试');
       input.value = '';
-      closePanel();
+      panel.querySelector('#af-agent-ask-echo').textContent = '已问：' + t;
+      loadRecap();               // 立刻刷新：没托管时会看到明确回执
     }
     AFUNI.on(btn, openPanel);
     AFUNI.on(panel.querySelector('#af-agent-x'), closePanel, { cls: false });

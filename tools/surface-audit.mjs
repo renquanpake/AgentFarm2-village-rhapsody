@@ -8,19 +8,25 @@ import path from 'node:path';
 const repo = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 const httpSrc = fs.readFileSync(path.join(repo, 'server/src/gateway/http.ts'), 'utf8');
 const obsSrc = fs.readFileSync(path.join(repo, 'server/src/cognition/observe.ts'), 'utf8');
+const wsSrc = fs.readFileSync(path.join(repo, 'server/src/gateway/ws.ts'), 'utf8');
 
 // 信息面 -> 要求的文本通道（任一命中即通过）
 const surfaces = [
   { name: '全村地图', probe: () => httpSrc.includes("'/af/mapdoc'") },
   { name: '公告', probe: () => httpSrc.includes("'/af/notices'") && obsSrc.includes('notices') },
-  { name: '任务清单', probe: () => obsSrc.includes('tasks') },
+  { name: '任务清单（任务链）', probe: () => obsSrc.includes('chains') && wsSrc.includes('taskView') },
+  { name: '新手引导', probe: () => obsSrc.includes('onboarding') && wsSrc.includes('onboardingView') },
+  { name: '季节事件线', probe: () => obsSrc.includes('seasonEvents') || wsSrc.includes('seasonEventsView') },
+  { name: '资源认领（抢占）', probe: () => wsSrc.includes("'claim'") && wsSrc.includes('tryClaim') },
   { name: '节日板（计分/摊位）', probe: () => obsSrc.includes('festival') },
   { name: '背包/金币', probe: () => obsSrc.includes('coins') && obsSrc.includes('backpack') },
   { name: '位置', probe: () => obsSrc.includes('pos:') },
   { name: '建筑', probe: () => obsSrc.includes('buildings') },
   { name: '障碍', probe: () => obsSrc.includes('obstacles') },
-  { name: '社交/好友', probe: () => obsSrc.includes('social') },
+  { name: '社交/好友', probe: () => obsSrc.includes('social') && wsSrc.includes('socialGive') },
   { name: '聊天/收件箱', probe: () => obsSrc.includes('inbox') },
+  { name: '经济总账（设计值）', probe: () => httpSrc.includes("'/af/economy-design'") },
+  { name: '里程碑度量（留存漏斗）', probe: () => httpSrc.includes("'/af/metrics'") },
 ];
 
 let fails = 0;
