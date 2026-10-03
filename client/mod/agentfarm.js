@@ -1230,73 +1230,224 @@
     window.__AF_BLOCK_CB__ = cb;
   }
 
-  // ---------- 聊天 overlay ----------
+  // ---------- 聊天 overlay（2026-10-03 重构：气泡式对话端） ----------
+  // 视觉语言：气泡按「谁在说」分身份（我 / 村民 / 托管 Agent / 私聊 / 系统），
+  // 左对齐=对方、右对齐=自己，Agent 用琥珀描边 + 左侧竖条突出（核心交互对象）。
+  // 5 秒内同一人连续发言合并昵称头；新消息淡入上移；全部颜色走 token（门8 裸色值=0）。
   function injectChatUI() {
     const css = document.createElement('style');
     css.textContent = `
-      #af-chat { position: fixed; left: 8px; bottom: 8px; z-index: 99999; width: 340px;
-        font: 13px/1.5 "Microsoft YaHei", sans-serif; pointer-events: none; }
-      #af-chat .af-line { color: var(--af-c-light); text-shadow: 1px 1px 2px var(--af-c-black-70); background: var(--af-c-black-35);
-        padding: 2px 8px; margin: 2px 0; border-radius: 4px; word-break: break-all; }
-      #af-chat .af-line .af-nick { color: var(--af-c-gold); }
-      #af-chat-input { position: fixed; left: 8px; bottom: 8px; z-index: 100000; width: 340px;
-        display: none; background: var(--af-c-black-60); color: var(--af-c-light); border: 1px solid var(--af-c-text-dim);
-        border-radius: 4px; padding: 4px 8px; font: 13px "Microsoft YaHei", sans-serif; outline: none; }
-      #af-chat-btn { position: fixed; left: 8px; bottom: 8px; z-index: 99998; width: 36px; height: 36px;
-        border: 1px solid var(--af-c-text-dim); border-radius: 6px; background: var(--af-c-glass-panel); color: var(--af-c-light);
-        cursor: pointer; font-size: 18px; }
+      #af-chat {
+        position: fixed; left: 10px; bottom: 10px; z-index: 99999;
+        width: var(--af-panel-w-chat); max-height: var(--af-thread-max-h);
+        display: flex; flex-direction: column;
+        font-family: var(--af-font-px); font-size: var(--af-font-size-sm);
+        background: var(--af-c-glass-panel); border: 1px solid var(--af-c-edge);
+        border-radius: var(--af-msg-radius); box-shadow: var(--af-shadow-panel);
+        backdrop-filter: blur(6px); overflow: hidden; pointer-events: auto;
+      }
+      #af-chat-scroll {
+        overflow-y: auto; overscroll-behavior: contain;
+        padding: var(--af-s-3) var(--af-s-3) var(--af-s-2);
+        display: flex; flex-direction: column; gap: var(--af-msg-gap);
+        scrollbar-width: thin; scrollbar-color: var(--af-scroll-thumb) transparent;
+      }
+      #af-chat-scroll::-webkit-scrollbar { width: 6px; }
+      #af-chat-scroll::-webkit-scrollbar-thumb { background: var(--af-scroll-thumb); border-radius: 3px; }
+
+      .af-bubble {
+        max-width: var(--af-msg-max-w); padding: var(--af-msg-pad);
+        border-radius: var(--af-msg-radius); border: 1px solid var(--af-msg-other-edge);
+        background: var(--af-msg-other-bg); color: var(--af-msg-text);
+        line-height: 1.62; word-break: break-word; white-space: pre-wrap;
+        animation: af-msg-in var(--af-d-mid) var(--af-m-slide);
+        position: relative;
+      }
+      @keyframes af-msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      .af-bubble .af-head {
+        display: flex; align-items: center; gap: var(--af-s-1);
+        margin-bottom: 4px; font-size: var(--af-font-size-xs);
+      }
+      .af-bubble .af-avatar {
+        width: var(--af-avatar-size); height: var(--af-avatar-size);
+        border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        font-size: var(--af-font-size-xs); font-weight: var(--af-font-weight);
+        background: var(--af-c-panel); color: var(--af-c-gold);
+        border: 1px solid var(--af-c-edge); flex: none;
+      }
+      .af-bubble .af-nick { color: var(--af-msg-nick); }
+      .af-bubble .af-at { color: var(--af-msg-time); margin-left: auto; font-variant-numeric: tabular-nums; }
+      .af-bubble--compact { padding-top: 5px; padding-bottom: 5px; }
+      .af-bubble--compact .af-head { display: none; }
+      .af-bubble--compact::before {
+        content: attr(data-nick) ' '; color: var(--af-msg-nick); font-size: var(--af-font-size-xs);
+      }
+
+      .af-bubble--self {
+        align-self: flex-end; background: var(--af-msg-self-bg);
+        border-color: var(--af-msg-self-edge);
+      }
+      .af-bubble--agent {
+        align-self: flex-start; background: var(--af-msg-agent-bg);
+        border-color: var(--af-msg-agent-edge); border-left-width: 3px;
+      }
+      .af-bubble--agent .af-avatar { background: var(--af-c-panel-deep); color: var(--af-c-amber); border-color: var(--af-msg-agent-edge); }
+      .af-bubble--agent .af-nick { color: var(--af-c-amber); }
+      .af-bubble--dm { align-self: flex-start; background: var(--af-msg-dm-bg); border-color: var(--af-msg-dm-edge); }
+      .af-bubble--sys {
+        align-self: center; max-width: 92%; background: var(--af-msg-sys-bg);
+        border-color: var(--af-msg-sys-edge); color: var(--af-c-text-dim);
+        font-size: var(--af-font-size-xs); padding: 5px 11px; text-align: center;
+      }
+      .af-empty { color: var(--af-c-text-dim); font-size: var(--af-font-size-xs); text-align: center; padding: var(--af-s-4) 0; }
+
+      /* 输入区：与气泡同宽的组合条 */
+      #af-chat-bar {
+        display: none; gap: var(--af-s-1); padding: var(--af-s-2) var(--af-s-3) var(--af-s-3);
+        border-top: 1px solid var(--af-c-edge); background: var(--af-c-glass-bg-deep);
+      }
+      #af-chat-input {
+        flex: 1; resize: none; max-height: 88px; min-height: 34px;
+        padding: 7px 10px; font: var(--af-font-size-sm)/1.5 var(--af-font-px);
+        color: var(--af-c-light); background: var(--af-c-bg);
+        border: 1px solid var(--af-c-edge); border-radius: var(--af-r-2); outline: none;
+        transition: border-color var(--af-d-fast) var(--af-m-in), box-shadow var(--af-d-fast) var(--af-m-in);
+      }
+      #af-chat-input:focus { border-color: var(--af-c-gold); box-shadow: 0 0 0 2px var(--af-focus-ring); }
+      #af-chat-send {
+        flex: none; align-self: stretch; padding: 0 var(--af-s-3);
+        font: var(--af-font-size-sm)/1 var(--af-font-px); font-weight: var(--af-font-weight);
+        color: var(--af-c-bg); background: var(--af-c-gold);
+        border: 1px solid var(--af-c-gold); border-radius: var(--af-r-2);
+        cursor: pointer; user-select: none;
+        transition: filter var(--af-d-fast) var(--af-m-in), transform var(--af-d-fast) var(--af-m-in);
+      }
+      #af-chat-send:hover { filter: brightness(1.1); }
+      #af-chat-send:active { transform: translateY(2px); }
+      /* 折叠态：只留一枚圆钮（点开输入） */
+      #af-chat-btn {
+        position: fixed; left: 10px; bottom: 10px; z-index: 99998;
+        min-width: 34px; height: 34px; padding: 0 11px;
+        font: var(--af-font-size-sm)/1 var(--af-font-px); font-weight: var(--af-font-weight);
+        color: var(--af-c-gold); background: var(--af-c-glass-panel);
+        border: 1px solid var(--af-c-edge); border-radius: var(--af-r-2);
+        box-shadow: var(--af-shadow-chip); cursor: pointer; user-select: none;
+        backdrop-filter: blur(6px);
+        transition: filter var(--af-d-fast) var(--af-m-in), transform var(--af-d-fast) var(--af-m-in);
+      }
+      #af-chat-btn:hover { filter: brightness(1.15); }
+      #af-chat-btn:active { transform: translateY(2px); box-shadow: none; }
+      #af-chat-btn .af-dot {
+        display: inline-block; width: 6px; height: 6px; margin-left: 6px;
+        border-radius: 50%; background: var(--af-new-badge); vertical-align: middle;
+      }
     `;
     document.head.appendChild(css);
     const box = document.createElement('div'); box.id = 'af-chat';
-    const input = document.createElement('input'); input.id = 'af-chat-input';
-    const button = document.createElement('button'); button.id = 'af-chat-btn';
-    button.type = 'button'; button.textContent = '💬'; button.title = '聊天';
-    input.placeholder = '聊天（Enter 发送，Esc 关闭）';
-    input.style.display = 'none'; // 显式内联初始态：toggle 依赖内联 display 判定开合，CSS 初始隐藏会使首点误判
-    document.body.appendChild(box); document.body.appendChild(input); document.body.appendChild(button);
+    box.innerHTML = '<div id="af-chat-scroll"><div class="af-empty">村口还很安静。说点什么，或点左下角问你的 Agent。</div></div>';
+    const bar = document.createElement('div'); bar.id = 'af-chat-bar';
+    const input = document.createElement('textarea'); input.id = 'af-chat-input';
+    input.placeholder = '说点什么…（Enter 发送 / Shift+Enter 换行）';
+    const send = document.createElement('button'); send.id = 'af-chat-send'; send.type = 'button'; send.textContent = '发送';
+    const button = document.createElement('button'); button.id = 'af-chat-btn'; button.type = 'button';
+    button.textContent = '聊天';
+    bar.appendChild(input); bar.appendChild(send);
+    document.body.appendChild(box); document.body.appendChild(bar); document.body.appendChild(button);
 
-    const lines = [];
-    function addLine(html) {
-      const d = document.createElement('div'); d.className = 'af-line'; d.innerHTML = html;
-      box.appendChild(d); lines.push(d);
-      while (lines.length > 50) { box.removeChild(lines.shift()); }
+    const scroll = box.querySelector('#af-chat-scroll');
+    const MAXKEEP = 80;
+    let lastNick = '', lastAt = 0;
+    const hhmm = (t) => new Date(t).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    const emptyTip = scroll.querySelector('.af-empty');
+    if (emptyTip) emptyTip.remove();
+
+    /** kind: self | other | agent | dm | sys */
+    function addBubble(nick, text, kind) {
+      const now = Date.now();
+      const compact = nick === lastNick && (now - lastAt) < 5000;
+      const d = document.createElement('div');
+      d.className = 'af-bubble af-bubble--' + kind + (compact ? ' af-bubble--compact' : '');
+      if (compact) d.setAttribute('data-nick', nick);
+      else {
+        const av = document.createElement('span'); av.className = 'af-avatar';
+        av.textContent = String(nick || '?').trim().slice(0, 1);
+        const nn = document.createElement('span'); nn.className = 'af-nick'; nn.textContent = nick;
+        const at = document.createElement('span'); at.className = 'af-at'; at.textContent = hhmm(now);
+        const head = document.createElement('div'); head.className = 'af-head';
+        head.appendChild(av); head.appendChild(nn); head.appendChild(at);
+        d.appendChild(head);
+      }
+      const body = document.createElement('div'); body.className = 'af-body'; body.textContent = text;
+      d.appendChild(body);
+      scroll.appendChild(d);
+      while (scroll.children.length > MAXKEEP) scroll.removeChild(scroll.firstChild);
+      scroll.scrollTop = scroll.scrollHeight;
+      lastNick = nick; lastAt = now;
+      return d;
     }
-    function toggle() {
-      const on = input.style.display === 'none';
-      input.style.display = on ? 'block' : 'none';
-      button.style.display = on ? 'none' : 'block';
-      cmdBar.style.display = on ? 'flex' : 'none';
-      if (on) input.focus(); else input.blur();
+    /** 兼容旧接口：window.__AF_CHAT_ADD__(nick, text) -> 裸文本入气泡 */
+    function addLine(html) { addBubble('系统', String(html).replace(/<[^>]+>/g, ''), 'sys'); }
+
+    function open() {
+      bar.style.display = 'flex'; button.style.display = 'none';
+      box.style.display = 'flex'; input.focus();
+      scroll.scrollTop = scroll.scrollHeight;
     }
-    AFUNI.on(button, toggle);
+    function close() {
+      bar.style.display = 'none'; button.style.display = 'block';
+      input.blur();
+    }
+    function toggle() { const on = bar.style.display === 'none'; if (on) open(); else close(); }
+    AFUNI.on(button, open);
+    AFUNI.on(send, () => { const t = input.value.trim(); if (t) submit(t); });
+
+    function submit(t) {
+      if (t[0] === '/' && runSocialCommand(t)) { /* 社交命令已处理 */ }
+      else { sendChat(t); addBubble(nick || '我', t, 'self'); }
+      input.value = ''; input.style.height = 'auto';
+    }
+    function autoGrow() { input.style.height = 'auto'; input.style.height = Math.min(88, input.scrollHeight) + 'px'; }
+    input.addEventListener('input', autoGrow);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); const t = input.value.trim(); if (t) submit(t); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && input.style.display !== 'none') {
-        e.preventDefault(); e.stopPropagation();
-        const t = input.value.trim(); input.value = '';
-        if (t) {
-          if (t[0] === '/' && runSocialCommand(t)) { /* 命令已处理 */ }
-          else sendChat(t);
-        }
-        toggle();
-      } else if (e.key === 'Escape' && input.style.display !== 'none') { toggle(); }
-      else if (e.key === 'Enter' && !/^(INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName) && !e.target.isContentEditable) {
-        e.preventDefault(); e.stopPropagation(); toggle();
+      if (e.key === 'Enter' && bar.style.display === 'none' && !/^(INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName) && !e.target.isContentEditable) {
+        e.preventDefault(); e.stopPropagation(); open();
       }
     }, true);
-    window.__AF_CHAT__ = { addLine, toggle, send: sendChat };
-    // 聊天快捷命令按钮（💬 打开聊天后可用）
+    window.__AF_CHAT__ = { addLine, addBubble, toggle, open, close, send: sendChat };
+
+    // 快捷命令 chip（去掉 emoji，用命令本身当标签 —— 缺字体环境下 emoji 会变豆腐块）
     const cmdBar = document.createElement('div');
-    cmdBar.style.cssText = 'position:fixed;left:8px;bottom:50px;z-index:99999;display:none;gap:6px;';
-    for (const [label, cmd] of [['🎁 送礼', '/give '], ['❤️ 好感', '/fav '], ['💍 关系', '/bind '], ['📜 任务', '/task'], ['❓ 帮助', '/help']]) {
+    cmdBar.style.cssText = 'position:fixed;left:10px;bottom:52px;z-index:99999;display:none;gap:6px;';
+    for (const [label, cmd] of [['/give 送礼', '/give '], ['/fav 好感', '/fav '], ['/bind 关系', '/bind '], ['/task 任务', '/task'], ['/help 帮助', '/help']]) {
       const b = document.createElement('button');
       b.textContent = label;
-      b.style.cssText = 'border:1px solid var(--af-c-text-dim);border-radius:6px;background:var(--af-c-glass-panel);color:var(--af-c-gold);cursor:pointer;font:12px "Microsoft YaHei",sans-serif;padding:3px 8px;';
-      AFUNI.on(b, () => { input.value = cmd; input.focus(); }, { cls: false });
+      b.style.cssText = 'border:1px solid var(--af-c-edge);border-radius:var(--af-r-2);background:var(--af-c-glass-panel);color:var(--af-c-gold);cursor:pointer;font:var(--af-font-size-xs)/1 var(--af-font-px);padding:5px 9px;';
+      AFUNI.on(b, () => { input.value = cmd; input.focus(); autoGrow(); });
       cmdBar.appendChild(b);
     }
     document.body.appendChild(cmdBar);
+    const syncCmdBar = () => { cmdBar.style.display = bar.style.display === 'none' ? 'none' : 'flex'; };
+    const origOpen = open;
+    window.__AF_CHAT__.open = function () { origOpen(); syncCmdBar(); };
+    const origClose = close;
+    window.__AF_CHAT__.close = function () { origClose(); syncCmdBar(); };
     function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-    window.__AF_CHAT_ADD__ = (n, t) => addLine('<span class="af-nick">' + esc(n) + '</span>: ' + esc(t));
+    window.__AF_CHAT_ADD__ = (n, t) => addBubble(n, String(t), chatKindOf(n));
+    void esc;
+  }
+
+  /** 昵称 -> 气泡身份：Agent / 私聊 / 系统 / 自己 / 其他 */
+  function chatKindOf(n) {
+    const s = String(n || '');
+    if (/^系统$|^服务端/.test(s)) return 'sys';
+    if (/^私聊/.test(s)) return 'dm';
+    if (/Agent/i.test(s)) return 'agent';
+    if (s === nick || s === '我') return 'self';
+    return 'other';
   }
   function sendChat(text) { if (connected) ws.send(JSON.stringify({ t: 'chat', text })); }
   function onChat(n, t) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__(n, t); }
@@ -1607,37 +1758,107 @@
         box-shadow: 0 2px 6px var(--af-c-black-40); }
       #af-map-layers button.on { background: var(--af-c-glass-moss); color: var(--af-c-gold); border-color: var(--af-c-moss); }
       #af-map-layers button:hover { background: var(--af-c-glass-solid); }
-      #af-agent { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
-        width: 420px; max-width: 92vw; display: none; flex-direction: column;
-        background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep)); border: 2px solid var(--af-c-wood); border-radius: 10px;
-        box-shadow: 0 8px 30px var(--af-c-black-70); font: 13px "Microsoft YaHei", sans-serif; }
-      #af-agent .hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--af-c-panel); }
-      #af-agent .hd b { color: var(--af-c-gold); font-size: 15px; }
-      #af-agent .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
+      /* ---------- 指挥面板（2026-10-03 重构：分区 + 对话流 + 行为流水时间线） ---------- */
+      #af-agent {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
+        width: var(--af-panel-w-agent); max-width: 94vw; display: none; flex-direction: column;
+        background: linear-gradient(180deg, var(--af-c-glass-solid), var(--af-c-glass-bg-deep));
+        border: 1px solid var(--af-c-edge); border-top: 2px solid var(--af-c-amber);
+        border-radius: var(--af-msg-radius); backdrop-filter: blur(8px);
+        box-shadow: 0 12px 40px var(--af-c-black-70); overflow: hidden;
+        font-family: var(--af-font-px); font-size: var(--af-font-size-sm); color: var(--af-c-text);
+      }
+      #af-agent .hd {
+        display: flex; align-items: center; gap: var(--af-s-2);
+        padding: var(--af-s-3) var(--af-s-4); border-bottom: 1px solid var(--af-c-edge);
+        background: var(--af-c-black-35);
+      }
+      #af-agent .hd b { color: var(--af-c-gold); font-size: var(--af-font-size-md); letter-spacing: .5px; }
+      #af-agent .hd .af-live { display: inline-flex; align-items: center; gap: 5px; font-size: var(--af-font-size-xs); color: var(--af-c-text-dim); }
+      #af-agent .hd .af-live i {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--af-c-text-dim); font-style: normal;
+      }
+      #af-agent .hd .af-live.on i { background: var(--af-c-success); box-shadow: 0 0 6px var(--af-c-success); }
+      #af-agent .hd .af-live.on { color: var(--af-c-success); }
+      #af-agent .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: var(--af-font-size-md); padding: 0 var(--af-s-1); }
       #af-agent .hd .x:hover { color: var(--af-c-danger); }
-      #af-agent .bd { padding: 12px 14px; color: var(--af-c-text); line-height: 1.7; }
-      #af-agent .bd p { margin: 0 0 10px; color: var(--af-c-text-dim); font-size: 12px; }
-      #af-agent textarea { width: 100%; box-sizing: border-box; height: 64px; resize: none; padding: 8px 10px;
-        background: var(--af-c-bg); color: var(--af-c-light-soft); border: 1px solid var(--af-c-panel); border-radius: 6px;
-        font: 13px "Microsoft YaHei", sans-serif; outline: none; }
-      #af-agent .row { display: flex; gap: 8px; margin-top: 10px; }
-      #af-agent .btn { flex: 1; padding: 8px; border: 0; border-radius: 6px; font-size: 14px; cursor: pointer; }
-      #af-agent .btn-primary { background: var(--af-c-amber); color: var(--af-c-bg); font-weight: bold; }
-      #af-agent .btn-primary:hover { background: var(--af-c-amber); }
-      #af-agent .tip { margin-top: 10px; color: var(--af-c-text-dim); font-size: 11px; }
+      #af-agent .bd {
+        padding: var(--af-s-4); color: var(--af-c-text); line-height: 1.65;
+        max-height: 74vh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--af-scroll-thumb) transparent;
+      }
+      #af-agent .bd::-webkit-scrollbar { width: 6px; }
+      #af-agent .bd::-webkit-scrollbar-thumb { background: var(--af-scroll-thumb); border-radius: 3px; }
+      #af-agent .bd p { margin: 0 0 var(--af-s-3); color: var(--af-c-text-dim); font-size: var(--af-font-size-xs); }
+      #af-agent textarea {
+        width: 100%; box-sizing: border-box; min-height: 62px; resize: none;
+        padding: var(--af-s-2) 10px; background: var(--af-c-bg); color: var(--af-c-light-soft);
+        border: 1px solid var(--af-c-edge); border-radius: var(--af-r-2); outline: none;
+        font: var(--af-font-size-sm)/1.6 var(--af-font-px);
+        transition: border-color var(--af-d-fast) var(--af-m-in), box-shadow var(--af-d-fast) var(--af-m-in);
+      }
+      #af-agent textarea:focus { border-color: var(--af-c-gold); box-shadow: 0 0 0 2px var(--af-focus-ring); }
+      #af-agent input {
+        width: 100%; box-sizing: border-box; margin-bottom: var(--af-s-2);
+        padding: 7px 9px; background: var(--af-c-bg); color: var(--af-c-light-soft);
+        border: 1px solid var(--af-c-edge); border-radius: var(--af-r-2); outline: none;
+        font: var(--af-font-size-sm)/1.4 var(--af-font-px);
+      }
+      #af-agent input:focus { border-color: var(--af-c-gold); }
+      #af-agent .row { display: flex; gap: var(--af-s-2); margin-top: var(--af-s-3); }
+      #af-agent .btn {
+        flex: 1; padding: 9px var(--af-s-2); border: 1px solid var(--af-c-edge); border-radius: var(--af-r-2);
+        background: var(--af-c-panel); color: var(--af-c-text); cursor: pointer;
+        font: var(--af-font-size-sm)/1.2 var(--af-font-px); user-select: none;
+        transition: filter var(--af-d-fast) var(--af-m-in), transform var(--af-d-fast) var(--af-m-in);
+      }
+      #af-agent .btn:hover { filter: brightness(1.15); }
+      #af-agent .btn:active { transform: translateY(2px); }
+      #af-agent .btn-primary {
+        background: linear-gradient(135deg, var(--af-c-gold), var(--af-c-amber));
+        color: var(--af-c-bg); border-color: var(--af-c-amber); font-weight: var(--af-font-weight);
+      }
+      #af-agent .tip { margin-top: var(--af-s-2); color: var(--af-c-text-dim); font-size: var(--af-font-size-xs); line-height: 1.6; }
+      /* 分区标题 */
+      #af-agent .sec {
+        display: flex; align-items: center; gap: var(--af-s-2);
+        margin: var(--af-s-4) 0 var(--af-s-2); color: var(--af-c-gold);
+        font-size: var(--af-font-size-xs); letter-spacing: 1px; text-transform: uppercase;
+      }
+      #af-agent .sec::after { content: ''; flex: 1; height: 1px; background: var(--af-c-edge); }
+      /* 行为流水时间线 */
+      #af-timeline { list-style: none; margin: var(--af-s-2) 0 0; padding: 0 0 0 var(--af-s-3); border-left: 2px solid var(--af-timeline-line); }
+      #af-timeline li { position: relative; padding: 0 0 var(--af-s-2) var(--af-s-3); font-size: var(--af-font-size-xs); color: var(--af-c-text); }
+      #af-timeline li::before {
+        content: ''; position: absolute; left: calc(-1 * var(--af-s-3) - 5px); top: 5px;
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--af-timeline-dot); border: 1px solid var(--af-c-panel-deep);
+      }
+      #af-timeline li.fail::before { background: var(--af-c-danger); }
+      #af-timeline li .af-t { color: var(--af-c-text-dim); margin-right: var(--af-s-1); font-variant-numeric: tabular-nums; }
+      #af-timeline li .af-a { color: var(--af-c-gold); }
+      #af-timeline li .af-d { color: var(--af-c-text-dim); }
+      /* 回话区复用气泡语言 */
+      #af-agent-mail-list .af-m {
+        padding: var(--af-s-2) 10px; margin-bottom: var(--af-s-2);
+        background: var(--af-msg-agent-bg); border: 1px solid var(--af-msg-agent-edge);
+        border-left-width: 3px; border-radius: var(--af-r-2);
+        font-size: var(--af-font-size-xs); line-height: 1.6; color: var(--af-msg-text);
+        animation: af-msg-in var(--af-d-mid) var(--af-m-slide);
+      }
+      #af-agent-mail-list .af-q { color: var(--af-c-text-dim); border-left: 2px solid var(--af-c-edge); padding-left: var(--af-s-2); margin-bottom: 3px; }
     `;
     document.head.appendChild(css);
     const btn = document.createElement('div');
     btn.id = 'af-agent-btn';
-    btn.textContent = '📮 指挥';
+    btn.textContent = '指挥 Agent';
     btn.title = '给 Agent 发指挥消息（不打断它当前行动）';
     const intBtn = document.createElement('div');
     intBtn.id = 'af-interrupt-btn';
-    intBtn.textContent = '⏸ 打断';
+    intBtn.textContent = '打断';
     intBtn.title = '立即打断 Agent 当前行动（等同你在游戏里操作）';
     const resBtn = document.createElement('div');
     resBtn.id = 'af-resume-btn';
-    resBtn.textContent = '▶ 恢复';
+    resBtn.textContent = '恢复';
     resBtn.title = '让 Agent 恢复之前的行动';
     document.body.appendChild(btn);
     document.body.appendChild(intBtn);
@@ -1653,9 +1874,17 @@
     function renderAgentStatus() {
       const chip = document.getElementById('af-hud-agent');
       if (chip) {
-        if (!agentOnline) { chip.textContent = '🤖 Agent 未连接'; chip.className = 'af-hud-agent off'; }
-        else if (agentWaiting) { chip.textContent = '⏸ 已让位 · ' + (agentActivity || '等你指挥'); chip.className = 'af-hud-agent waiting'; }
-        else { chip.textContent = '🤖 自动执行 · ' + (agentActivity || '运行中'); chip.className = 'af-hud-agent on'; }
+        if (!agentOnline) { chip.textContent = 'Agent 未连接'; chip.className = 'af-hud-agent off'; }
+        else if (agentWaiting) { chip.textContent = '已让位 · ' + (agentActivity || '等你指挥'); chip.className = 'af-hud-agent waiting'; }
+        else { chip.textContent = '自动执行 · ' + (agentActivity || '运行中'); chip.className = 'af-hud-agent on'; }
+      }
+      // 面板状态灯：在线绿点 / 离线灰点 + 一句话状态
+      const live = document.getElementById('af-agent-live');
+      const liveT = document.getElementById('af-agent-live-t');
+      if (live && liveT) {
+        live.className = 'af-live' + (agentOnline ? ' on' : '');
+        liveT.textContent = !agentOnline ? '未托管'
+          : (agentWaiting ? ('已让位 · ' + (agentActivity || '等你')) : (agentActivity || '自动执行中'));
       }
     }
     function updateAgentStatus(online, nick) {
@@ -2169,52 +2398,65 @@
     const panel = document.createElement('div');
     panel.id = 'af-agent';
     panel.innerHTML = `
-      <div class="hd"><b>📮 指挥我的 Agent</b><span class="x" id="af-agent-x">✕</span></div>
+      <div class="hd">
+        <b>指挥我的 Agent</b>
+        <span class="af-live" id="af-agent-live"><i></i><span id="af-agent-live-t">未托管</span></span>
+        <span class="x" id="af-agent-x">✕</span>
+      </div>
       <div class="bd">
-        <p>消息会送进 Agent 的收件箱。<b>不打断</b>它当前行动——它做完手头的事（或告一段落）就会回应。任务型指令（去钓鱼/种地/买东西）它会尽量完成。</p>
-        <textarea id="af-agent-input" placeholder="问它：刚才你干了什么？ / 派活：去河边钓一条鱼回来"></textarea>
-        <div id="af-agent-ask-echo" class="tip" style="min-height:16px;"></div>
+        <div class="sec">对话</div>
+        <p>消息会送进 Agent 收件箱，<b>不打断</b>它当前行动；它做完手头的事就会回应。问它「刚才干了什么」，它会先读自己的行为流水再回答。</p>
+        <textarea id="af-agent-input" placeholder="问它：刚才你干了什么？&#10;派活：去河边钓一条鱼回来"></textarea>
+        <div id="af-agent-ask-echo" class="tip"></div>
         <div class="row">
+          <button class="btn btn-primary" id="af-agent-send">发送</button>
           <button class="btn" id="af-agent-toggle">启动托管</button>
-          <button class="btn btn-primary" id="af-agent-send">发送指挥</button>
         </div>
-        <div class="row" id="af-agent-model-row">
-          <button class="btn" id="af-agent-model-btn">🤖 模型设置</button>
+
+        <div class="sec">它做过什么</div>
+        <div class="row" style="margin-top:0">
+          <button class="btn" id="af-agent-recap-btn">查看行为流水</button>
+          <span class="tip" id="af-agent-recap-state"></span>
+        </div>
+        <ul id="af-timeline"></ul>
+
+        <div class="sec">Agent 回话</div>
+        <div id="af-agent-mail" style="display:none">
+          <div id="af-agent-mail-list"></div>
+        </div>
+
+        <div class="sec">模型</div>
+        <div class="row" style="margin-top:0">
+          <button class="btn" id="af-agent-model-btn">房间模型配置</button>
           <span class="tip" id="af-agent-model-state"></span>
         </div>
-        <div id="af-agent-model-form" style="display:none;margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;">
-          <p>配置 Agent 大脑的 LLM（OpenAI 兼容接口）。配置保存在房间服务器，一次配好全房间托管都能用。</p>
-          <input id="af-model-url" placeholder="API 地址，如 https://opencode.ai/zen/go/v1" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
-          <input id="af-model-key" placeholder="API Key（已配置时留空则保留）" type="password" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
-          <input id="af-model-name" placeholder="模型名，如 deepseek-v4-flash" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+        <div id="af-agent-model-form" style="display:none;margin-top:var(--af-s-2)">
+          <p>配置 Agent 大脑的 LLM（OpenAI 兼容接口）。保存在房间服务器，一次配好全房间托管都能用。</p>
+          <input id="af-model-url" placeholder="API 地址，如 https://opencode.ai/zen/go/v1">
+          <input id="af-model-key" placeholder="API Key（已配置时留空则保留）" type="password">
+          <input id="af-model-name" placeholder="模型名，如 deepseek-v4-flash">
           <div class="row">
-            <button class="btn btn-primary" id="af-model-save">保存模型配置</button>
+            <button class="btn btn-primary" id="af-model-save">保存房间配置</button>
           </div>
         </div>
         <div class="row">
-          <button class="btn" id="af-agent-recap-btn">📖 他做了什么</button>
-          <span class="tip" id="af-agent-recap-state"></span>
-        </div>
-        <div class="row">
-          <button class="btn" id="af-mykey-btn">🔑 我的 LLM Key</button>
+          <button class="btn" id="af-mykey-btn">我的 LLM Key</button>
           <span class="tip" id="af-mykey-state"></span>
         </div>
-        <div id="af-mykey-form" style="display:none;margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;">
-          <p>填入你自己的模型 Key：<b>你的 Key 优先于房间配置</b>，只对你这个账号生效（AES-256-GCM 加密保管，接口永不回显明文）。不填则沿用上面的房间配置。</p>
-          <input id="af-mykey-url" placeholder="API 地址，如 https://api.deepseek.com/v1" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
-          <input id="af-mykey-model" placeholder="模型名，如 deepseek-chat" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
-          <input id="af-mykey-key" placeholder="你的 API Key（已设置时留空 = 沿用旧 Key）" type="password" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+        <div id="af-mykey-form" style="display:none;margin-top:var(--af-s-2)">
+          <p>填入你自己的模型 Key：<b>你的 Key 优先于房间配置</b>，只对你这个账号生效（AES-256-GCM 加密保管，接口永不回显明文）。不填则沿用房间配置。</p>
+          <input id="af-mykey-url" placeholder="API 地址，如 https://api.deepseek.com/v1">
+          <input id="af-mykey-model" placeholder="模型名，如 deepseek-chat">
+          <input id="af-mykey-key" placeholder="你的 API Key（已设置时留空 = 沿用旧 Key）" type="password">
           <div class="row">
             <button class="btn btn-primary" id="af-mykey-save">保存我的 Key</button>
             <button class="btn" id="af-mykey-clear">清除我的 Key</button>
           </div>
-          <div class="tip" id="af-mykey-msg" style="margin-top:8px;"></div>
+          <div class="tip" id="af-mykey-msg"></div>
         </div>
-        <div id="af-agent-mail" style="margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;display:none;">
-          <p style="margin:0 0 6px;color:var(--af-c-gold);font-size:13px;">Agent 回话</p>
-          <div id="af-agent-mail-list" style="max-height:150px;overflow:auto;font-size:12px;line-height:1.6;color:var(--af-c-text);"></div>
-        </div>
-        <div class="tip">Agent 的回话会显示在这里并同步到左下角聊天框；「他做了什么」读的是它过去的行为流水（不是它的自述）。⏸ 打断会立即停下它；▶ 恢复让它继续原计划。</div>
+
+        <div class="sec">控制</div>
+        <div class="tip">打断按钮会立即停下它；恢复按钮让它继续原计划。右上角状态条显示托管中与它当前在做什么。</div>
       </div>`;
     document.body.appendChild(panel);
     const input = panel.querySelector('#af-agent-input');
@@ -2265,12 +2507,14 @@
       if (!mail || !mail.length) { mailBox.style.display = 'none'; return; }
       mailBox.style.display = 'block';
       mailList.innerHTML = mail.map(m => {
-        const q = m.replyTo ? '<div style="opacity:.6">&gt; ' + escText(m.replyTo) + '</div>' : '';
-        return '<div style="margin-bottom:8px;">' + q + '<div><b style="color:var(--af-c-gold)">' + escText(m.from) + '：</b>' + escText(m.text) + '</div></div>';
+        const q = m.replyTo ? '<div class="af-m af-q">你问：' + escText(m.replyTo) + '</div>' : '';
+        return q + '<div class="af-m">' + escText(m.from) + '：' + escText(m.text) + '</div>';
       }).join('');
     }
     async function loadRecap() {
       recapState.textContent = '读取中…';
+      const tl = document.getElementById('af-timeline');
+      if (tl) tl.innerHTML = '';
       try {
         const r = await fetch(SERVER + '/af/agent-recap?token=' + encodeURIComponent(token) + '&n=12');
         const d = await r.json();
@@ -2278,6 +2522,7 @@
         const lines = (d.recap && d.recap.lines) || [];
         recapState.textContent = lines.length ? ('共 ' + d.recap.total + ' 条，显示最近 ' + lines.length + ' 条') : '还没有行为记录';
         recapBox = lines;
+        renderTimeline(d.recap && d.recap.recent || []);
         renderMail(d.mail);
         window.__AF_RECAP__ = { agentOnline: d.agentOnline, total: (d.recap && d.recap.total) || 0, lines, mail: d.mail || [] };
         if (window.__AF_CHAT_ADD__) {
@@ -2285,6 +2530,26 @@
         }
       } catch (e) { recapState.textContent = '读取失败：' + e.message; }
     }
+    // 行为流水时间线：点 + 时间 + 动作（失败红点）
+    function renderTimeline(rows) {
+      const tl = document.getElementById('af-timeline');
+      if (!tl) return;
+      tl.innerHTML = '';
+      for (const r of rows) {
+        const li = document.createElement('li');
+        if (!r.ok) li.className = 'fail';
+        const t = document.createElement('span'); t.className = 'af-t'; t.textContent = r.ago || '';
+        const a = document.createElement('span'); a.className = 'af-a'; a.textContent = r.actionCn || r.action || '';
+        li.appendChild(t); li.appendChild(a);
+        if (r.detail) {
+          li.appendChild(document.createTextNode(' · '));
+          const d = document.createElement('span'); d.className = 'af-d'; d.textContent = r.detail;
+          li.appendChild(d);
+        }
+        tl.appendChild(li);
+      }
+    }
+    let recapBox = [];
     AFUNI.on(recapBtn, loadRecap);
     window.__AF_LOAD_RECAP__ = loadRecap;
     // ---------- 「我的 LLM Key」= 玩家自带（优先于房间配置）----------

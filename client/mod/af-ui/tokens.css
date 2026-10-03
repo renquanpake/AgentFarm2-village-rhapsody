@@ -76,6 +76,34 @@
   --af-shadow-panel: 0 0 0 2px var(--af-c-panel-deep), 0 4px 0 var(--af-c-black-60);
   --af-shadow-chip: 0 0 0 1px var(--af-c-edge), 0 2px 0 var(--af-c-black-40);
 
+  /* ---------- 对话端语义层（2026-10-03 重构：聊天/私聊/指挥/Agent 回话共用一套气泡语言） ---------- */
+  --af-msg-radius: 12px;
+  --af-msg-gap: 8px;
+  --af-msg-pad: 9px 12px;
+  --af-msg-max-w: 82%;
+  --af-msg-self-bg: linear-gradient(135deg, var(--af-c-glow-gold-strong), var(--af-c-glass-bg));
+  --af-msg-self-edge: var(--af-c-gold);
+  --af-msg-other-bg: var(--af-c-glass-bg);
+  --af-msg-other-edge: var(--af-c-edge);
+  --af-msg-agent-bg: linear-gradient(135deg, var(--af-c-glass-panel), var(--af-c-glass-bg-deep));
+  --af-msg-agent-edge: var(--af-c-amber);
+  --af-msg-dm-bg: linear-gradient(135deg, var(--af-c-glass-sky), var(--af-c-glass-bg));
+  --af-msg-dm-edge: var(--af-c-sky);
+  --af-msg-sys-bg: var(--af-c-black-35);
+  --af-msg-sys-edge: transparent;
+  --af-msg-nick: var(--af-c-text-dim);
+  --af-msg-time: var(--af-c-text-dim);
+  --af-msg-text: var(--af-c-light);
+  --af-avatar-size: 22px;
+  --af-panel-w-chat: 372px;
+  --af-panel-w-agent: 428px;
+  --af-thread-max-h: 44vh;
+  --af-scroll-thumb: var(--af-c-edge);
+  --af-focus-ring: var(--af-c-glow-gold);
+  --af-new-badge: var(--af-c-danger);
+  --af-timeline-dot: var(--af-c-gold);
+  --af-timeline-line: var(--af-c-edge);
+
   /* ---------- 动效 6 曲线（R1.1） ---------- */
   --af-m-in: cubic-bezier(0.2, 0.8, 0.4, 1);
   --af-m-out: cubic-bezier(0.6, 0, 0.9, 0.2);
