@@ -69,15 +69,31 @@ export class ManagedAgentManager {
       path.join(REPO_ROOT, 'tools', 'game-agent.mjs'),
       '--token', token,
       '--rounds', '999999',
+      '--ws', `ws://127.0.0.1:${process.env.PORT || 8080}/agent`,   // 跟随服务端端口（曾写死 8080 -> 隔离端口下静默连不上）
       '--notes', path.join(this.app.dataDir, 'agent-notes', username),
     ], {
       cwd: REPO_ROOT,
       windowsHide: true,
-      stdio: 'ignore',
+      // stderr 转发：stdio:'ignore' 会把托管失败（如 LLM 端点错、鉴权错）完全吞掉 ——
+      // 表现为「启动成功但从不在线」，最难排查的一种故障
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, LLM_URL: p.url, LLM_KEY: p.key, LLM_MODEL: p.model },
     }) as unknown as ChildProcess;
     this.children.set(acc.uid, child);
     child.once('exit', () => { if (this.children.get(acc.uid) === child) this.children.delete(acc.uid); });
+    // 子进程 stderr/stdout 摘前若干行进服务端日志（防「静默失败」）：只取首行片段，不落整篇对话
+    const pipe = (stream: unknown, tag: string) => {
+      const s2 = stream as { on?: (e: string, cb: (b: Buffer) => void) => void } | null;
+      if (!s2 || typeof s2.on !== 'function') return;
+      let n = 0;
+      s2.on('data', (b: Buffer) => {
+        if (n++ > 20) return;
+        const line = b.toString('utf8').split('\n').filter(Boolean).slice(0, 3).join(' | ').slice(0, 300);
+        if (line) log.write('warn', 'managed-agent', `[${tag}] ${line}`);
+      });
+    };
+    pipe((child as unknown as { stderr?: unknown }).stderr, 'stderr');
+    pipe((child as unknown as { stdout?: unknown }).stdout, 'stdout');
     log.write('info', 'managed', '启动托管 agent 子进程', { uid: acc.uid, model: p.model, source });
     return { ok: true, source };
   }

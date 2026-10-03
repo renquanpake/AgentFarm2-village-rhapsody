@@ -48,6 +48,20 @@ AgentFarm2 单端口 8080 同时承载四类接口：
 | `/af/mapgrid` | GET | `?token=` | 地图网格（扩展小地图用）：`{W:105,H:89,water,blocked,houses,LEFT,TOP,origW:77,origH:61}` |
 | `/af/diary` | GET | `?token=` | Agent 日记列表：`{username, days:[{file,title,content≤3000}]}`（读 `data/agent-notes/<账号>/日记/`，只读） |
 
+### 1.3.1 文本无障碍与运营面（2026-10-03 新增，均需 token）
+
+| 端点 | 方法 | 参数 | 说明 |
+|------|------|------|------|
+| `/af/mapdoc` | GET | 无（公开） | 全村文本地图（LLM 自规划路线的唯一依据） |
+| `/af/notices` | GET | `?since=`（公开） | 公告环形缓冲；`lastSeq` 供增量拉取 |
+| `/af/economy-design` | GET | `?token=` | **N10 经济总账**：`crops[]`（每种作物设计 seedCost/sellPrice/roi/hourlyAt8Plots + 实盘成交中位与偏离）、`inflationTarget`、`fees`、`gather`、`alerts` |
+| `/af/metrics` | GET | `?token=` | **N8 里程碑度量**：`players{total,activeToday,played2h,retainedD1,retainedD7,medianPlayMs}`、`funnel[]`（引导 10 环到达率）、`actions`（动作分布）、`content`、`headline.canJudge100_30_10` |
+| `/af/save-version` | GET | `?token=`（或 AF_ADMIN_TOKEN） | **N11 存档治理**：`current` / `saveVersion` / `pending[]` / `plan[]`（迁移注册表全量） |
+| `/af/llm-usage` | GET | `?token=` | 用量 + `budget{limit,usedToday,ratio,warn,tripped}`（N12 熔断闸状态） |
+| `/af/decor-board` / `/af/daily-report` / `/af/replay` / `/af/npc-schedule` / `/af/animals` / `/af/buildings` | GET | 视端点 | 既有文本面（见各 spec） |
+
+鉴权矩阵（路径 × token × uid 归属）由 `tools/auth-matrix.mjs` 生成到 `docs/鉴权矩阵.md`，CI 门12 判定。
+
 ### 1.4 Agent 托管
 
 | 端点 | 方法 | 参数 | 说明 |
@@ -56,7 +70,8 @@ AgentFarm2 单端口 8080 同时承载四类接口：
 | `/af/agent-token` | POST | `{token}` | 生成/返回 agentToken + `ws://host/agent?token=...` 完整接入地址 |
 | `/af/agent-control` | POST | `{token, action: "start"|"stop"}` | 托管 Agent 启停。start：需 `AF_LLM_URL/KEY` 已配，spawn `tools/game-agent.mjs --token <agentToken> --rounds 999999 --notes data/agent-notes/<账号>`，env 注入 LLM 三件套；重复 start 拒绝；stop：kill 子进程 |
 | `/af/agent-setup` | POST | `{token, personality, name, playstyle?, phrase?}` | 生成人设 `agent.md`。预设性格 6 种（活泼开朗/沉稳寡言/好奇宝宝/热心肠/守财奴/自由灵魂），也可自定义字符串 |
-| `/af/dev/give-coins` | POST | `{token, amount?}` | 测试用：给玩家加金币（id=1，默认 5000） |
+| `/af/dev/give-coins` | POST | `{token, amount?}` | 测试用：给玩家加金币（id=1，默认 5000）。**上线前 `AF_DEV_ENDPOINTS=0` 关闭** |
+| `/af/dev/give-item` | POST | `{token, itemId, amount?}` | 测试用：给玩家加物品。同上可关 |
 
 ---
 
@@ -142,6 +157,15 @@ Agent 接入（外部程序或托管 spawn）。agentToken 由 `/af/agent-token`
 | `fish` | 无 | 8 邻域有水格 + 鱼竿（id=6）；加权随机鱼池（10 种） | 鱼获 |
 | `mine` | 无 | 矿山点（`mine-spots.json`，村边缘）±2 格 + 镐（id=58）；加权矿池（5 种） | 矿获 |
 | `place` | `itemId`（洒水器，type=9）+ `x, y` | 相邻格非水/非障碍/未装；扣 1；level 1/2/3 对应 3×3/5×5/7×7 半径 | 安装成功 |
+| `tasks` | 无 | **N9**：返回任务链全视图（`mode/chains[]/summary`），与 `observe.tasks` 同源（`taskView`） | 任务链进度 + 下一步指引 |
+| `onboarding` | 无 | **N9**：第一小时引导视图（当前环节 + 全部 10 环 + 已用分钟） | 引导状态 |
+| `season` | 无 | **N9**：当前游戏日的季节事件（active）+ 本季预告（upcoming） | 事件线文本 |
+| `claim` | `kind`（tree/plot/mine/stall/generic）+ `x, y` | **C 包**：服务端原子裁决（先到先得 + 幂等 + 过期接管，TTL 5 分钟）；tree/plot 需目标真实存在；`chop`/`harvest`/`mine` 会拒绝他人已认领目标 | 认领结果 + 持有者 |
+| `release` | `kind` + `x, y` | 放弃自己的认领 | 释放结果 |
+| `claims` | 无 | 我的认领清单（含像素坐标，便于直接 move_to 过去） | 清单 |
+| `give` | `target`（昵称/uid/`agent:<uid>`）+ `itemId, num` | **N9**：与人类 `/ws social_give` 同源（`world/social-actions.ts`）；在线走 8 格距离校验，离线 Agent 走收货 | 送礼结果 + 好感 |
+| `bind` | `target` + `type`（friend/confidant/partner） | 好感门槛 30/60/90；与人类 `/ws social_bind` 同源 | 结关系结果 |
+| `lease` | `op`（open/care/tick/status）+ `plot` + `leaseMs?` | **D 包**：开租/照料（上限 5 次延长）/tick 判枯萎/查询；全部写入事件流可回放 | 租约状态 |
 
 **坐标容错（normXY）**：`x<地图宽 且 y<地图高` 视为格子坐标转像素（×100+50），否则视为像素坐标。
 
@@ -149,7 +173,13 @@ Agent 接入（外部程序或托管 spawn）。agentToken 由 `/af/agent-token`
 
 ### 3.3 observe 返回（state）
 
-`nick, uid, scene, pos{x,y}, day, time, weather, coins, backpack[{id,name,num}], npcs, shopItems, online, plantsNear(3格), treesNear(10格), tillableNear(3格), plotsNear(3格), playersNear(8格), social(全部在线玩家双向好感+关系), dmUnlocked, farm{plots(12), mineSpots}, sprinklers, waterNear, inbox{unread,last}, playerOps(最近10), chatRecent(3), seeds`
+`nick, uid, scene, pos{x,y}, day, time, weather, coins, backpack[{id,name,num}], npcs, shopItems, online, plantsNear(3格), treesNear(3格，AF_NAV_DEBUG_TREES=1 时 10 格), tillableNear(3格), plotsNear(3格), playersNear(8格), social(全部在线玩家双向好感+关系), dmUnlocked, farm{plots(12), mineSpots}, sprinklers, waterNear, obstacles{regions}, municipal{onRoad,landmarks}, buildings{here}, fitness{attrs}, festival, notices, inbox{unread,last}, playerOps(最近10), chatRecent(3), seeds` + **2026-10-03 新增**：
+
+| 字段 | 含义 |
+|---|---|
+| `tasks{mode,summary,chains[],legacy,delegated}` | **N9 任务链**：每条链含 `unlocked/unlockDay/finished/total/next`，`stages[]` 带 `cur/total/done/reward/desc` |
+| `onboarding{steps[],current,finished,total,elapsedMinutes,summary}` | **N9 第一小时引导**：`current` 直接给出下一步该做什么（带可执行 act 写法） |
+| `seasonEvents{active[],upcoming[],note}` | **N9 季节事件线**：当前活跃事件（已同步进公告与 NPC 谈资）+ 本季预告 |
 
 ### 3.4 服务器 → Agent（推送）
 
