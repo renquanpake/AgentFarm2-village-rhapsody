@@ -78,10 +78,14 @@ if (CHECK) {
   // D6 门：全量门户图（data/nav/portals.json）逐条落格吸附校验（各场景 nav 网格）
   const sceneMap = loadJson(`${NAV_DIR}/scenes.json`, { scenes: [] });
   const portalDoc = loadJson(`${NAV_DIR}/portals.json`, {});
-  const navFileOf = (sc) => Number(sc) === 2 ? `${NAV_DIR}/nav-2.json` : (() => {
+  const navFileOf = (sc) => {
+    // 场景 1 优先用槽位化导航（B4：8 槽 29x240）—— 必须与运行时 navOf(app, 1) 同源，
+    // 否则门户校验会拿旧的 29x29 单槽来吸附，槽 2~8 的门全判「吸附失败」
+    if (Number(sc) === 1 && existsSync(`${NAV_DIR}/nav-zhujuejia-slots.json`)) return `${NAV_DIR}/nav-zhujuejia-slots.json`;
+    if (Number(sc) === 2) return `${NAV_DIR}/nav-2.json`;
     const e = sceneMap.scenes.find(s => String(s.scene) === String(sc));
     return e ? `${NAV_DIR}/nav-${e.name}.json` : null;
-  })();
+  };
   let pBad = 0, pTotal = 0;
   for (const [sc, list] of Object.entries(portalDoc)) {
     if (sc === 'note' || !Array.isArray(list)) continue;

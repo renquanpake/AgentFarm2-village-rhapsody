@@ -10,7 +10,7 @@
    "minutes": 2,
    "act": "move",
    "count": 1,
-   "hint": "先用 observe 看坐标与场景，再用 act move_to {x,y} 或 {near:\"村纪念碑\"} 走两步。原版相机与走路动画会跟着动。",
+   "hint": "先用 observe 看坐标与场景，再用 act move_to {x,y} 或 {near:\"交易大厅\"} 走两步（near 还支持地标名，如 村纪念碑 / 主角家门楼）。原版相机与走路动画会跟着动。",
    "doneText": "你会走了 —— 移动是所有其它动作的前提。"
   },
   {

@@ -114,8 +114,23 @@ export function buildingTargetOf(doc: MunicipalDoc, query: string): { scene: num
       if (score > bestScore) { best = b; bestScore = score; }
     }
   }
-  if (!best || !best.door) return null;
-  return { scene: best.scene, x: best.door.x, y: best.door.y, name: best.name };
+  if (best && best.door) return { scene: best.scene, x: best.door.x, y: best.door.y, name: best.name };
+
+  // 地标兜底：道路-地标体系里的里程碑/纪念碑/路口等同样是可导航目标
+  // （事故：引导文案让 Agent 走 near:"村纪念碑"，它只在地标表不在建筑表 -> 必然解析失败，
+  //   实机看到 Agent 连续两次卡在「无法解析」并自己写日记说卡村外）
+  let lm: { scene: number; x: number; y: number; name: string } | null = null;
+  let lmScore = 0;
+  for (const [scene, list] of doc.landmarks) {
+    for (const l of list) {
+      const name = String(l.name || '');
+      if (!name) continue;
+      const score = name.toLowerCase() === q ? 3 : name.includes(query.trim()) ? 1 : 0;
+      // landmarks.json 用世界格坐标 -> 导航目标用像素
+      if (score > lmScore) { lmScore = score; lm = { scene, x: l.x * 100 + 50, y: l.y * 100 + 50, name }; }
+    }
+  }
+  return lm;
 }
 
 let villageNavCache: { tables: App['tables']; mtime: number; nav: NavGrid } | null = null;

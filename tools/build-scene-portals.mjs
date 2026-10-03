@@ -5,13 +5,14 @@
 //   - 各场景类 getPlayerBornPosition 覆盖表（每场景自侧门位坐标）
 //   - 村景扩展偏移：原版村景 77x61 嵌入扩展村景 133x117（+28 格偏移，mod 入口对齐同值）
 // 输出：data/nav/scenes.json（scene 编号填齐）+ data/nav/portals.json（全量门户图）
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = `${__dirname}/..`;
 const NAV_DIR = `${ROOT}/data/nav`;
+const DATA_DIR = `${ROOT}/data`;
 
 // 27 场景注册（Gscene_config 提取：sceneType -> {notes, mapFile}）
 // mapFile 由 path_json_name 前缀与 data/nav/nav-*.json 对应（village=daditu）
@@ -161,6 +162,29 @@ if (Array.isArray(prevPortals.village)) {
     if (!existing.some(e => e.passage === v.passage && e.x === v.x && e.y === v.y)) existing.push(v);
   }
 }
-const note = `全量门户图（${PASSAGES.length} 条跨场景通路 x2 侧）：主包 ScenePassageType + 各场景类 getPlayerBornPosition 提取；村景坐标为扩展网格系（原版+28 格偏移）；同日时间传送 DAY_AND_PLAYER_HOUSE 非空间门，不入图。门位落格前经 snapToWalkable 吸附（gen-nav --check 门）。`;
+// ---------- 场景 1 槽位门户（B4 槽位化后每槽都要有门） ----------
+// 事故（2026-10-03）：场景 1 被合成 8 槽（29x240，槽间整行阻挡），但门户仍停在
+// 槽 0 的旧坐标 -> 只有 1 号玩家的家门口有门，其余 7 槽的玩家「回家」走到目标
+// 格时报「场景1 内不可达」（槽内连通，但没有任何入口能进）。这里为每槽补一条
+// scene1 <-> scene2 门户：scene1 侧落该槽出生点，scene2 侧落村中心（村景里没有
+// 「家」这个概念，回村统一到村中心，与玩家从村回家的直觉一致）。
+const homeSlotsFile = `${DATA_DIR}/home-slots.json`;
+if (existsSync(homeSlotsFile)) {
+  const homeDoc = JSON.parse(readFileSync(homeSlotsFile, 'utf8'));
+  const slots = (homeDoc && Array.isArray(homeDoc.slots)) ? homeDoc.slots : [];
+  const villageSpawn = (() => {
+    // 村景侧的落点：优先用已有 scene2->scene1 门户的村侧坐标（都是可走点），否则村中心
+    const back = portalLists[2] || [];
+    const p = back.find(x => x.toScene === 1);
+    return p ? { x: p.x, y: p.y } : { x: 9650, y: 10700 };
+  })();
+  for (const s of slots) {
+    const sp = s.spawnPx || { x: s.spawnCell.x * 100 + 50, y: (s.rect.y + s.spawnCell.y) * 100 + 50 };
+    (portalLists[1] = portalLists[1] || []).push({ scene: 1, toScene: 2, x: sp.x, y: sp.y, passage: 'VILLAGE_AND_HOME_SLOT' + (s.slot + 1) });
+    (portalLists[2] = portalLists[2] || []).push({ scene: 2, toScene: 1, x: villageSpawn.x, y: villageSpawn.y, passage: 'VILLAGE_AND_HOME_SLOT' + (s.slot + 1) });
+  }
+}
+
+const note = `全量门户图（${PASSAGES.length} 条跨场景通路 x2 侧 + 场景 1 每槽一条回家门）：主包 ScenePassageType + 各场景类 getPlayerBornPosition 提取；村景坐标为扩展网格系（原版+28 格偏移）；场景 1 槽位门来自 data/home-slots.json（B4 槽位化，每槽一条）；同日时间传送 DAY_AND_PLAYER_HOUSE 非空间门，不入图。门位落格前经 snapToWalkable 吸附（gen-nav --check 门）。`;
 writeFileSync(`${NAV_DIR}/portals.json`, JSON.stringify({ ...portalLists, note }, null, 1));
 console.log(`[build-scene-portals] scenes 填齐 ${Object.keys(SCENE_MAP).length} 场景；portals ${Object.values(portalLists).reduce((n, l) => n + l.length, 0)} 条`);

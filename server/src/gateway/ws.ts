@@ -14,7 +14,7 @@ import {
 } from '../world/social.ts';
 import { TASK_DEFS, tasksOf, taskCount, taskView } from '../world/tasks.ts';
 import { socialGive, socialBind } from '../world/social-actions.ts';
-import { loadHomeSlots, homeSlotViolation, slotOfPlayer, type HomeSlotDoc } from '../world/spawn-slots.ts';
+import { loadHomeSlots, homeSlotViolation, homeSpawnPx, slotOfPlayer, type HomeSlotDoc } from '../world/spawn-slots.ts';
 
 // B4 槽位表缓存（data/home-slots.json 变更极少；30s 一次足够，避免每次移动读盘）
 let homeSlotsCache: { doc: HomeSlotDoc | null; at: number } = { doc: null, at: 0 };
@@ -995,8 +995,21 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const curScene = apos.scene ?? 2;
             const building = nearRaw && !ring ? buildingTargetOf(municipalOf(app), nearRaw) : null;
             const muNames = Array.from(municipalOf(app).buildings.values()).flat().filter(b => !b.pending && b.door).map(b => b.name).join(' / ');
+            // 地标也可作为 near 目标（村纪念碑/路口里程碑…）—— 引导文案里出现过，不列出来 Agent 会反复撞「无法解析」
+            const lmNames = Array.from(municipalOf(app).landmarks.values()).flat().filter(l => l && l.name).map(l => l.name).slice(0, 8).join(' / ');
             if (nearRaw && !ring && !building) {
-              result = { ok: false, msg: `near="${nearRaw}" 无法解析（可用：water / npc / 建筑名：${muNames || '无'}）` }; continue;
+              result = { ok: false, msg: `near="${nearRaw}" 无法解析（可用：water / npc / 建筑名：${muNames || '无'}${lmNames ? '；地标名：' + lmNames : ''}）` }; continue;
+            }
+            // 场景 1 的家是私有的（B4 槽位化）：想去「家门口」时若落点是别人那一槽，
+            // 改送玩家回自己家 —— 否则「主角家门楼」这类地标会变成只有 1 号玩家能用的死目标
+            let ownHome: { x: number; y: number } | null = null;
+            if (building && building.scene === 1) {
+              const hdoc = homeSlots(app.dataDir);
+              const myIdx = state.playerIdx.get(uid) || 1;
+              if (homeSlotViolation(hdoc, myIdx, Math.floor(building.x / 100), Math.floor(building.y / 100))) {
+                const mine = homeSpawnPx(hdoc, myIdx);
+                if (mine) ownHome = mine;
+              }
             }
             let targetScene = msg.scene === undefined ? curScene : Math.round(Number(msg.scene));
             const numOf = (v: unknown) => (v === undefined || v === null || v === '' ? NaN : Number(v));
@@ -1004,13 +1017,17 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const hasXY = Number.isFinite(cx0) && Number.isFinite(cy0);
             let tx = Math.floor(cx0 / 100), ty = Math.floor(cy0 / 100);
             if (building) { targetScene = building.scene; tx = Math.floor(building.x / 100); ty = Math.floor(building.y / 100); }
+            // 去别人家门口 -> 改送回自己家（上面的 ownHome 判定）
+            if (ownHome) { tx = Math.floor(ownHome.x / 100); ty = Math.floor(ownHome.y / 100); }
             // B4 槽位隔离：场景 1（家门口）按玩家加入序号分槽，跨槽目标直接拒
+            // 注意：这里不要再用 spawnCell 覆盖 tx/ty —— 那是槽内局部坐标，会把
+            // near「建筑/地标」解析出来的全局坐标毁掉（实测：near 主角家门楼 ->
+            // 坐标被改成 (14,15) -> 误判「属于别人家」）。「没给任何目标」的情况
+            // 由后面的入参校验统一报错；near 到别人家由上面的 ownHome 改送自己家。
             if (targetScene === 1) {
               const hdoc = homeSlots(app.dataDir);
               if (hdoc) {
                 const myIdx = state.playerIdx.get(uid) || 1;
-                const mine = slotOfPlayer(hdoc, myIdx);
-                if (mine && !hasXY) { tx = mine.spawnCell.x; ty = mine.spawnCell.y + 1; }
                 const v = homeSlotViolation(hdoc, myIdx, tx, ty);
                 if (v) { result = { ok: false, msg: v }; continue; }
               }

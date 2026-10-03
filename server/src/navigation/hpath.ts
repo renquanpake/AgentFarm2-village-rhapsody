@@ -206,6 +206,23 @@ export function snapInteraction(nav: NavGrid, tx: number, ty: number, kind: 'wat
   return null;
 }
 
+/**
+ * 在「同一对场景」的多条门里选离参照格最近的一条（切比雪夫距离）。
+ * 事故背景（B4 槽位化，2026-10-03）：场景 1 由 1 个家变成 8 个家各一扇门，
+ * 而跨场景寻路用 portals.find(...) 固定取第一条 —— 于是所有人回家都先落到 1 号玩家的
+ * 家门口，槽内被整行阻挡隔开 -> 「场景1 内不可达」。
+ */
+function nearestPortal(portals: Portal[], scene: number, toScene: number, ref: [number, number]): Portal | null {
+  let best: Portal | null = null;
+  let bestD = Infinity;
+  for (const p of portals) {
+    if (p.scene !== scene || p.toScene !== toScene) continue;
+    const d = Math.max(Math.abs(Math.floor(p.x / 100) - ref[0]), Math.abs(Math.floor(p.y / 100) - ref[1]));
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best;
+}
+
 /** 路线规划：同场景 A*；跨场景 一级 Dijkstra + 二级 A* 到门户（门位/目标均先吸附可走格） */
 export function planRoute(
   from: Pt, to: Pt,
@@ -239,28 +256,37 @@ export function planRoute(
     const isLast = i === scenePath.length - 1;
     const nav = navOf(sc);
     if (!nav) return { ok: false, msg: `场景${sc} 无导航数据`, waypoints: [], crossScene: true, segment: 'cross-scene' };
-    let targetCell: [number, number];
+    const mid: [number, number] = [Math.floor(nav.width / 2), Math.floor(nav.height / 2)];
+
+    // 进入本场景的落点：首段 = 玩家当前位置；否则 = 本场景通往上一场景的门。
+    // 多门时必须按位置选最近的：场景 1 槽位化后每槽一扇门（B4），固定取第一条会
+    // 把玩家送到槽 1 的家门口，再也走不到自己在槽 8 的家 -> 「场景1 内不可达」。
+    let startCell: [number, number];
+    if (i === 0) {
+      startCell = snapCell(nav, Math.floor(from.x / 100), Math.floor(from.y / 100));
+    } else {
+      const prevSc = scenePath[i - 1];
+      const anchor: [number, number] = isLast
+        ? [Math.floor(to.x / 100), Math.floor(to.y / 100)]   // 末段：按真实目标选门
+        : snapCell(nav, Math.floor(from.x / 100), Math.floor(from.y / 100)); // 中间段：按出发点选门
+      const port = nearestPortal(portals, sc, prevSc, anchor);
+      startCell = port ? snapCell(nav, Math.floor(port.x / 100), Math.floor(port.y / 100)) : mid;
+    }
+
+    // 本段终点：末段 = 真实目标；否则 = 通往下一场景的门（离起点最近的）
+    let goalCell: [number, number];
     if (isLast) {
-      targetCell = snapCell(nav, Math.floor(to.x / 100), Math.floor(to.y / 100));
+      goalCell = snapCell(nav, Math.floor(to.x / 100), Math.floor(to.y / 100));
     } else {
       const next = scenePath[i + 1];
-      const port = portals.find(p => p.scene === sc && p.toScene === next);
+      const port = nearestPortal(portals, sc, next, startCell);
       if (!port) return { ok: false, msg: `场景${sc}->${next} 无门户门位`, waypoints: [], crossScene: true, segment: 'cross-scene' };
-      targetCell = snapCell(nav, Math.floor(port.x / 100), Math.floor(port.y / 100));
+      goalCell = snapCell(nav, Math.floor(port.x / 100), Math.floor(port.y / 100));
     }
-    const startCell: [number, number] = i === 0
-      ? snapCell(nav, Math.floor(from.x / 100), Math.floor(from.y / 100))
-      : (() => {
-        const prevSc = scenePath[i - 1];
-        // 进入 sc 的落点 = sc 侧门户位（sc 通往 prevSc 的门），而非 prevSc 侧出口
-        const port = portals.find(p => p.scene === sc && p.toScene === prevSc);
-        return port ? snapCell(nav, Math.floor(port.x / 100), Math.floor(port.y / 100)) : [Math.floor(nav.width / 2), Math.floor(nav.height / 2)];
-      })();
-    {
-      const path = astarClearance(nav, startCell[0], startCell[1], targetCell[0], targetCell[1], opts);
-      if (!path) return { ok: false, msg: `场景${sc} 内不可达`, waypoints: [], crossScene: true, segment: 'cross-scene' };
-      for (let k = 1; k < path.length; k += 3) wps.push({ scene: sc, x: path[k][0] * 100 + 50, y: path[k][1] * 100 + 50 });
-    }
+
+    const path = astarClearance(nav, startCell[0], startCell[1], goalCell[0], goalCell[1], opts);
+    if (!path) return { ok: false, msg: `场景${sc} 内不可达`, waypoints: [], crossScene: true, segment: 'cross-scene' };
+    for (let k = 1; k < path.length; k += 3) wps.push({ scene: sc, x: path[k][0] * 100 + 50, y: path[k][1] * 100 + 50 });
     if (isLast) wps.push({ scene: to.scene, x: to.x, y: to.y });
   }
   return { ok: true, waypoints: wps, crossScene: true, segment: 'cross-scene' };
