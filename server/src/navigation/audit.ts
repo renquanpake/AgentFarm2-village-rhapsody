@@ -80,3 +80,61 @@ export function nearestStand(nav: NavGrid, gx: number, gy: number, maxR = 8): [n
   }
   return null;
 }
+
+/** 建筑实体完整性（口径与 building-collision.test 锁一致）：
+ *  - 实心楼：rect 全格 blocked，豁免仅限门格切比雪夫 1 邻域（入口）
+ *  - 环岛厅（kind=stage）：顶部 core 3 行（x+1..x+3）必须实心，实心率 >= minSolid（缺省 0.3）
+ *  - 门格本身可走（入口不砌死）；越界格视为违规 */
+export interface BuildingSolidity {
+  kind?: string;
+  door?: [number, number] | null;
+  minSolid?: number;
+}
+export function buildingRectViolations(
+  w: number, h: number, blocked: number[], r: AuditRect, s: BuildingSolidity = {},
+): string[] {
+  const out: string[] = [];
+  const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < w && y < h) ? blocked[y * w + x] : 1;
+  if (s.door) {
+    const [dx, dy] = s.door;
+    if (at(dx, dy) === 1) out.push(`${r.name}: 门格(${dx},${dy})被砌死，入口不可进出`);
+  }
+  const isStage = s.kind === 'stage';
+  let solid = 0, total = 0;
+  // 入口豁免集：door 格 3x3 → 沿 rect 外沿（边界行/列）经开放格 8-邻接连通扩张；内部掏洞永不豁免
+  const onEdge = (x: number, y: number) => x === r.x || y === r.y || x === r.x + r.w - 1 || y === r.y + r.h - 1;
+  const exemptSet = new Set<string>();
+  const ex = (x: number, y: number) => exemptSet.has(x + ',' + y);
+  if (s.door) {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = s.door[0] + dx, y = s.door[1] + dy;
+      if (x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h && at(x, y) !== 1) { exemptSet.add(x + ',' + y); }
+    }
+    for (;;) {
+      let grew = false;
+      for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
+        if (ex(x, y) || !onEdge(x, y) || at(x, y) === 1) continue;
+        let hit = false;
+        for (let dy = -1; dy <= 1 && !hit; dy++) for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          if (ex(x + dx, y + dy)) { hit = true; break; }
+        }
+        if (hit) { exemptSet.add(x + ',' + y); grew = true; }
+      }
+      if (!grew) break;
+    }
+  }
+  for (let y = r.y; y < r.y + r.h; y++) {
+    for (let x = r.x; x < r.x + r.w; x++) {
+      const b = at(x, y); total++;
+      if (b === 1) solid++;
+      if (!isStage && b !== 1 && !ex(x, y)) out.push(`${r.name}: (${x},${y}) 声明为实体但未登记阻挡`);
+      if (isStage && y < r.y + 3 && x >= r.x + 1 && x < r.x + 4 && b !== 1) out.push(`${r.name}: (${x},${y}) 环岛厅房身核心不得掏空`);
+    }
+  }
+  if (isStage) {
+    const min = s.minSolid ?? 0.3;
+    if (solid / total < min) out.push(`${r.name}: 环岛厅实心率 ${(solid / total).toFixed(2)} < ${min}`);
+  }
+  return out;
+}

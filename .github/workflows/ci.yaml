@@ -78,6 +78,7 @@ jobs:
           node tools/build-scene-collisions.mjs --check
           node tools/gen-home-slots.mjs --check
           node tools/check-roads.mjs
+          node tools/nav-audit.mjs --check
           node tools/nav-replay.mjs --smoke
           node tools/nav-replay.mjs --smoke --drift
         working-directory: .

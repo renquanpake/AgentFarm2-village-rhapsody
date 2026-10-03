@@ -1,6 +1,6 @@
 // nav-audit-kernel.test —— 障碍审计纯函数内核（批1a Task1）
 import { describe, it, expect } from 'vitest';
-import { rectMisses, unattributedCells, portalsBidirectional, isolatedCell, nearestStand, type AuditRect } from '../../src/navigation/audit.ts';
+import { rectMisses, unattributedCells, portalsBidirectional, isolatedCell, nearestStand, buildingRectViolations, type AuditRect } from '../../src/navigation/audit.ts';
 import { buildNavGrid, type NavGrid, type Portal } from '../../src/navigation/navgen.ts';
 
 
@@ -94,3 +94,46 @@ describe('isolatedCell / nearestStand', () => {
   });
 });
 
+
+describe('buildingRectViolations（口径=building-collision.test 契约）', () => {
+  const w = 8, h = 8;
+  const mkSolid = () => { const b = new Array(64).fill(0); for (let y = 2; y < 6; y++) for (let x = 2; x < 6; x++) b[y * 8 + x] = 1; return b; };
+  it('实心楼全挡无违规', () => {
+    expect(buildingRectViolations(w, h, mkSolid(), { name: '健身房', x: 2, y: 2, w: 4, h: 4 }, { door: [3, 6] })).toEqual([]);
+  });
+  it('实心楼漏一格（非入口）报违规', () => {
+    const b = mkSolid(); b[3 * 8 + 4] = 0;
+    const v = buildingRectViolations(w, h, b, { name: '铁匠铺', x: 2, y: 2, w: 4, h: 4 }, { door: [3, 6] });
+    expect(v.length).toBe(1);
+    expect(v[0]).toContain('(4,3)');
+  });
+  it('门格切比雪夫1邻域豁免（气象台入口3格）', () => {
+    const b = mkSolid(); b[5 * 8 + 3] = 0; b[5 * 8 + 2] = 0; b[5 * 8 + 4] = 0; // 底行 y=5 门(3,5)邻域开
+    const v = buildingRectViolations(w, h, b, { name: '气象台', x: 2, y: 2, w: 4, h: 4 }, { door: [3, 5] });
+    expect(v).toEqual([]);
+  });
+  it('入口沿建筑外沿可拓宽（3格宽门洞豁免，深洞不豁免）', () => {
+    const b = mkSolid();
+    for (let x = 2; x <= 5; x++) b[5 * 8 + x] = 0; // 底行整段 4 格开口，door=(3,6) 外沿，超1邻域的格须靠外沿连通豁免
+    const v = buildingRectViolations(w, h, b, { name: '气象台', x: 2, y: 2, w: 4, h: 4 }, { door: [3, 6] });
+    expect(v).toEqual([]);
+  });
+  it('内部掏空洞沿外沿洞延伸豁免也不得放行', () => {
+    const b = mkSolid();
+    b[4 * 8 + 3] = 0; // 内洞 (3,4) 与底行 (3,5) 相邻？底行仍挡：内洞不连外沿豁免
+    b[5 * 8 + 3] = 0; // 门洞
+    const v = buildingRectViolations(w, h, b, { name: '楼', x: 2, y: 2, w: 4, h: 4 }, { door: [3, 6] });
+    expect(v.some(s => s.includes('(3,4)'))).toBe(true);
+  });
+  it('门格砌死报违规', () => {
+    const v = buildingRectViolations(w, h, mkSolid(), { name: '宴会厅', x: 2, y: 2, w: 4, h: 4 }, { door: [3, 3] });
+    expect(v.some(s => s.includes('砌死'))).toBe(true);
+  });
+  it('环岛厅(stage)：核心3行掏空报违规、周边开放不报、实心率不足报', () => {
+    const b = new Array(64).fill(0);
+    b[2 * 8 + 3] = 1; // 仅 (3,2) 挡
+    const v = buildingRectViolations(w, h, b, { name: '宴会厅', x: 2, y: 2, w: 4, h: 4 }, { kind: 'stage', door: [4, 6] });
+    expect(v.some(s => s.includes('核心'))).toBe(true);
+    expect(v.some(s => s.includes('实心率'))).toBe(true);
+  });
+});
