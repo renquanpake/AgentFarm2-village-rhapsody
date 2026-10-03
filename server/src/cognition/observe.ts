@@ -10,6 +10,12 @@ import { favBetween, dmUnlockedList } from '../world/social.ts';
 import { fitnessOf } from '../world/fitness.ts';
 import { activeFestival } from '../world/festival.ts';
 import { recentNotices } from '../world/notices.ts';
+import { taskView } from '../world/tasks.ts';
+import { onboardingView } from '../world/onboarding.ts';
+import { recapView } from '../world/agent-log.ts';
+import { agentMailOf, asksOf } from '../world/agent-mail.ts';
+import { seasonEventsView } from '../world/season-events.ts';
+import { currentGameDay, weatherOf } from '../world/calendar.ts';
 import { municipalOf, municipalContext, villageNavOf, buildingTargetOf, type Building } from '../navigation/municipal.ts';
 
 /** D2 区域级障碍：12 格窗口内连续水域/树丛 -> 区域名 + 格子范围 + 绕行原则（§4.2：不喂单树坐标清单给导航） */
@@ -168,13 +174,24 @@ export function observeState(app: App, uid: string, username: string, nick: stri
   const inboxArr = notes.inboxOf(app.usernameOf(uid)).arr;
   const ops = (state.playerOps.get(uid) || []).map(o => ({ kind: o.kind, text: o.text, at: o.at }));
 
-    // 任务清单（H 包）：系统任务进行中 + 委托栏
+    // 任务清单（N9 任务链为主，委托栏为辅）：唯一出口 taskView，保证 act/observe 文本一致
     const tasks = (() => {
-      const pdTasks = state.playersDb.get(uid)?.get('afTasks') as { inProgress?: Array<{ name?: string; step?: number }>; delegated?: Array<{ by?: string; name?: string; reward?: number }> } | undefined;
-      const out: Record<string, unknown> = {};
-      if (pdTasks?.inProgress?.length) out.inProgress = pdTasks.inProgress;
-      if (pdTasks?.delegated?.length) out.delegated = pdTasks.delegated;
-      return Object.keys(out).length ? out : null;
+      const view = taskView(state, tables, uid);
+      const pdTasks = state.playersDb.get(uid)?.get('afTasks') as { delegated?: Array<{ by?: string; name?: string; reward?: number }> } | undefined;
+      return {
+        mode: view.mode,
+        summary: view.summary,
+        chains: view.chains.length
+          ? view.chains.map(c => ({
+            id: c.id, name: c.name, unlocked: c.unlocked, unlockDay: c.unlockDay,
+            finished: c.finished, total: c.total, next: c.next,
+            stages: c.stages.filter(s => !s.done || c.finished < c.total).slice(0, 4)
+              .map(s => ({ name: s.name, cur: s.cur, total: s.total, done: s.done, reward: s.rewardName, desc: s.desc })),
+          }))
+          : null,
+        legacy: view.legacy ? view.legacy.filter(x => !x.done).slice(0, 6) : null,
+        delegated: pdTasks?.delegated?.length ? pdTasks.delegated : undefined,
+      };
     })();
     // 公告（H 包）：最近 5 条
     const notices = recentNotices(state, 5);
@@ -224,6 +241,14 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     inbox: inboxArr.length
       ? { unread: inboxArr.length, last: { from: inboxArr[inboxArr.length - 1].from, text: inboxArr[inboxArr.length - 1].text } }
       : { unread: 0, last: null },
+    // Agent 行为流水与信箱（「你刚才干了什么」的事实源；玩家与 Agent 读同一份）
+    agentLog: (() => { const v = recapView(state, uid, 8); return v ? { total: v.total, lines: v.lines } : null; })(),
+    agentMail: (() => { const m = agentMailOf(state, uid, 3); return m.length ? m.map(x => ({ from: x.from, text: x.text, at: x.at, replyTo: x.replyTo })) : null; })(),
+    ownerAsks: asksOf(state, uid).length ? asksOf(state, uid).map(a => ({ text: a.text, at: a.at, answered: !!a.answered })) : null,
+    // N9：第一小时引导（新手该做什么，纯文本可执行）
+    onboarding: onboardingView(state, tables, uid),
+    // N9：季节事件线（当前活跃 + 本季预告）
+    seasonEvents: (() => { const d0 = currentGameDay(state) || Number(pd.day || 0) || 1; return seasonEventsView(tables, d0, weatherOf(d0)); })(),
     playerOps: ops,
     chatRecent: app.chatLog.slice(-3),
     seeds: Object.keys(PLANT_CROPS).map(id => ({ id: Number(id), name: PLANT_CROPS[Number(id)].name + '种子' })),

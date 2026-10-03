@@ -37,6 +37,8 @@ export function createLlmOps(app: App, agentUid: string, accountUid?: string): L
       const global = roomProvider();
       const m = meteredRoute(app.db, global, owner, agent, taskType, `${system}|${user}`, moduleCache);
       if (m.hit) return String(moduleCache.get(m.cacheKey).value ?? '');
+      // N12 硬熔断：当日预算用尽 -> 规则兜底，不再消耗玩家自备 Key（缓存命中不受影响）
+      if (m.blocked) return null;
       if (m.call.source === 'none' || !m.call.key) return null; // 降级
       try {
         const res = await fetch(`${m.call.baseUrl.replace(/\/$/, '')}/chat/completions`, {
@@ -65,6 +67,7 @@ export function createLlmOps(app: App, agentUid: string, accountUid?: string): L
       const global = roomProvider();
       const m = meteredRoute(app.db, global, owner, agent, 'embed', text, moduleCache);
       if (m.hit) return moduleCache.get(m.cacheKey).value as number[] | null;
+      if (m.blocked) return pseudoEmbed(text); // 熔断 -> 伪向量（记忆链路不依赖真 embedding）
       if (m.call.source === 'none' || !m.call.key) return pseudoEmbed(text); // 无 Key -> 伪向量
       try {
         const res = await fetch(`${m.call.baseUrl.replace(/\/$/, '')}/embeddings`, {

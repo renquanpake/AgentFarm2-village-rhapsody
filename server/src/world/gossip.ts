@@ -6,7 +6,7 @@ import type { WorldState } from '../persistence/state.js';
 
 export const GOSSIP_KEY = 'gossipData';
 
-export type GossipKind = 'gift' | 'delegate' | 'festival' | 'lease' | 'generic';
+export type GossipKind = 'gift' | 'delegate' | 'festival' | 'lease' | 'season' | 'generic';
 
 export interface Gossip {
   seq: number;

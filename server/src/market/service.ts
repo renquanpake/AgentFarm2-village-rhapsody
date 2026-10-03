@@ -1,14 +1,13 @@
 // market/service.ts —— B1.2 CDA 市场接线：app 级市场服务（订单簿 + 挂单预留 + 成交结算 + 持久化 + OHLC）
 // 设计 M2.1：
 //  - 每物品一簿；挂单即预留资产（买=扣现金、卖=扣物品），成交=双方资产过户，撤单=退还预留
-//  - 冷启动：簿空时围绕基价（NPC 价目 sellX2）挂做市商双边单（'mm' 虚拟账户，不记账）
+//  - 冷启动：簿空时围绕基价（N10 口径 Tables.basePriceOf）挂做市商双边单（'mm' 虚拟账户，不记账）
 //  - 护栏：成交异常（负现金/负库存）-> 该簿熔断 1 游戏小时
 //  - 持久化：market_orders（挂单生命周期）/ market_fills（成交与 OHLC）；重启 restoreOpen + importFills 恢复
 //  - 事件溯源：order.placed / trade.filled / order.cancelled 落事件库（applyEvent 无需重放：资产已在 live 结算）
 import type { App } from '../app.ts';
 import { OrderBook, type Fill, type Side, type BookSnapshot } from './orderbook.ts';
 import { knapAdd, knapSub } from '../world/farm.ts';
-import { sellX2 } from './shop.ts';
 import { TRADE_FEE_RATE } from './economy.ts';
 import { log } from '../logging.ts';
 
@@ -35,10 +34,9 @@ export class MarketService {
     return b;
   }
 
-  /** 基价：复用 NPC 价目 sellX2（做市双边基准）；无价目回退 50 */
+  /** 基价（N10 口径，见 Tables.basePriceOf）：经济表覆盖 -> items.sell_price x 2 -> 回退 50 */
   basePrice(item: number): number {
-    const p = sellX2(this.app.tables, item);
-    return p > 0 ? p : 50;
+    return this.app.tables.basePriceOf(item);
   }
 
   /** 冷启动：簿空（无挂单无成交）时挂做市商双边单 */

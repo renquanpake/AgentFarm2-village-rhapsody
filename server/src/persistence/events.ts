@@ -62,6 +62,17 @@ export const EventSchemas: Record<string, z.ZodType<Record<string, unknown>>> = 
   // 节日集市与比赛（B11）
   'festival.result': z.object({ festival: z.string(), winner: z.string(), score: z.number(), prize: z.number(), top: z.array(z.object({ uid: z.string(), score: z.number() })) }),
   'market.stall': z.object({ uid: z.string(), fee: z.number(), festival: z.string() }),
+  // N9 内容扩容：季节事件线 / 新手引导 / 任务链推进（记录用，重放 no-op：状态在 world/玩家桶）
+  'season.event': z.object({ id: z.string(), season: z.string(), title: z.string(), day: z.number() }),
+  'task.chain': z.object({ uid: z.string(), chain: z.string(), stage: z.string(), reward: z.number() }),
+  'onboarding.step': z.object({ uid: z.string(), step: z.string(), minutes: z.number() }),
+  // C/D 包抢占与租约（2026-10-03 接上事件流：此前 claimsData/leaseData 只在 live 变更，
+  // 回放无法重建 —— 事件拥有域不入事件流 = 事实源缺失）
+  'claim.granted': z.object({ uid: z.string(), kind: z.string(), ref: z.string(), since: z.number(), expiresAt: z.number().nullable() }),
+  'claim.released': z.object({ uid: z.string(), kind: z.string(), ref: z.string() }),
+  'lease.opened': z.object({ plot: z.string(), uid: z.string(), startTick: z.number(), leaseMs: z.number() }),
+  'lease.cared': z.object({ plot: z.string(), uid: z.string(), lastCareTick: z.number(), leaseMs: z.number(), careCount: z.number() }),
+  'lease.regrown': z.object({ plots: z.array(z.string()) }),
 };
 
 export interface EventLogOpts {

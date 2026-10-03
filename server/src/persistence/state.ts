@@ -5,16 +5,31 @@ import type {
   BucketKind, OnlinePlayer, AgentPos, SaveDoc, SpawnDef, SocialPair,
 } from '../types.ts';
 import { slotPaths } from '../config.ts';
+import { runMigrations, saveVersionOf, SAVE_VERSION, SAVE_VERSION_KEY } from './save-version.ts';
+export { SAVE_VERSION, SAVE_VERSION_KEY, saveVersionOf };
 
 // livestockData/sprinklerData 是 world 桶（farm.ts:57、livestock.ts:3 明示），
 // 却常年不在集合里，导致这些键在客户端回写时被当作未知键静默丢弃、状态永久丢失。
-export const WORLD_KEYS = new Set(['mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData', 'socialData', 'livestockData', 'sprinklerData', 'claimsData', 'leaseData', 'delegatedData', 'noticeData']);
-export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks']);
-export const GLOBAL_KEYS = new Set(['audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage']);
+// 第二批（2026-10-03 存档键审计门发现）：fitnessData/staminaData/facilityData/afStalls/gossipData
+// 同为 world 桶，globals 侧的 afDayAnchor/afLastGameDay/afLastStorm 同理 —— 未注册则
+// importSave 把它们判成玩家私有键，落进 uid='' 的幽灵桶，每次重启静默丢失（实测存档已中招）。
+// 门禁：tools/save-key-audit.mjs 扫源码字面量对照本注册表，有未注册键即判死。
+export const WORLD_KEYS = new Set([
+  'mapData', 'plantData', 'farmData', 'npcData', 'shopData', 'plotData', 'makeData', 'castingData',
+  'socialData', 'livestockData', 'sprinklerData', 'claimsData', 'leaseData', 'delegatedData', 'noticeData',
+  'fitnessData', 'staminaData', 'facilityData', 'afStalls', 'gossipData',
+  'metricData', 'afSeasonEventFired', 'agentLogData',
+]);
+export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks', 'afOnboarding', 'afAgentMail', 'afAgentAsk']);
+export const GLOBAL_KEYS = new Set([
+  'audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage', 'afStrayBucketRepaired',
+  'afDayAnchor', 'afLastGameDay', 'afLastStorm', 'afSaveVersion', 'afPlayerIdx',
+]);
 
 const SEED_PLAYER_UID = '100001';
 const MIGRATED_KEY = 'afCoordMigrated';
 const PLANT_BUCKET_KEY = 'afPlantBucketVillage';
+const STRAY_BUCKET_KEY = 'afStrayBucketRepaired';
 
 export function loadJson<T>(p: string, fallback: T): T {
   try { return JSON.parse(readFileSync(p, 'utf8')) as T; } catch { return fallback; }
@@ -71,6 +86,8 @@ export class WorldState {
   // 出生/宅地
   spawnCount = 0;
   houseAssign = new Map<string, number>(); // uid -> house id
+  /** 加入序号（uid -> 1..N）：场景 1 槽位归属（B4）与出生序号复用 */
+  playerIdx = new Map<string, number>();
   heroTemplate: Map<string, unknown> | null = null;
 
   // 社交/DM 运行时（slot 级：switch-slot 时重置）
@@ -122,8 +139,9 @@ export class WorldState {
     if (opts.init === false) return; // 快照重建：字段由调用方填充，不碰文件/迁移
 
     // 初始化：优先本 slot 存档，否则 seed（原版存档格式，拆桶）
-    if (existsSync(this.saveFile)) this.importSave(loadJson<SaveDoc | null>(this.saveFile, null));
-    else if (existsSync(opts.seedFile)) this.importSave(loadJson<SaveDoc | null>(opts.seedFile, null));
+    const doc = existsSync(this.saveFile) ? loadJson<SaveDoc | null>(this.saveFile, null)
+      : (existsSync(opts.seedFile) ? loadJson<SaveDoc | null>(opts.seedFile, null) : null);
+    if (doc) this.importSave(doc);
 
     // 主角初始档模板：seed 里 uid=100001 的玩家私有数据（新玩家继承主角初始状态）
     if (this.playersDb.has(SEED_PLAYER_UID)) {
@@ -133,11 +151,13 @@ export class WorldState {
       }
     }
 
-    // 一次性坐标迁移（地图扩展 14 格，旧档植物/农田 +14）
-    if (!(this.globals.get(MIGRATED_KEY) as { val?: number } | undefined)?.val) this.migrateWorldCoords();
-    if (!(this.globals.get(PLANT_BUCKET_KEY) as { val?: number } | undefined)?.val) this.migratePlantBucket();
+    // N11 迁移注册表：按存档版本有序补齐（含历史上的坐标/作物桶/幽灵桶三条），
+    // 幂等由各迁移自己的 global 标志保证；版本号回写 globals.afSaveVersion。
+    runMigrations(this, saveVersionOf(this, doc?.version));
 
     this.spawnCount = Number((this.globals.get('afSpawnCount') as { val?: number } | undefined)?.val || 0);
+    const idxMap = (this.globals.get('afPlayerIdx') as { val?: Record<string, number> } | undefined)?.val || {};
+    for (const [k, v] of Object.entries(idxMap)) if (Number.isFinite(Number(v))) this.playerIdx.set(k, Number(v));
   }
 
   importSave(s: SaveDoc | null | undefined): void {
@@ -149,6 +169,15 @@ export class WorldState {
       else if (kind === 'global') this.globals.set(name, d.val);
       else {
         const uid = d.key.slice(name.length + 1);
+        // 无 uid 后缀的键不可能是玩家私有键（persist 对私有键一律写 `${name}_${uid}`）：
+        // 按注册表归位 world/global；两边都没有 = 未登记的服务端桶，打日志丢弃，
+        // 杜绝落进 uid='' 幽灵桶（那会让每次重启静默丢数据且多一个假玩家）。
+        if (!uid) {
+          if (WORLD_KEYS.has(name)) this.world.set(name, d.val);
+          else if (GLOBAL_KEYS.has(name)) this.globals.set(name, d.val);
+          else console.warn(`[import] 未注册的无主键 ${name}，已丢弃（登记 WORLD_KEYS/GLOBAL_KEYS 或补迁移）`);
+          continue;
+        }
         if (!this.playersDb.has(uid)) this.playersDb.set(uid, new Map());
         this.playersDb.get(uid)!.set(name, d.val);
       }
@@ -203,6 +232,30 @@ export class WorldState {
     console.log(`[migrate] 玩家作物桶归位 VILLAGE_MAP：${moved} 株`);
   }
 
+  /**
+   * 幽灵桶修复：未注册键（afDayAnchor/fitnessData/staminaData/facilityData/afStalls/gossipData
+   * /afLastGameDay/afLastStorm）曾被 importSave 判成玩家私有键，uid 被切成空串，
+   * 于是这些世界级数据每次重启都从 world/globals 消失（slot94/96/97/98/99 实测中招）。
+   * 按注册表搬回正确桶，幂等（afStrayBucketRepaired 标志），修完即删幽灵桶。
+   */
+  repairStrayBuckets(): void {
+    const stray = this.playersDb.get('');
+    if (!stray || stray.size === 0) {
+      if (!stray) this.playersDb.delete('');
+      if (!(this.globals.get(STRAY_BUCKET_KEY) as { val?: number } | undefined)?.val) this.globals.set(STRAY_BUCKET_KEY, { val: 1 });
+      return;
+    }
+    let moved = 0;
+    for (const [name, val] of [...stray]) {
+      if (WORLD_KEYS.has(name)) { this.world.set(name, val); moved++; }
+      else if (GLOBAL_KEYS.has(name)) { this.globals.set(name, val); moved++; }
+    }
+    this.playersDb.delete('');
+    this.globals.set(STRAY_BUCKET_KEY, { val: 1 });
+    this.persist();
+    if (moved) console.log(`[migrate] 幽灵桶数据归位 ${moved} 项（未注册键曾致重启丢失）`);
+  }
+
   /** 出生点表：新玩家按加入顺序分配到村扩展区宅基地 */
   private assignHouse(uid: string, idx: number): number | null {
     if (!this.spawns || !this.spawns.houses || !this.spawns.houses.length) return null;
@@ -230,6 +283,7 @@ export class WorldState {
       if (this.spawnCount === 0) {
         this.spawnCount = 1;
         this.globals.set('afSpawnCount', { val: 1 });
+        this.playerIdx.set(uid, 1);
         console.log('[spawn] 首位玩家保留原版家门口 (scene1)');
       } else {
         this.spawnCount++;
@@ -246,11 +300,20 @@ export class WorldState {
           }
         }
       }
-      this.persist();
+      // 出生落盘走防抖（2026-10-03）：同步 persist 会把整份 world.json（>1MB）写进事件循环，
+      // 批量注册（灰度/压测）时表现为客户端 ECONNRESET —— 实测 30 并发必现、12 并发正常
+      this.schedulePersist();
       console.log(`[hero] 新玩家 ${uid} 继承主角初始档`);
     }
     const pd = pm.get('playerData') as { houseId?: number } | undefined;
     if (pd && pd.houseId && !this.houseAssign.has(uid)) this.houseAssign.set(uid, pd.houseId);
+    // 加入序号（B4 槽位归属用；持久化到 globals.afPlayerIdx，重启不丢）
+    if (!this.playerIdx.has(uid)) {
+      const nextIdx = Math.max(0, ...this.playerIdx.values()) + 1;
+      this.playerIdx.set(uid, nextIdx);
+      this.globals.set('afPlayerIdx', { val: Object.fromEntries(this.playerIdx) });
+      this.schedulePersist();
+    }
     return pm;
   }
 
@@ -262,7 +325,7 @@ export class WorldState {
     for (const [name, val] of this.world) datas.push({ key: name, val });
     for (const [name, val] of this.globals) datas.push({ key: name, val });
     for (const [uid, m] of this.playersDb) for (const [name, val] of m) datas.push({ key: `${name}_${uid}`, val });
-    writeFileSync(this.saveFile, JSON.stringify({ version: 4, datas }, null, 1));
+    writeFileSync(this.saveFile, JSON.stringify({ version: SAVE_VERSION, datas }, null, 1));
     const meta = loadJson<{ lastPlayed?: number; createdAt?: number }>(this.slotMetaFile, {});
     meta.lastPlayed = Date.now();
     meta.createdAt = meta.createdAt || Date.now();

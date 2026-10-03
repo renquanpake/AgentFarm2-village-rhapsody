@@ -6,6 +6,7 @@
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { getDecryptedKey, recordUsage } from '../persistence/keyvault.ts';
+import { budgetStatus, budgetTripMessage, invalidateBudgetCache, type BudgetStatus } from './llm-budget.ts';
 
 export type TaskType = 'perceive' | 'score' | 'extract' | 'embed' | 'plan' | 'dialogue' | 'write' | 'draw-prompt' | (string & {});
 
@@ -91,6 +92,10 @@ export interface MeteredRoute {
   call: RoutedCall;
   cacheKey: string;
   hit: boolean;
+  /** N12 预算状态（缺省 limit=0 = 不限） */
+  budget: BudgetStatus;
+  /** 非 null = 已熔断，编排层应降级（不再消耗玩家 Key） */
+  blocked: string | null;
   record(tokensIn?: number, tokensOut?: number): void;
 }
 
@@ -106,15 +111,24 @@ export function meteredRoute(
   const call = routeForAgent(db, globalProvider, accountUid, taskType);
   const cacheKey = `${accountUid}|${taskType}|${call.model}|${hashStr(stableRequestText)}`;
   const hit = cache.get(cacheKey).hit;
+  // N12：预算检查放在缓存命中之后 —— 命中缓存不花钱，不该被熔断拦（否则降级质量无谓下降）
+  const budget = hit ? { ...budgetStatus(db, accountUid), tripped: false, warn: false, justWarned: false } : budgetStatus(db, accountUid);
+  if (budget.justWarned) {
+    console.warn(`[llm-budget] 账号 ${accountUid} 今日用量已达软提醒线：${budget.used}/${budget.limit} tokens（${Math.round(budget.ratio * 100)}%）`);
+  }
   return {
     call,
     cacheKey,
     hit,
+    budget,
+    blocked: budgetTripMessage(budget),
     record: (tokensIn?: number, tokensOut?: number) => {
       recordUsage(db, {
         accountUid, agentUid, taskType, tier: call.tier,
         tokensIn, tokensOut, cached: hit,
       });
+      // 计量已落库：该账号的预算缓存失效，下一次调用立刻按新用量判闸
+      invalidateBudgetCache(accountUid);
     },
   };
 }

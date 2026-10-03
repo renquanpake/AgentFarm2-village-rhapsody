@@ -38,7 +38,32 @@ export const MINE_POOL: Array<[number, number]> = [
   [109, 35], [60, 30], [61, 20], [7, 10], [84, 3],
 ];
 // 洒水器半径（格）：level 1=3x3, 2=5x5, 3=7x7
-export const SPRINKLER_RANGE: Record<number, number> = { 1: 1, 2: 2, 3: 3 };
+export const SPRINKLER_RANGE: Record<number, number> = { 1: 3, 2: 5, 3: 7 };
+
+// ---------- N10 经济数值表（data/economy-tables.json；缺文件时回落 DEFAULT_ECONOMY） ----------
+export interface EconomyCrop {
+  seedItemId: number; plantId: number; name: string;
+  seedCost: number; growDays: number; cropItemId: number; sellPrice: number;
+  roi: number; hourlyAt8Plots: number; seedBuyFromNpc: number;
+}
+export interface EconomyTable {
+  version: number;
+  updated?: string;
+  basePrice?: Record<string, number>;
+  policy?: { seedPriceMul?: number; priceOrder?: string[]; hourlyModel?: Record<string, unknown> };
+  crops?: EconomyCrop[];
+  gather?: Record<string, Record<string, unknown>>;
+  fees?: Record<string, unknown>;
+  inflationTarget?: { bandLow: number; bandHigh: number; warn: number; critical: number; note?: string };
+  taskReward?: { base?: number; stepPerChain?: number };
+}
+export const DEFAULT_ECONOMY: EconomyTable = {
+  version: 0,
+  basePrice: {},
+  policy: { seedPriceMul: 1 },
+  crops: [],
+  inflationTarget: { bandLow: 0.95, bandHigh: 1.15, warn: 1.3, critical: 1.5 },
+};
 
 export class Tables {
   farm: FarmDef | null;
@@ -49,6 +74,14 @@ export class Tables {
   mineSpots: MineSpot[];
   recipes: Array<{ id: number; facility: string; name: string; inputs: Record<number, number>; output: { itemId: number; qty: number } }>;
   decor: Array<{ id: number; name: string; category: string; price: number; points: number; artRef?: string | null }>;
+  /** N10 经济数值表 */
+  economy: EconomyTable;
+  /** N9 任务链文档（world/tasks.ts 消费；null = 回落旧扁平任务） */
+  taskChains: { version: number; chains: unknown[] } | null;
+  /** N9 季节事件线文档（world/season-events.ts 消费） */
+  seasonEvents: { version: number; events: unknown[] } | null;
+  /** N9 新手引导文档（world/onboarding.ts 消费） */
+  onboarding: { version: number; steps: unknown[] } | null;
   readonly gridW: number;
   readonly gridH: number;
 
@@ -73,6 +106,50 @@ export class Tables {
       output: r.output,
     }));
     this.decor = L<Array<{ id: number; name: string; category: string; price: number; points: number; artRef?: string | null }> | null>('decor.json', null) || [];
+    // N10 经济数值表（唯一设计源）：做市基价覆盖 / 种子折扣 / 作物 ROI / 通胀目标带
+    this.economy = L<EconomyTable | null>('economy-tables.json', null) || DEFAULT_ECONOMY;
+    // N9 内容扩容：任务链（有序阶段 + 天数解锁 + 逐阶奖励）
+    this.taskChains = L<{ version: number; chains: unknown[] } | null>('task-chains.json', null);
+    // N9：季节事件线（每季的故事线 + 触发条件）
+    this.seasonEvents = L<{ version: number; events: unknown[] } | null>('season-events.json', null);
+    // N9：第一小时引导（新手前 60 分钟逐环节）
+    this.onboarding = L<{ version: number; steps: unknown[] } | null>('onboarding.json', null);
+  }
+
+  /**
+   * 市场做市基价（N10 口径）：
+   * economy-tables.basePrice 覆盖 -> items.sell_price x 2（NPC 口径）-> 回退 50。
+   * 旧实现只走后两步且回退值硬编码在 service.ts，数值无处可查。
+   */
+  basePriceOf(itemId: number): number {
+    const override = this.economy?.basePrice?.[String(itemId)];
+    if (typeof override === 'number' && override > 0) return Math.round(override);
+    const it = this.items.find(x => x.id === itemId);
+    const npc = it && typeof it.sell_price === 'number' ? it.sell_price * 2 : 0;
+    return npc > 0 ? npc : 50;
+  }
+
+  /** NPC 收购/出售基准（items.sell_price x 2，种子类按 N10 折扣） */
+  npcUnitPrice(itemId: number): number {
+    const it = this.items.find(x => x.id === itemId);
+    if (!it || typeof it.sell_price !== 'number' || it.sell_price <= 0) return 0;
+    const raw = it.sell_price * 2;
+    const mul = it.type === 4 ? (this.economy?.policy?.seedPriceMul ?? DEFAULT_ECONOMY.policy!.seedPriceMul!) : 1; // type=4 种子
+    return Math.max(1, Math.round(raw * mul));
+  }
+
+  /** 作物设计行（N10：ROI/日产能基准） */
+  cropEconomy(cropItemId: number): EconomyCrop | null {
+    return (this.economy?.crops || []).find(c => c.cropItemId === cropItemId) || null;
+  }
+
+  /** 通胀目标带（N10：/af/economy-design 对账用） */
+  inflationTarget(): { bandLow: number; bandHigh: number; warn: number; critical: number } {
+    const t = this.economy?.inflationTarget;
+    return {
+      bandLow: t?.bandLow ?? 0.95, bandHigh: t?.bandHigh ?? 1.15,
+      warn: t?.warn ?? 1.3, critical: t?.critical ?? 1.5,
+    };
   }
 
   nameOf(id: number): string {

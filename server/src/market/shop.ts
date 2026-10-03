@@ -4,10 +4,9 @@ import type { Tables } from '../world/tables.ts';
 import type { WorldState } from '../persistence/state.ts';
 import { knapAdd, knapSub } from '../world/farm.ts';
 
-/** 物品卖出价 ×2（NPC 商人价目基价） */
+/** NPC 基准价（items.sell_price x 2，种子类按 N10 折扣 —— 见 Tables.npcUnitPrice） */
 export function sellX2(tables: Tables, itemId: number): number {
-  const it = tables.items.find(x => x.id === itemId);
-  return it && typeof it.sell_price === 'number' ? it.sell_price * 2 : 0;
+  return tables.npcUnitPrice(itemId);
 }
 
 // NPC 商店价目（服务器内部；agent 通过 talk 向 NPC 询价获得）
@@ -23,7 +22,7 @@ export function shopTable(tables: Tables): Record<number, Array<[number, number]
 
 export interface BuyResult { ok: boolean; msg?: string; bought?: { id: number; name: string; count: number; total: number }; coins?: number; }
 
-/** 购买（价目优先取 SHOP_TABLE，其次 sell_price * 2；金币不足/不可买给出原因） */
+/** 购买（价目优先取 shopTable；缺项走 N10 口径 NPC 基准价 = items.sell_price x 2，种子类打折） */
 export function doBuy(state: WorldState, tables: Tables, uid: string, itemId: number, count: number, shop: Record<number, Array<[number, number]>>): BuyResult {
   const it = tables.items.find(x => x.id === itemId);
   if (!it) return { ok: false, msg: '没有这个物品' };
@@ -32,7 +31,8 @@ export function doBuy(state: WorldState, tables: Tables, uid: string, itemId: nu
     const entry = s.find(([id]) => id === itemId);
     if (entry) { shopPrice = entry[1]; break; }
   }
-  const price = shopPrice ?? (typeof it.sell_price === 'number' && it.sell_price > 0 ? it.sell_price * 2 : null);
+  const npcUnit = tables.npcUnitPrice(itemId);
+  const price = shopPrice ?? (npcUnit > 0 ? npcUnit : null);
   if (price === null) return { ok: false, msg: '该物品不可购买' };
   const pm = state.playersDb.get(uid);
   if (!pm) return { ok: false, msg: '玩家数据不存在' };

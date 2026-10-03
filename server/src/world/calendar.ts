@@ -93,6 +93,7 @@ export function markGameDaySeen(state: WorldState, day: number): void {
 // ---------- 日切换执行器：天气效应 + 保险赔付 + 事件流 ----------
 import type { App } from '../app.ts';
 import { worldPlants, knapAdd } from './farm.ts';
+import { triggerSeasonEvents } from './season-events.ts';
 import { CROP_BY_PLANT_ID } from './tables.ts';
 
 export interface DayAdvance {
@@ -179,6 +180,17 @@ export function runGameDay(app: App, d: number, now = Date.now()): number {
     rainAccelerated: accelerated, stormDestroyed: destroyed.length,
   });
   events++;
+
+  // 5) N9 季节事件线：进入该日的事件发公告 + 进八卦池（同一事件一季只触发一次）
+  try {
+    const fired = triggerSeasonEvents(state, app.tables, d, cal.weather, now);
+    for (const e of fired) {
+      app.log.append('season.event', null, { id: e.id, season: e.season, title: e.title, day: d });
+      events++;
+    }
+  } catch (err) {
+    console.warn('[season-event] 触发失败：', (err as Error).message);
+  }
 
   state.persist();
   return events;

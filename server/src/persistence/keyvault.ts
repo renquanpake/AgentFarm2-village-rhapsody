@@ -135,11 +135,15 @@ export interface UsageSummary {
 }
 
 export function usageSummary(db: DatabaseSync, accountUid: string, sinceMs = 0): UsageSummary {
-  const r = db.prepare(
-    `SELECT COUNT(*) AS calls, COALESCE(SUM(tokens_in),0) AS in_t, COALESCE(SUM(tokens_out),0) AS out_t,
-            COALESCE(SUM(cached),0) AS cached, COALESCE(SUM(usd_hint),0) AS usd
-     FROM llm_usage WHERE account_uid = ? AND ts >= ?`,
-  ).get(accountUid, sinceMs) as { calls: number; in_t: number; out_t: number; cached: number; usd: number };
+  // 缺表/无行时返回零值（测试里的轻量 mock db 与迁移前旧档都可能命中；熔断闸不能因此崩）
+  let r: { calls: number; in_t: number; out_t: number; cached: number; usd: number } = { calls: 0, in_t: 0, out_t: 0, cached: 0, usd: 0 };
+  try {
+    r = (db.prepare(
+      `SELECT COUNT(*) AS calls, COALESCE(SUM(tokens_in),0) AS in_t, COALESCE(SUM(tokens_out),0) AS out_t,
+              COALESCE(SUM(cached),0) AS cached, COALESCE(SUM(usd_hint),0) AS usd
+       FROM llm_usage WHERE account_uid = ? AND ts >= ?`,
+    ).get(accountUid, sinceMs) as typeof r) || r;
+  } catch { /* 无 llm_usage 表（轻量 mock db / 旧档）：按零计量 */ }
   const byTier: Record<string, number> = {};
   for (const row of db.prepare('SELECT tier, COUNT(*) AS c FROM llm_usage WHERE account_uid = ? AND ts >= ? GROUP BY tier').all(accountUid, sinceMs) as Array<{ tier: string; c: number }>) {
     byTier[row.tier] = row.c;

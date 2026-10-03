@@ -15,12 +15,18 @@ import { log } from '../logging.ts';
 import { keyvaultAvailable, upsertLlmKey, readLlmKey, usageSummary } from '../persistence/keyvault.ts';
 import { verifyReplayDeterminism } from '../narrative/replay.ts';
 import { buildDailyReport } from '../narrative/report.ts';
-import { economyReport } from '../market/economy.ts';
+import { economyReport, economyDesignReport } from '../market/economy.ts';
 import { calendarDay, currentGameDay } from '../world/calendar.ts';
 import { worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { courtyardRanking } from '../world/decor.ts';
 import { gameHourOf, npcDecision, villagePois } from '../world/schedule.ts';
 import { municipalOf } from '../navigation/municipal.ts';
+import { saveGuardStats } from '../world/save-guard.ts';
+import { budgetStatus } from '../cognition/llm-budget.ts';
+import { metricsReport } from '../world/metrics.ts';
+import { recapView } from '../world/agent-log.ts';
+import { agentMailOf } from '../world/agent-mail.ts';
+import { SAVE_VERSION, saveVersionOf, migrationPlan } from '../persistence/save-version.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 void __dirname;
@@ -248,12 +254,17 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
-    // 玩家 LLM 用量面板数据（M7：按其自报单价折算参考成本）
+    // 玩家 LLM 用量面板数据（M7：按其自报单价折算参考成本）+ N12 每日预算闸状态
     if (u.pathname === '/af/llm-usage') {
       const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
       if (!a) { text(res, 401, 'bad token'); return; }
       const since = Number(u.searchParams.get('since') || 0);
-      json(res, 200, { ok: true, usage: usageSummary(app.db, a.uid, since) });
+      const b = budgetStatus(app.db, a.uid);
+      json(res, 200, {
+        ok: true,
+        usage: usageSummary(app.db, a.uid, since),
+        budget: { limit: b.limit, usedToday: b.used, ratio: Number(b.ratio.toFixed(4)), warn: b.warn, tripped: b.tripped, since: b.since },
+      });
       return;
     }
 
@@ -281,8 +292,9 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
-    // 存档位列表 API（主界面用）
+    // 存档位列表 API（主界面用）；D18：存档元数据不对外公开，需 token
     if (u.pathname === '/af/saves') {
+      if (!app.accounts.findAccountByToken(u.searchParams.get('token'))) { text(res, 401, 'bad token'); return; }
       const saves: unknown[] = [];
       for (let i = 1; i <= 3; i++) {
         const p = slotPaths(SAVES_DIR, i);
@@ -348,8 +360,62 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
+    // Agent 行为流水（"他刚才干了什么"的事实源）：客户端「他做了什么」面板直接读它
+    if (u.pathname === '/af/agent-recap') {
+      const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
+      if (!a) { text(res, 401, 'bad token'); return; }
+      const n = Math.max(1, Math.min(50, Number(u.searchParams.get('n') || 12)));
+      const view = recapView(app.state, a.uid, n);
+      const mail = agentMailOf(app.state, a.uid, 5);
+      json(res, 200, {
+        ok: true,
+        agentOnline: !!app.agentSockets.get(a.uid)?.size,
+        recap: view || { total: 0, recent: [], lines: [], note: '还没有任何行为记录' },
+        mail,
+      });
+      return;
+    }
+
+    // 里程碑度量（N8）：留存/漏斗/时长聚合 —— 「100/30/10」门的可判定性自检
+    if (u.pathname === '/af/metrics') {
+      const tok = u.searchParams.get('token');
+      const isAdmin = !!process.env.AF_ADMIN_TOKEN && tok === process.env.AF_ADMIN_TOKEN;
+      if (!isAdmin && !app.accounts.findAccountByToken(tok)) { text(res, 401, 'bad token'); return; }
+      json(res, 200, { ok: true, ...metricsReport(app) });
+      return;
+    }
+
+    // 经济设计总账（N10）：设计值（economy-tables.json）vs 实盘值，供经济总账门与调参
+    if (u.pathname === '/af/economy-design') {
+      const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
+      if (!a) { text(res, 401, 'bad token'); return; }
+      json(res, 200, { ok: true, ...economyDesignReport(app) });
+      return;
+    }
+
+    // 存档版本与迁移计划（N11）：当前版本 + 待补迁移清单（运维/升级演练看这个）
+    if (u.pathname === '/af/save-version') {
+      const tok = u.searchParams.get('token');
+      const isAdmin = !!process.env.AF_ADMIN_TOKEN && tok === process.env.AF_ADMIN_TOKEN;
+      if (!isAdmin && !app.accounts.findAccountByToken(tok)) { text(res, 401, 'bad token'); return; }
+      const cur = saveVersionOf(app.state);
+      json(res, 200, {
+        ok: true,
+        current: SAVE_VERSION,
+        saveVersion: cur,
+        upToDate: cur >= SAVE_VERSION,
+        pending: migrationPlan(cur).filter(m => m.needed),
+        plan: migrationPlan(1),
+      });
+      return;
+    }
+
     // 回放一致性探针（A1/M-O1 第九门消费端）：上次启动自检结论
+    // D18：含状态哈希与内存曲线（运维面），需 token；无 token 探测方（CI）用 AF_ADMIN_TOKEN 亦可
     if (u.pathname === '/af/replay-status') {
+      const tok = u.searchParams.get('token');
+      const isAdmin = !!process.env.AF_ADMIN_TOKEN && tok === process.env.AF_ADMIN_TOKEN;
+      if (!isAdmin && !app.accounts.findAccountByToken(tok)) { text(res, 401, 'bad token'); return; }
       json(res, 200, {
         ok: true,
         consistent: app.replayVerify.consistent,
@@ -361,6 +427,8 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
         // E 包：广播队列深度 + 内存曲线尾部
         broadcastQueue: app.state.broadcastQueueDepth(),
         memTail: app.memSamples.slice(-20),
+        // D17：客户端 save 直写防护计数（按拒写原因分类，异常刷可直接看见）
+        saveGuard: saveGuardStats(),
       });
       return;
     }
@@ -392,13 +460,17 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
     }
 
     // 房间码 API：当前房间码与穿透地址
+    // D18：登录屏需要免 token 拿穿透地址（设计如此），但 roomCode 是房间目录信息，带 token 才返回
     if (u.pathname === '/af/room') {
       const fwdProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
       const proto = (fwdProto === 'https' || fwdProto === 'http') ? fwdProto : ((req.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http');
       const host = req.headers.host || `127.0.0.1:${process.env.PORT || 8080}`;
+      const tok = u.searchParams.get('token');
+      const isAdmin = !!process.env.AF_ADMIN_TOKEN && tok === process.env.AF_ADMIN_TOKEN;
+      const authed = isAdmin || !!app.accounts.findAccountByToken(tok);
       json(res, 200, {
         ok: true,
-        roomCode: app.roomCode,
+        roomCode: authed ? app.roomCode : null,
         tunnelUrl: app.tunnelUrl || null,
         localUrl: `${proto}://${host}`,
       });
@@ -417,8 +489,9 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
-    // Dev: 给玩家加金币（测试用）
+    // Dev: 给玩家加金币（测试用）；D18：上线前 AF_DEV_ENDPOINTS=0 关闭
     if (u.pathname === '/af/dev/give-coins' && req.method === 'POST') {
+      if (process.env.AF_DEV_ENDPOINTS === '0') { json(res, 404, { ok: false, msg: 'dev endpoints disabled' }); return; }
       const raw = await readJsonBody(req, 1024);
       const b = GiveCoinsBody.safeParse(raw || {});
       const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
@@ -437,8 +510,9 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
-    // Dev: 给玩家加物品（测试用；P2P 交易需可卖库存）
+    // Dev: 给玩家加物品（测试用；P2P 交易需可卖库存）；D18：上线前 AF_DEV_ENDPOINTS=0 关闭
     if (u.pathname === '/af/dev/give-item' && req.method === 'POST') {
+      if (process.env.AF_DEV_ENDPOINTS === '0') { json(res, 404, { ok: false, msg: 'dev endpoints disabled' }); return; }
       const raw = await readJsonBody(req, 1024);
       const b = GiveItemBody.safeParse(raw || {});
       const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
@@ -473,7 +547,7 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       for (const [name, val] of app.state.globals) datas.push({ key: name, val });
       const pm = app.state.ensurePlayerData(uid);
       for (const [name, val] of pm) datas.push({ key: `${name}_${uid}`, val });
-      json(res, 200, { version: 4, datas, _af: { spawns: app.tables.spawns } });
+      json(res, 200, { version: SAVE_VERSION, datas, _af: { spawns: app.tables.spawns } });
       return;
     }
 
@@ -489,8 +563,9 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       return;
     }
 
-    // 在线玩家列表
+    // 在线玩家列表；D18：含 uid/昵称/坐标，需 token（陌生人不该读到在场名单与位置）
     if (u.pathname === '/af/players') {
+      if (!app.accounts.findAccountByToken(u.searchParams.get('token'))) { text(res, 401, 'bad token'); return; }
       json(res, 200, Array.from(app.state.online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })));
       return;
     }
