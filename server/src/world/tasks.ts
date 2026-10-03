@@ -49,6 +49,10 @@ export interface TaskChain {
   chapter: number;
   unlockDay: number;
   theme?: string;
+  /** 链内严格顺序：只有当前活跃阶（第一个未完成阶）计数，实现「一环扣一环」 */
+  strict?: boolean;
+  /** 前置链门槛：某链完成阶数达标才解锁（环环相扣的链间依赖） */
+  requiresChain?: { id: string; minDone: number };
   stages: ChainStage[];
 }
 export interface TaskChainDoc {
@@ -94,9 +98,23 @@ export function playerDay(state: WorldState, uid: string): number {
   return Number.isFinite(d) && d > 0 ? d : 1;
 }
 
-/** 链是否解锁（天数门槛；链内阶段无顺序限制 —— 允许玩家自由跳跃，减少硬门槛） */
+/** 链是否过天数门槛（基础判定，不含链间依赖） */
 export function chainUnlocked(chain: TaskChain, day: number): boolean {
   return day >= (chain.unlockDay || 1);
+}
+
+/**
+ * 链锁定原因（null=可玩）。天数门槛 + requiresChain 链间依赖，文本无障碍：原因必须可读。
+ * doneOf：取某链 id 的已完成阶数。
+ */
+export function chainLockReason(chain: TaskChain, day: number, doneOf: (chainId: string) => number, chainName: (chainId: string) => string): string | null {
+  if (day < (chain.unlockDay || 1)) return `第 ${chain.unlockDay} 天解锁（今天第 ${day} 天）`;
+  const req = chain.requiresChain;
+  if (req) {
+    const fin = doneOf(req.id);
+    if (fin < req.minDone) return `前置链「${chainName(req.id)}」需完成 ${req.minDone} 阶（当前 ${fin} 阶）——一环扣一环，先把上一环做完`;
+  }
+  return null;
 }
 
 export interface ChainView {
@@ -133,8 +151,11 @@ export function taskView(state: WorldState, tables: Tables, uid: string): TaskVi
     return { mode: 'legacy', chains: [], legacy, summary: `任务 ${doneN}/${legacy.length}（旧扁平任务表：data/task-chains.json 缺失）` };
   }
   const views: ChainView[] = [];
+  const doneOf = (cid: string) => t.chains?.[cid]?.doneStages.length ?? 0;
+  const chainName = (cid: string) => chains.find(c => c.id === cid)?.name ?? cid;
   for (const c of chains) {
-    const unlocked = chainUnlocked(c, day);
+    const lock = chainLockReason(c, day, doneOf, chainName);
+    const unlocked = !lock;
     const st = t.chains?.[c.id] || { doneStages: [], claimed: [] };
     const stages = c.stages.map((s) => {
       const done = st.doneStages.includes(s.id);
@@ -152,7 +173,7 @@ export function taskView(state: WorldState, tables: Tables, uid: string): TaskVi
       unlocked, unlockDay: c.unlockDay, total: stages.length, finished, stages,
       next: unlocked
         ? (nextStage ? `${nextStage.name}（${nextStage.desc}）` : '本链已全部完成')
-        : `第 ${c.unlockDay} 天解锁（今天第 ${day} 天）`,
+        : (lock ?? `第 ${c.unlockDay} 天解锁（今天第 ${day} 天）`),
     });
   }
   const totalStages = views.reduce((s, v) => s + v.total, 0);
@@ -200,20 +221,33 @@ export function taskCount(state: WorldState, tables: Tables, uid: string, type: 
       changed = true;
     }
 
-    // 任务链：同 type 的所有已解锁未完成阶段并行推进（不做链内顺序锁）
+    // 任务链：同 type 的已解锁未完成阶段推进；strict 链只推当前活跃阶（一环扣一环）
     for (const c of chainsOf(tables)) {
-      if (!chainUnlocked(c, day)) continue;
+      const lock = chainLockReason(c, day, (cid) => t.chains?.[cid]?.doneStages.length ?? 0, (cid) => chainsOf(tables).find(x => x.id === cid)?.name ?? cid);
+      if (lock) continue;
       const st = t.chains![c.id] || (t.chains![c.id] = { doneStages: [], claimed: [] });
+      const active = c.strict ? c.stages.find(s => !st.doneStages.includes(s.id)) : null;
       for (const s of c.stages) {
         if (s.type !== type || st.doneStages.includes(s.id)) continue;
+        if (active && s.id !== active.id) continue; // 严格顺序：非活跃阶不计数
         const cur = bumpProgress(t, s, n);
         if (cur >= s.count) {
           st.doneStages.push(s.id);
-          if (s.reward && s.reward.id && !st.claimed.includes(s.id)) {
-            knapAdd(pm, s.reward.id, s.reward.num || 1);
+          // 奖励发放（同源去重：金币=物品 id 1，旧档 reward:{id:1} 与 rewardCoins 是同一份，只发一次）
+          const coinReward = s.rewardCoins ?? (s.reward?.id === 1 ? s.reward.num : 0);
+          const itemReward = s.reward && s.reward.id !== 1 ? s.reward : null;
+          const rewardParts: string[] = [];
+          if (itemReward && !st.claimed.includes(s.id)) {
+            knapAdd(pm, itemReward.id, itemReward.num || 1);
             st.claimed.push(s.id);
-            msgs.push(`任务链「${c.name}」第 ${(s.stage ?? 0) + 1} 阶「${s.name}」完成，奖励 ${tables.nameOf(s.reward.id)}×${s.reward.num}`);
+            rewardParts.push(`${tables.nameOf(itemReward.id)}×${itemReward.num}`);
           }
+          if (coinReward && !st.claimed.includes(s.id + ':coins')) {
+            knapAdd(pm, 1, coinReward);
+            st.claimed.push(s.id + ':coins');
+            rewardParts.push(`金币×${coinReward}`);
+          }
+          msgs.push(`任务链「${c.name}」「${s.name}」完成${rewardParts.length ? '，奖励 ' + rewardParts.join(' + ') : ''}`);
         }
         changed = true;
       }

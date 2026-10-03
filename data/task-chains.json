@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "updated": "2026-10-03",
  "note": "N9 内容扩容：任务链（有序阶段 + 天数解锁 + 逐阶奖励）。奖励曲线与 data/economy-tables.json taskReward 对齐：第 n 阶 = base + step x n。observe.tasks.chains 与 act 任务推进都读这份数据；文件缺失时回落 server/src/world/tasks.ts 的 10 条扁平任务。",
  "rewardCurve": {
@@ -185,7 +185,7 @@
   {
    "id": "chain-woods",
    "name": "林樵夫",
-   "chapter": 2,
+   "chapter": 1,
    "unlockDay": 2,
    "theme": "林业与烹饪",
    "stages": [
@@ -246,7 +246,7 @@
   {
    "id": "chain-market",
    "name": "集市学徒",
-   "chapter": 2,
+   "chapter": 1,
    "unlockDay": 2,
    "theme": "交易",
    "stages": [
@@ -320,7 +320,7 @@
   {
    "id": "chain-social",
    "name": "人情练",
-   "chapter": 3,
+   "chapter": 1,
    "unlockDay": 3,
    "theme": "社交",
    "stages": [
@@ -394,7 +394,7 @@
   {
    "id": "chain-festival",
    "name": "岁时庆典",
-   "chapter": 4,
+   "chapter": 1,
    "unlockDay": 4,
    "theme": "节日与庭院",
    "stages": [
@@ -462,6 +462,1209 @@
      },
      "rewardCoins": 220,
      "stage": 4
+    }
+   ]
+  },
+  {
+   "id": "chain-home",
+   "name": "家的模样",
+   "chapter": 2,
+   "unlockDay": 5,
+   "theme": "春·庭院起步",
+   "strict": true,
+   "stages": [
+    {
+     "id": "hmh1",
+     "name": "拜访木匠",
+     "type": "talk",
+     "count": 1,
+     "desc": "找木匠聊聊庭院的规划（act talk 在他身边搭话）",
+     "stage": 0,
+     "rewardCoins": 40
+    },
+    {
+     "id": "hmh2",
+     "name": "添置路灯",
+     "type": "buy",
+     "count": 1,
+     "desc": "去杂货店买一盏路灯（act buy {itemId:80,num:1}）",
+     "stage": 1,
+     "rewardCoins": 40
+    },
+    {
+     "id": "hmh3",
+     "name": "添置长椅",
+     "type": "buy",
+     "count": 1,
+     "desc": "再买一条休闲长椅（id 106），放在屋前歇脚",
+     "stage": 2,
+     "rewardCoins": 40
+    },
+    {
+     "id": "hmh4",
+     "name": "装一台洒水器",
+     "type": "place",
+     "count": 1,
+     "desc": "买初级洒水器（id 77）后 act place {x,y} 装在田边，每天自动浇两遍水",
+     "stage": 3,
+     "rewardCoins": 120
+    }
+   ]
+  },
+  {
+   "id": "chain-angler",
+   "name": "渔火人家",
+   "chapter": 2,
+   "unlockDay": 6,
+   "theme": "春·渔汛初至",
+   "strict": true,
+   "stages": [
+    {
+     "id": "aga1",
+     "name": "初试竿法",
+     "type": "fish",
+     "count": 3,
+     "desc": "到水边 act fish 钓上 3 条鱼（甩竿后要等鱼上钩）",
+     "stage": 0,
+     "rewardCoins": 50
+    },
+    {
+     "id": "aga2",
+     "name": "讨教渔经",
+     "type": "talk",
+     "count": 2,
+     "desc": "向家石伯和树根讨教渔汛的门道（act talk）",
+     "stage": 1,
+     "rewardCoins": 50
+    },
+    {
+     "id": "aga3",
+     "name": "渔篓渐满",
+     "type": "fish",
+     "count": 5,
+     "desc": "再钓 5 条，凑一篓活鱼",
+     "stage": 2,
+     "rewardCoins": 60
+    },
+    {
+     "id": "aga4",
+     "name": "渔市开张",
+     "type": "trade",
+     "count": 2,
+     "desc": "把鱼挂单卖 2 次（act trade），换回第一批渔利",
+     "stage": 3,
+     "reward": {
+      "id": 59,
+      "num": 5
+     },
+     "rewardCoins": 80
+    }
+   ]
+  },
+  {
+   "id": "chain-miner",
+   "name": "矿脉初探",
+   "chapter": 2,
+   "unlockDay": 7,
+   "theme": "春·叩响山石",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-home",
+    "minDone": 4
+   },
+   "stages": [
+    {
+     "id": "mnm1",
+     "name": "进山",
+     "type": "move_to",
+     "count": 1,
+     "desc": "act move_to {near:\"矿坑\"} 走到矿坑入口",
+     "stage": 0,
+     "rewardCoins": 60
+    },
+    {
+     "id": "mnm2",
+     "name": "第一镐",
+     "type": "mine",
+     "count": 6,
+     "desc": "act mine 敲下 6 块矿石",
+     "stage": 1,
+     "rewardCoins": 60
+    },
+    {
+     "id": "mnm3",
+     "name": "矿脉渐明",
+     "type": "mine",
+     "count": 10,
+     "desc": "再敲 10 块，铜铁各留几块",
+     "stage": 2,
+     "reward": {
+      "id": 62,
+      "num": 1
+     },
+     "rewardCoins": 100
+    },
+    {
+     "id": "mnm4",
+     "name": "找木匠掌眼",
+     "type": "talk",
+     "count": 1,
+     "desc": "带矿石给木匠看看能不能打工具",
+     "stage": 3,
+     "rewardCoins": 120
+    }
+   ]
+  },
+  {
+   "id": "chain-cook",
+   "name": "梅姨的灶台",
+   "chapter": 2,
+   "unlockDay": 8,
+   "theme": "春·人间烟火",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-angler",
+    "minDone": 4
+   },
+   "stages": [
+    {
+     "id": "ckc1",
+     "name": "拜师学艺",
+     "type": "talk",
+     "count": 2,
+     "desc": "向梅姨讨教两道家常菜的做法",
+     "stage": 0,
+     "rewardCoins": 60
+    },
+    {
+     "id": "ckc2",
+     "name": "备齐食材",
+     "type": "buy",
+     "count": 2,
+     "desc": "从杂货店买 2 次食材",
+     "stage": 1,
+     "rewardCoins": 60
+    },
+    {
+     "id": "ckc3",
+     "name": "自家园子里",
+     "type": "harvest",
+     "count": 3,
+     "desc": "收 3 个自种作物入菜",
+     "stage": 2,
+     "rewardCoins": 80
+    },
+    {
+     "id": "ckc4",
+     "name": "第一桌席面",
+     "type": "trade",
+     "count": 1,
+     "desc": "把成菜摆上集市卖掉 1 单",
+     "stage": 3,
+     "reward": {
+      "id": 25,
+      "num": 2
+     },
+     "rewardCoins": 100
+    }
+   ]
+  },
+  {
+   "id": "chain-chronicle1",
+   "name": "村志·卷一",
+   "chapter": 2,
+   "unlockDay": 10,
+   "theme": "史诗·春卷",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-farmer",
+    "minDone": 6
+   },
+   "stages": [
+    {
+     "id": "z1z1",
+     "name": "拜见村长",
+     "type": "talk",
+     "count": 1,
+     "desc": "村长说要给你记一笔村志",
+     "stage": 0,
+     "rewardCoins": 100
+    },
+    {
+     "id": "z1z2",
+     "name": "村史半日",
+     "type": "talk",
+     "count": 1,
+     "desc": "听村长夫人讲建村的故事",
+     "stage": 1,
+     "rewardCoins": 100
+    },
+    {
+     "id": "z1z3",
+     "name": "登气象台",
+     "type": "move_to",
+     "count": 1,
+     "desc": "act move_to {near:\"气象台\"} 登塔远眺全村",
+     "stage": 2,
+     "rewardCoins": 120
+    },
+    {
+     "id": "z1z4",
+     "name": "体魄初测",
+     "type": "train",
+     "count": 1,
+     "desc": "去健身房 act train 测一次身手",
+     "stage": 3,
+     "rewardCoins": 120
+    },
+    {
+     "id": "z1z5",
+     "name": "门面担当",
+     "type": "courtyard",
+     "count": 1,
+     "desc": "act courtyard 查看庭院竞赛榜，把院子拾掇成村的门面",
+     "stage": 4,
+     "reward": {
+      "id": 86,
+      "num": 1
+     },
+     "rewardCoins": 150
+    }
+   ]
+  },
+  {
+   "id": "chain-plantation",
+   "name": "大种植园",
+   "chapter": 3,
+   "unlockDay": 11,
+   "theme": "夏·沃土",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-farmer",
+    "minDone": 4
+   },
+   "stages": [
+    {
+     "id": "plp1",
+     "name": "开荒八亩",
+     "type": "till",
+     "count": 8,
+     "desc": "犁 8 块地",
+     "stage": 0,
+     "rewardCoins": 80
+    },
+    {
+     "id": "plp2",
+     "name": "夏播",
+     "type": "plant",
+     "count": 12,
+     "desc": "播下 12 颗种子（玉米/胡萝卜正当时）",
+     "stage": 1,
+     "rewardCoins": 80
+    },
+    {
+     "id": "plp3",
+     "name": "灌溉",
+     "type": "water",
+     "count": 15,
+     "desc": "浇 15 次水",
+     "stage": 2,
+     "rewardCoins": 100
+    },
+    {
+     "id": "plp4",
+     "name": "夏收",
+     "type": "harvest",
+     "count": 12,
+     "desc": "收 12 个成熟作物",
+     "stage": 3,
+     "reward": {
+      "id": 78,
+      "num": 2
+     },
+     "rewardCoins": 120
+    },
+    {
+     "id": "plp5",
+     "name": "粮栈大单",
+     "type": "trade",
+     "count": 3,
+     "desc": "卖出 3 单粮食",
+     "stage": 4,
+     "rewardCoins": 150
+    }
+   ]
+  },
+  {
+   "id": "chain-fishking",
+   "name": "渔王争霸",
+   "chapter": 3,
+   "unlockDay": 13,
+   "theme": "夏·大鱼",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-angler",
+    "minDone": 4
+   },
+   "stages": [
+    {
+     "id": "fkk1",
+     "name": "百日竿",
+     "type": "fish",
+     "count": 10,
+     "desc": "钓 10 条鱼",
+     "stage": 0,
+     "rewardCoins": 100
+    },
+    {
+     "id": "fkk2",
+     "name": "禅师点拨",
+     "type": "talk",
+     "count": 2,
+     "desc": "向二休禅师请教「钓而不争」的境界",
+     "stage": 1,
+     "rewardCoins": 100
+    },
+    {
+     "id": "fkk3",
+     "name": "再战",
+     "type": "fish",
+     "count": 15,
+     "desc": "累计再钓 15 条",
+     "stage": 2,
+     "rewardCoins": 120
+    },
+    {
+     "id": "fkk4",
+     "name": "报喜信",
+     "type": "letter",
+     "count": 1,
+     "desc": "给村里任何一位在线的人写信报喜（act letter {to,body}）",
+     "stage": 3,
+     "rewardCoins": 120
+    },
+    {
+     "id": "fkk5",
+     "name": "鱼王出货",
+     "type": "trade",
+     "count": 4,
+     "desc": "卖出 4 单渔获",
+     "stage": 4,
+     "reward": {
+      "id": 85,
+      "num": 1
+     },
+     "rewardCoins": 200
+    }
+   ]
+  },
+  {
+   "id": "chain-forge",
+   "name": "木匠的订单",
+   "chapter": 3,
+   "unlockDay": 15,
+   "theme": "夏·炉火",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-miner",
+    "minDone": 4
+   },
+   "stages": [
+    {
+     "id": "fgw1",
+     "name": "备料",
+     "type": "chop",
+     "count": 10,
+     "desc": "砍 10 棵树",
+     "stage": 0,
+     "rewardCoins": 100
+    },
+    {
+     "id": "fgw2",
+     "name": "矿石齐",
+     "type": "mine",
+     "count": 12,
+     "desc": "再挖 12 块矿石",
+     "stage": 1,
+     "rewardCoins": 100
+    },
+    {
+     "id": "fgw3",
+     "name": "添煤",
+     "type": "buy",
+     "count": 1,
+     "desc": "买一份煤炭（act buy {itemId:109,num:1}）",
+     "stage": 2,
+     "rewardCoins": 100
+    },
+    {
+     "id": "fgw4",
+     "name": "对图纸",
+     "type": "talk",
+     "count": 2,
+     "desc": "和木匠核对两轮图纸",
+     "stage": 3,
+     "rewardCoins": 120
+    },
+    {
+     "id": "fgw5",
+     "name": "下订单",
+     "type": "letter",
+     "count": 1,
+     "desc": "写信给杂货店老板订下工具配件",
+     "stage": 4,
+     "reward": {
+      "id": 101,
+      "num": 1
+     },
+     "rewardCoins": 200
+    }
+   ]
+  },
+  {
+   "id": "chain-road",
+   "name": "商路初开",
+   "chapter": 3,
+   "unlockDay": 17,
+   "theme": "夏·商道",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-market",
+    "minDone": 3
+   },
+   "stages": [
+    {
+     "id": "rdr1",
+     "name": "进货",
+     "type": "buy",
+     "count": 5,
+     "desc": "买 5 次货",
+     "stage": 0,
+     "rewardCoins": 120
+    },
+    {
+     "id": "rdr2",
+     "name": "出货",
+     "type": "trade",
+     "count": 5,
+     "desc": "卖 5 单",
+     "stage": 1,
+     "rewardCoins": 120
+    },
+    {
+     "id": "rdr3",
+     "name": "打听行情",
+     "type": "talk",
+     "count": 3,
+     "desc": "向屠夫、赵香茹、小青打听各家行情",
+     "stage": 2,
+     "rewardCoins": 120
+    },
+    {
+     "id": "rdr4",
+     "name": "结盟",
+     "type": "bind",
+     "count": 1,
+     "desc": "和一位玩家或村民结为好友（act bind）",
+     "stage": 3,
+     "rewardCoins": 150
+    },
+    {
+     "id": "rdr5",
+     "name": "悬赏",
+     "type": "delegate",
+     "count": 1,
+     "desc": "act delegate {op:\"publish\",task,num} 挂出一张委托",
+     "stage": 4,
+     "reward": {
+      "id": 22,
+      "num": 1
+     },
+     "rewardCoins": 200
+    }
+   ]
+  },
+  {
+   "id": "chain-chronicle2",
+   "name": "村志·卷二",
+   "chapter": 3,
+   "unlockDay": 20,
+   "theme": "史诗·夏卷",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-chronicle1",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "z2z1",
+     "name": "村长再召",
+     "type": "talk",
+     "count": 1,
+     "desc": "村长又找你议事",
+     "stage": 0,
+     "rewardCoins": 150
+    },
+    {
+     "id": "z2z2",
+     "name": "家乡礼",
+     "type": "give",
+     "count": 1,
+     "desc": "给村长夫人送一份礼物（act give {target,itemId,num}）",
+     "stage": 1,
+     "rewardCoins": 150
+    },
+    {
+     "id": "z2z3",
+     "name": "陪钓",
+     "type": "fish",
+     "count": 3,
+     "desc": "陪家石伯钓 3 竿",
+     "stage": 2,
+     "rewardCoins": 150
+    },
+    {
+     "id": "z2z4",
+     "name": "强身",
+     "type": "train",
+     "count": 2,
+     "desc": "训练 2 次",
+     "stage": 3,
+     "rewardCoins": 180
+    },
+    {
+     "id": "z2z5",
+     "name": "观天",
+     "type": "forecast",
+     "count": 1,
+     "desc": "act forecast 看一次明日天气，村志记下你看天像看账本一样准",
+     "stage": 4,
+     "reward": {
+      "id": 100,
+      "num": 1
+     },
+     "rewardCoins": 250
+    }
+   ]
+  },
+  {
+   "id": "chain-harvestfeast",
+   "name": "金色麦浪",
+   "chapter": 4,
+   "unlockDay": 21,
+   "theme": "秋·丰收",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-plantation",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "hfg1",
+     "name": "秋收开镰",
+     "type": "harvest",
+     "count": 15,
+     "desc": "收 15 个作物",
+     "stage": 0,
+     "rewardCoins": 150
+    },
+    {
+     "id": "hfg2",
+     "name": "补种二茬",
+     "type": "water",
+     "count": 10,
+     "desc": "浇 10 次",
+     "stage": 1,
+     "rewardCoins": 150
+    },
+    {
+     "id": "hfg3",
+     "name": "粮仓满仓",
+     "type": "trade",
+     "count": 5,
+     "desc": "卖 5 单",
+     "stage": 2,
+     "rewardCoins": 180
+    },
+    {
+     "id": "hfg4",
+     "name": "订肉宴",
+     "type": "talk",
+     "count": 2,
+     "desc": "和屠夫敲定丰收宴的肉",
+     "stage": 3,
+     "rewardCoins": 150
+    },
+    {
+     "id": "hfg5",
+     "name": "宴席物料",
+     "type": "buy",
+     "count": 2,
+     "desc": "买 2 次物料",
+     "stage": 4,
+     "reward": {
+      "id": 79,
+      "num": 1
+     },
+     "rewardCoins": 250
+    }
+   ]
+  },
+  {
+   "id": "chain-koi",
+   "name": "锦鲤传说",
+   "chapter": 4,
+   "unlockDay": 23,
+   "theme": "秋·锦鲤",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-fishking",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "koj1",
+     "name": "寻鲤",
+     "type": "fish",
+     "count": 15,
+     "desc": "钓 15 条",
+     "stage": 0,
+     "rewardCoins": 180
+    },
+    {
+     "id": "koj2",
+     "name": "传说",
+     "type": "talk",
+     "count": 2,
+     "desc": "向明珠和飞英打听锦鲤的传说",
+     "stage": 1,
+     "rewardCoins": 180
+    },
+    {
+     "id": "koj3",
+     "name": "远钓点",
+     "type": "move_to",
+     "count": 1,
+     "desc": "act move_to 走到村里最远的水湾",
+     "stage": 2,
+     "rewardCoins": 180
+    },
+    {
+     "id": "koj4",
+     "name": "守竿",
+     "type": "fish",
+     "count": 20,
+     "desc": "再钓 20 条，等那一尾红影",
+     "stage": 3,
+     "reward": {
+      "id": 70,
+      "num": 1
+     },
+     "rewardCoins": 220
+    },
+    {
+     "id": "koj5",
+     "name": "喜报",
+     "type": "letter",
+     "count": 1,
+     "desc": "act letter {to,body} 给村里任何一位在线的人写信报喜",
+     "stage": 4,
+     "rewardCoins": 220
+    }
+   ]
+  },
+  {
+   "id": "chain-deepwood",
+   "name": "深山老林",
+   "chapter": 4,
+   "unlockDay": 25,
+   "theme": "秋·木料",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-forge",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "dwd1",
+     "name": "入山",
+     "type": "chop",
+     "count": 15,
+     "desc": "砍 15 棵树",
+     "stage": 0,
+     "rewardCoins": 180
+    },
+    {
+     "id": "dwd2",
+     "name": "越岭",
+     "type": "move_to",
+     "count": 1,
+     "desc": "act move_to 走到山林深处",
+     "stage": 1,
+     "rewardCoins": 180
+    },
+    {
+     "id": "dwd3",
+     "name": "再入",
+     "type": "chop",
+     "count": 20,
+     "desc": "累计再砍 20 棵",
+     "stage": 2,
+     "rewardCoins": 200
+    },
+    {
+     "id": "dwd4",
+     "name": "木匠验收",
+     "type": "talk",
+     "count": 2,
+     "desc": "请木匠验收两批木料",
+     "stage": 3,
+     "rewardCoins": 200
+    },
+    {
+     "id": "dwd5",
+     "name": "木料出山",
+     "type": "trade",
+     "count": 3,
+     "desc": "卖 3 单木材",
+     "stage": 4,
+     "reward": {
+      "id": 98,
+      "num": 1
+     },
+     "rewardCoins": 280
+    }
+   ]
+  },
+  {
+   "id": "chain-hearts",
+   "name": "人情练达",
+   "chapter": 4,
+   "unlockDay": 27,
+   "theme": "秋·人情",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-social",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "hte1",
+     "name": "串门",
+     "type": "talk",
+     "count": 8,
+     "desc": "和村里的人聊 8 次",
+     "stage": 0,
+     "rewardCoins": 180
+    },
+    {
+     "id": "hte2",
+     "name": "手信",
+     "type": "give",
+     "count": 3,
+     "desc": "送 3 次礼",
+     "stage": 1,
+     "rewardCoins": 180
+    },
+    {
+     "id": "hte3",
+     "name": "两地书",
+     "type": "letter",
+     "count": 2,
+     "desc": "写 2 封信",
+     "stage": 2,
+     "rewardCoins": 180
+    },
+    {
+     "id": "hte4",
+     "name": "知己",
+     "type": "bind",
+     "count": 2,
+     "desc": "结为 2 次好友",
+     "stage": 3,
+     "rewardCoins": 220
+    },
+    {
+     "id": "hte5",
+     "name": "信誉",
+     "type": "delegate",
+     "count": 2,
+     "desc": "挂 2 张委托",
+     "stage": 4,
+     "reward": {
+      "id": 51,
+      "num": 3
+     },
+     "rewardCoins": 260
+    }
+   ]
+  },
+  {
+   "id": "chain-chronicle3",
+   "name": "村志·卷三",
+   "chapter": 4,
+   "unlockDay": 30,
+   "theme": "史诗·秋卷",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-chronicle2",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "z3z1",
+     "name": "村长托付",
+     "type": "talk",
+     "count": 1,
+     "desc": "村长把秋祭的差事交给你",
+     "stage": 0,
+     "rewardCoins": 200
+    },
+    {
+     "id": "z3z2",
+     "name": "庭院秋容",
+     "type": "courtyard",
+     "count": 1,
+     "desc": "act courtyard 看庭院秋容",
+     "stage": 1,
+     "rewardCoins": 200
+    },
+    {
+     "id": "z3z3",
+     "name": "秋操",
+     "type": "train",
+     "count": 3,
+     "desc": "训练 3 次",
+     "stage": 2,
+     "rewardCoins": 220
+    },
+    {
+     "id": "z3z4",
+     "name": "采买祭品",
+     "type": "buy",
+     "count": 3,
+     "desc": "买 3 次祭品物料",
+     "stage": 3,
+     "rewardCoins": 220
+    },
+    {
+     "id": "z3z5",
+     "name": "秋祭市集",
+     "type": "trade",
+     "count": 2,
+     "desc": "卖 2 单",
+     "stage": 4,
+     "reward": {
+      "id": 99,
+      "num": 1
+     },
+     "rewardCoins": 350
+    }
+   ]
+  },
+  {
+   "id": "chain-cleanup",
+   "name": "岁末大扫除",
+   "chapter": 5,
+   "unlockDay": 31,
+   "theme": "冬·备冬",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-deepwood",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "clx1",
+     "name": "备柴",
+     "type": "chop",
+     "count": 10,
+     "desc": "砍 10 棵树备过冬柴火",
+     "stage": 0,
+     "rewardCoins": 200
+    },
+    {
+     "id": "clx2",
+     "name": "补煤",
+     "type": "mine",
+     "count": 10,
+     "desc": "挖 10 块矿石",
+     "stage": 1,
+     "rewardCoins": 200
+    },
+    {
+     "id": "clx3",
+     "name": "翻田",
+     "type": "till",
+     "count": 6,
+     "desc": "犁 6 块地养地力",
+     "stage": 2,
+     "rewardCoins": 200
+    },
+    {
+     "id": "clx4",
+     "name": "封冻水",
+     "type": "water",
+     "count": 8,
+     "desc": "浇 8 次封冻水",
+     "stage": 3,
+     "rewardCoins": 220
+    },
+    {
+     "id": "clx5",
+     "name": "再添两泵",
+     "type": "place",
+     "count": 2,
+     "desc": "再装 2 台洒水器",
+     "stage": 4,
+     "reward": {
+      "id": 59,
+      "num": 10
+     },
+     "rewardCoins": 300
+    }
+   ]
+  },
+  {
+   "id": "chain-newyear",
+   "name": "年货大集",
+   "chapter": 5,
+   "unlockDay": 33,
+   "theme": "冬·年货",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-road",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "nyn1",
+     "name": "年货出仓",
+     "type": "trade",
+     "count": 8,
+     "desc": "卖 8 单",
+     "stage": 0,
+     "rewardCoins": 250
+    },
+    {
+     "id": "nyn2",
+     "name": "年货进仓",
+     "type": "buy",
+     "count": 8,
+     "desc": "买 8 次",
+     "stage": 1,
+     "rewardCoins": 250
+    },
+    {
+     "id": "nyn3",
+     "name": "拜早年",
+     "type": "talk",
+     "count": 4,
+     "desc": "给树根、树根嫂、屠夫、梅姨拜早年",
+     "stage": 2,
+     "rewardCoins": 250
+    },
+    {
+     "id": "nyn4",
+     "name": "压岁礼",
+     "type": "give",
+     "count": 2,
+     "desc": "送 2 次年礼",
+     "stage": 3,
+     "rewardCoins": 250
+    },
+    {
+     "id": "nyn5",
+     "name": "拜年信",
+     "type": "letter",
+     "count": 2,
+     "desc": "寄 2 封拜年信",
+     "stage": 4,
+     "reward": {
+      "id": 25,
+      "num": 3
+     },
+     "rewardCoins": 400
+    }
+   ]
+  },
+  {
+   "id": "chain-warmsoup",
+   "name": "暖冬鱼汤",
+   "chapter": 5,
+   "unlockDay": 35,
+   "theme": "冬·灶火",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-koi",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "wso1",
+     "name": "冬捕",
+     "type": "fish",
+     "count": 12,
+     "desc": "钓 12 条",
+     "stage": 0,
+     "rewardCoins": 220
+    },
+    {
+     "id": "wso2",
+     "name": "汤谱",
+     "type": "talk",
+     "count": 2,
+     "desc": "向红英和小树根讨教鱼汤谱",
+     "stage": 1,
+     "rewardCoins": 220
+    },
+    {
+     "id": "wso3",
+     "name": "佐料",
+     "type": "buy",
+     "count": 2,
+     "desc": "买 2 次佐料",
+     "stage": 2,
+     "rewardCoins": 220
+    },
+    {
+     "id": "wso4",
+     "name": "一锅鲜",
+     "type": "trade",
+     "count": 2,
+     "desc": "卖 2 单",
+     "stage": 3,
+     "reward": {
+      "id": 24,
+      "num": 2
+     },
+     "rewardCoins": 300
+    }
+   ]
+  },
+  {
+   "id": "chain-chronicle4",
+   "name": "村志·终章",
+   "chapter": 5,
+   "unlockDay": 38,
+   "theme": "史诗·冬卷",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-chronicle3",
+    "minDone": 5
+   },
+   "stages": [
+    {
+     "id": "z4z1",
+     "name": "年终致辞",
+     "type": "talk",
+     "count": 1,
+     "desc": "听村长的年终致辞",
+     "stage": 0,
+     "rewardCoins": 300
+    },
+    {
+     "id": "z4z2",
+     "name": "最后一茬",
+     "type": "harvest",
+     "count": 5,
+     "desc": "收 5 个作物",
+     "stage": 1,
+     "rewardCoins": 300
+    },
+    {
+     "id": "z4z3",
+     "name": "守岁鱼",
+     "type": "fish",
+     "count": 5,
+     "desc": "钓 5 条守岁鱼",
+     "stage": 2,
+     "rewardCoins": 300
+    },
+    {
+     "id": "z4z4",
+     "name": "迎新操",
+     "type": "train",
+     "count": 5,
+     "desc": "训练 5 次，强身迎新年",
+     "stage": 3,
+     "rewardCoins": 350
+    },
+    {
+     "id": "z4z5",
+     "name": "年终开摊",
+     "type": "stall",
+     "count": 1,
+     "desc": "等年终集市开锣（每季最后一天），act stall 开摊",
+     "stage": 4,
+     "rewardCoins": 500
+    },
+    {
+     "id": "z4z6",
+     "name": "年终冲榜",
+     "type": "courtyard",
+     "count": 1,
+     "desc": "act courtyard 年终庭院竞赛冲一回榜",
+     "stage": 5,
+     "reward": {
+      "id": 13,
+      "num": 1
+     },
+     "rewardCoins": 800
+    }
+   ]
+  },
+  {
+   "id": "chain-yearone",
+   "name": "一年之约",
+   "chapter": 5,
+   "unlockDay": 40,
+   "theme": "史诗·一周年",
+   "strict": true,
+   "requiresChain": {
+    "id": "chain-chronicle4",
+    "minDone": 6
+   },
+   "stages": [
+    {
+     "id": "yoy1",
+     "name": "一年故事",
+     "type": "talk",
+     "count": 3,
+     "desc": "和村长、家石伯、明珠聊聊这一年的故事",
+     "stage": 0,
+     "rewardCoins": 500
+    },
+    {
+     "id": "yoy2",
+     "name": "来年之约",
+     "type": "bind",
+     "count": 1,
+     "desc": "和一位老友确认来年之约（act bind）",
+     "stage": 1,
+     "rewardCoins": 500
+    },
+    {
+     "id": "yoy3",
+     "name": "给明年的自己",
+     "type": "letter",
+     "count": 1,
+     "desc": "写一封给明年的自己的信",
+     "stage": 2,
+     "rewardCoins": 500
+    },
+    {
+     "id": "yoy4",
+     "name": "回家",
+     "type": "move_to",
+     "count": 1,
+     "desc": "act move_to {near:\"家\"} 回到自家的门口——一年了，门还是那扇门",
+     "stage": 3,
+     "reward": {
+      "id": 13,
+      "num": 2
+     },
+     "rewardCoins": 2000
     }
    ]
   }

@@ -46,7 +46,8 @@ describe('任务链数据（data/task-chains.json）', () => {
         expect(s.type).toBeTruthy();
         expect(s.count).toBeGreaterThanOrEqual(1);
         expect(s.desc.length).toBeGreaterThan(4);
-        expect(s.reward && s.reward.id && s.reward.num > 0).toBe(true);
+        // 奖励 = 物品或金币（rewardCoins）至少其一；纯金币阶 reward 可为空
+        expect((s.reward && s.reward.id && s.reward.num > 0) || (s.rewardCoins ?? 0) > 0).toBe(true);
       }
     }
     // 链按天数解锁递进（同一章内不要求严格递增，但整体首链最早）
@@ -118,7 +119,8 @@ describe('任务链推进', () => {
     const st = tasksOf(state, 'u1').chains![river.id];
     expect(st.doneStages).toContain('r2');
     expect(st.doneStages).toContain('r3');
-    expect(st.claimed.filter(x => x === 'r3').length).toBe(1);
+    // 金币奖励（reward:{id:1} 与 rewardCoins 同源）claim 标记为 'r3:coins'
+    expect(st.claimed.filter(x => x === 'r3' || x === 'r3:coins').length).toBe(1);
     // 再来一次不重复发奖（阶段已完成）
     taskCount(state, tables, 'u1', 'fish');
     expect(coins(state, 'u1')).toBe(after);
@@ -148,6 +150,37 @@ describe('任务链推进', () => {
     const t = tasksOf(state, 'u1');
     expect(t.list.task6.cur).toBe(1);
     expect(t.done.task6).toBe(true);
+  });
+
+  it('strict 链一环扣一环：只有当前活跃阶计数，前置未完成锁定', () => {
+    const { state, tables } = fixture();
+    // chain-chronicle1 是 strict 且 requiresChain chain-farmer 6/6；玩家 day=1 双重锁定
+    const v0 = taskView(state, tables, 'u1');
+    const ep1 = v0.chains.find(c => c.id === 'chain-chronicle1')!;
+    expect(ep1.unlocked).toBe(false);
+    expect(ep1.next).toContain('第 10 天解锁');
+    // 把玩家日子推进到解锁日，仍被前置链锁住
+    const pd = state.playersDb.get('u1')!.get('playerData') as { day?: number };
+    pd.day = 10;
+    taskCount(state, tables, 'u1', 'talk', 5); // 村志需要 talk，但前置链「新农人」未完成
+    const t = tasksOf(state, 'u1');
+    expect(t.chains!['chain-chronicle1']?.doneStages ?? []).toEqual([]);
+    // 完成前置链后，strict 链只推进活跃阶 z1（talk），z2 也是 talk 却不被推
+    const farmer = chainsOf(tables).find(c => c.id === 'chain-farmer')!;
+    for (const stg of farmer.stages) for (let i = 0; i < stg.count; i++) taskCount(state, tables, 'u1', stg.type);
+    for (let i = 0; i < 1; i++) taskCount(state, tables, 'u1', 'talk');
+    const ep = t.chains!['chain-chronicle1'];
+    expect(ep.doneStages).toEqual(['z1z1']);      // 1 次 talk 只推活跃阶 z1z1
+    for (let i = 0; i < 3; i++) taskCount(state, tables, 'u1', 'talk'); // 补够剩余 talk 阶
+    expect(ep.doneStages).toEqual(['z1z1', 'z1z2']);
+    expect(ep.doneStages.length).toBe(2);         // 非 talk 型阶段（台顶/训练/比赛）未混水
+    // 锁定文案给出前置链名与进度
+    const v2 = taskView(state, tables, 'u1');
+    // 矿脉初探：第 7 天已过（今天 10 天）但前置「家的模样」未完成 -> 文案必须点名前置链
+    const locked = v2.chains.find(c => c.id === 'chain-miner')!;
+    expect(locked.unlocked).toBe(false);
+    expect(locked.next).toContain('家的模样');
+    expect(locked.next).toContain('一环扣一环');
   });
 
   it('任务视图是唯一出口：含 summary/next 文本指引', () => {

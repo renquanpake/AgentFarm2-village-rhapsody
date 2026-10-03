@@ -636,7 +636,7 @@ export function gameConn(app: App, ws: WebSocket): void {
           total: d.count, done: !!t.done[d.id],
           reward: d.reward ? `${taskRewardNameInline(app, d.reward.id)}×${d.reward.num}` : '',
         }));
-        send({ t: 'task_list', tasks: out });
+        send({ t: 'task_list', tasks: out, view: taskView(state, app.tables, uid!) });
         break;
       }
       case 'agent_msg': {
@@ -955,6 +955,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             if (!target) { result = { ok: false, msg: `收信人 ${to} 不在线（在线：${Array.from(state.online.values()).map(o => o.nick).join('/') || '无'}）` }; continue; }
             app.inboxPush(String(target.uid), nick, `[letter] ${body}`);
             publish(`给${target.nick}写了封信`);
+            taskCount(state, app.tables, uid, 'letter');  // 任务链「互通书信/寄信」
             result = { ok: true, to: target.nick, msg: '信已投进对方邮局（对方 observe 的 inbox 可见）' };
           } else if (action === 'forecast') {
             // P2 气象台（北环小塔）：明日天气预告（日历确定性纯函数；投保钩子随经济类 M-B1 冻结，此处只播报）
@@ -964,6 +965,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             if (tm.weather === 'storm') hints.push(`明日风暴：作物受灾（保险赔付 ${STORM_INSURANCE_PER_PLANT}/株 次日发放）`);
             if (tm.weather === 'rain') hints.push('明日有雨（生长 x1.5，钓点丰收）');
             if (tm.festival) hints.push(`明日节日「${tm.festival}」：赛事锚点在村中央宴会厅（observe 的 festival 字段有明细）`);
+            taskCount(state, app.tables, uid, 'forecast'); // 任务链「看天气/赴会准备」
             result = { ok: true, day, tomorrow: { season: tm.season, weather: tm.weather, festival: tm.festival }, hints, msg: `明日（第 ${day + 1} 天）${tm.weather === 'clear' ? '晴朗' : tm.weather === 'rain' ? '有雨' : tm.weather === 'snow' ? '下雪' : '风暴'}` };
           } else if (action === 'train') {
             // P2 健身房（东环新楼）：属性训练（力量/敏捷/亲和）+ 冷却；位置门：健身房门位 6 格内
@@ -974,6 +976,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const inGym = Math.abs(Math.floor((apos.x ?? 0) / 100) - gx) <= 6 && Math.abs(Math.floor((apos.y ?? 0) / 100) - gy) <= 6;
             if (!inGym) { result = { ok: false, msg: `离健身房太远（需 move_to {near:"健身房"} 到门位附近）` }; continue; }
             const tr = trainAttr(state, uid, String(msg.attr || ''), Date.now());
+            if (tr.ok) { taskCount(state, app.tables, uid, 'train'); app.log.append('task.progress', uid, { uid, type: 'train', n: 1 }); }
             result = tr.ok
               ? { ok: true, attr: msg.attr, level: tr.level, msg: tr.msg }
               : { ok: false, waitSec: tr.waitSec, msg: tr.msg };
@@ -1440,6 +1443,7 @@ responseType = 'move_started';
             app.log.append('sprinkler.placed', uid, { x: gx, y: gy, level: level ?? 0, owner: uid });
             const rangeLabel: Record<number, string> = { 1: '3×3', 2: '5×5', 3: '7×7' };
             const rangeTxt = rangeLabel[level ?? 1];
+            taskCount(state, app.tables, uid, 'place');   // 任务链「安装洒水器/庭院布置」
             result = { ok: true, placed: { name: it.name, gx, gy, level, range: rangeTxt }, msg: `已安装${it.name}（覆盖 ${rangeTxt} 范围，每天自动浇水2次）` };
           } else if (action === 'adopt') {
             // B9 领养动物（受畜棚容量限制）
@@ -1507,6 +1511,7 @@ responseType = 'move_started';
             const score = courtyardScore(state, app.tables, uid);
             const comp = courtyardCompletion(state, app.tables, uid, houseId);
             const rank = courtyardContest(app);
+            taskCount(state, app.tables, uid, 'courtyard'); // 任务链「庭院竞赛/布置验收」
             result = { ok: true, score, completion: Math.round(comp * 100) + '%', rank: rank.slice(0, 10) };
           } else if (action === 'stall') {
             // B11 节日集市开摊：摊位费 = 基础 100 × B3 通胀回收系数（节日日集市开启）
@@ -1520,6 +1525,7 @@ responseType = 'move_started';
             if (!stalls.some(s => s.uid === uid)) stalls.push({ uid, ts: Date.now() });
             state.world.set('afStalls', stalls);
             state.persist();
+            taskCount(state, app.tables, uid, 'stall');   // 任务链「节日开摊」
             app.log.append('market.stall', uid, { uid, fee, festival: fest });
               publish(`${nick} 在集市开了摊位（费 ${fee}）`);
               result = { ok: true, fee, festival: fest, msg: `已在${fest}集市开摊（摊位费 ${fee}，含通胀系数）` };
@@ -1530,6 +1536,7 @@ responseType = 'move_started';
               if (op === 'publish') {
                 const r = delegatePublish(state, uid, String(msg.task || '未注明任务'), Number(msg.itemId || 1), Math.max(1, Math.min(9999, Number(msg.num || 1))), tick);
                 if (r.ok) {
+                  taskCount(state, app.tables, uid, 'delegate');  // 任务链「挂出委托」
                   app.log.append('delegate.published', uid, { uid, id: r.id, task: String(msg.task), itemId: Number(msg.itemId || 1), num: Number(msg.num || 1) });
                   recordGossip(state, tick, 'delegate', `${nick} 挂出委托「${String(msg.task || '未注明任务')}」，报酬 ${Number(msg.num || 1)}${msg.itemId === 1 ? ' 金币' : ''}`);
                 }

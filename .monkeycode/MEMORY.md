@@ -94,4 +94,5 @@
 - 本次会话出现过的 GitHub PAT 应由用户撤销（含 2026-09-30 用户在聊天中直接提供、用于绕开故障凭据服务完成推送的那枚 ghp_ 开头 PAT——聊天暴露即视为泄露，尽快轮换；本地 /root/.git-credentials 已删除）。
 - 2026-09-29 用户在聊天中提供过 agnes-ai Key（.env 的 USER_IMG_* 与 AF_LLM_*，未入库）；该 Key 已在会话中暴露，**建议轮换**后更新 `.env`/`.env.local`。
 - 服务端自身零池化 LLM 密钥；玩家 Key 经 `AF_AES_KEY` 派生的 AES-256-GCM 加密保管，接口永不回显明文。
+- **任务书引擎扩展（2026-10-03）**：`data/task-chains.json` 链对象新增 `strict`（链内严格顺序，只推进第一个未完成阶）与 `requiresChain: {id,minDone}`（链间前置依赖）——「一环扣一环」由 `chainLockReason()` 统一判定并输出**可读锁定文案**（第 X 天解锁 / 前置链需完成 Y 阶，走文本通道）。阶段奖励双轨 `reward{id,num} + rewardCoins`：**同源陷阱**——金币就是物品 id 1，旧档 `reward:{id:1,num:60}` 与 `rewardCoins:60` 是同一份钱，发放逻辑必须二选一否则双发（已做同源去重，claim 标记 `<id>:coins`）。`/ws` 通道 `task_list` 附带 `view=taskView()`（客户端任务书五章分组+链折叠渲染）。新增动作计数点：train/place/letter/courtyard/forecast/stall/delegate（ws.ts，全部只在 ok 分支计数）。
 - **任务链走查与验证纪律（2026-10-03）**：`tools/task-chain-walkthrough.mjs` 自当玩家逐阶执行 6 链 31 阶，判定 PASS/BLOCKED/FAIL（FAIL=动作成功但不推进=缺陷），报告写 `/tmp/af-walk/report.json`。收口结论：7/31 阶推进、缺陷 0 项，剩余阻塞全是节奏设计（生长 1 游戏日/钓鱼 59s/社交第 3 天/节日第 4 天解锁）。**教训：改 `server/src/**` 后必须重启实例再跑验收——曾把「实例跑旧代码」误判成「修复无效」，空转一轮走查。** move_to 类任务以发起寻路成功即计数（走完另有 arrive 确认环）。

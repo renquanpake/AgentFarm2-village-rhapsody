@@ -1588,13 +1588,74 @@
     const box = document.getElementById('af-task-list');
     if (!box) return;
     box.innerHTML = '';
-    for (const t of taskPanelTasks) {
-      const row = document.createElement('div');
-      row.className = 'tl-it' + (t.done ? ' done' : '');
-      row.innerHTML = '<b>' + (t.done ? '✔ ' : '') + t.name + '</b> <span class="tl-desc">' + (t.desc || '') + '</span>' +
-        '<span class="tl-prog">' + (t.done ? '已完成' : t.cur + '/' + t.total) + '</span>' +
-        (t.reward ? '<span class="tl-reward">奖励：' + t.reward + '</span>' : '');
-      box.appendChild(row);
+    const view = msg.view && msg.view.mode === 'chains' ? msg.view : null;
+    const escT = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    if (!view) {
+      for (const t of taskPanelTasks) {
+        const row = document.createElement('div');
+        row.className = 'tl-it' + (t.done ? ' done' : '');
+        row.innerHTML = '<b>' + (t.done ? '✔ ' : '') + escT(t.name) + '</b> <span class="tl-desc">' + escT(t.desc || '') + '</span>' +
+          '<span class="tl-prog">' + (t.done ? '已完成' : t.cur + '/' + t.total) + '</span>' +
+          (t.reward ? '<span class="tl-reward">奖励：' + escT(t.reward) + '</span>' : '');
+        box.appendChild(row);
+      }
+      return;
+    }
+    // 一年任务书：章节分组 + 每链折叠（点击展开逐阶，126 阶不刷屏）
+    const CHAPS = { 1: '新手村·日常', 2: '第一章 春·扎根', 3: '第二章 夏·生长', 4: '第三章 秋·丰收', 5: '第四章 冬·守岁' };
+    const sum = document.createElement('div');
+    sum.className = 'tl-sum';
+    sum.textContent = view.summary || '';
+    box.appendChild(sum);
+    const byCh = new Map();
+    for (const c of view.chains) { if (!byCh.has(c.chapter)) byCh.set(c.chapter, []); byCh.get(c.chapter).push(c); }
+    for (const ch of [...byCh.keys()].sort((a, b) => a - b)) {
+      const list = byCh.get(ch);
+      const fin = list.reduce((a, c) => a + c.finished, 0);
+      const tot = list.reduce((a, c) => a + c.total, 0);
+      const hd = document.createElement('div');
+      hd.className = 'tl-chap';
+      hd.textContent = (CHAPS[ch] || ('第' + ch + '章')) + '（整章 ' + fin + '/' + tot + ' 阶）';
+      box.appendChild(hd);
+      for (const c of list) {
+        const wrap = document.createElement('div');
+        wrap.className = 'tl-ch' + (c.unlocked ? '' : ' locked');
+        const bar = document.createElement('div');
+        bar.className = 'tl-ch-bar';
+        bar.innerHTML = '<b>' + escT(c.name) + '</b>' +
+          (c.finished >= c.total ? ' <span class="tl-ch-fin">已完成</span>' : ' <span class="tl-ch-prog">' + c.finished + '/' + c.total + ' 阶</span>') +
+          (c.unlocked ? '' : ' <span class="tl-ch-lock">' + escT(c.next || '未解锁') + '</span>') +
+          (c.theme ? ' <span class="tl-ch-theme">' + escT(c.theme) + '</span>' : '');
+        wrap.appendChild(bar);
+        if (c.unlocked && c.finished < c.total) {
+          const nxt = document.createElement('div');
+          nxt.className = 'tl-ch-next';
+          nxt.textContent = '▶ 下一步：' + (c.next || '');
+          wrap.appendChild(nxt);
+        }
+        const body = document.createElement('div');
+        body.className = 'tl-ch-body';
+        body.style.display = 'none';
+        let built = false;
+        AFUNI.on(bar, () => {
+          if (!c.unlocked) return;
+          if (!built) {
+            built = true;
+            for (const st of c.stages) {
+              const sr = document.createElement('div');
+              sr.className = 'tl-st' + (st.done ? ' done' : '');
+              sr.innerHTML = '<span class="tl-st-n">' + (st.done ? '✔ ' : '') + escT(st.name) + '</span>' +
+                '<span class="tl-st-d">' + escT(st.desc || '') + '</span>' +
+                (st.done ? '' : '<span class="tl-st-p">' + st.cur + '/' + st.total + '</span>') +
+                (st.reward || st.rewardName ? '<span class="tl-st-r">' + escT(st.rewardName || '') + '</span>' : '');
+              body.appendChild(sr);
+            }
+          }
+          body.style.display = body.style.display === 'none' ? 'block' : 'none';
+        }, { cls: false });
+        wrap.appendChild(body);
+        box.appendChild(wrap);
+      }
     }
   }
   function refreshTasks() { if (connected) ws.send(JSON.stringify({ t: 'task_list' })); }
@@ -2943,6 +3004,24 @@
       #af-task-panel .hd b { color: var(--af-c-gold); font-size: 15px; }
       #af-task-panel .hd .x { cursor: pointer; color: var(--af-c-text-dim); font-size: 16px; padding: 0 6px; }
       #af-task-list { padding: 10px 14px; max-height: 380px; overflow-y: auto; }
+      #af-task-list .tl-sum { color: var(--af-c-gold); font-size: 12px; padding: 2px 4px 8px; }
+      #af-task-list .tl-chap { color: var(--af-c-text-dim); font-size: 11px; letter-spacing: 1px; margin: 8px 0 4px; border-bottom: 1px dashed var(--af-c-panel); }
+      #af-task-list .tl-ch { margin-bottom: 5px; border-left: 3px solid var(--af-c-wood); background: var(--af-c-white-04); border-radius: 6px; }
+      #af-task-list .tl-ch.locked { opacity: .5; border-left-color: var(--af-c-panel); }
+      #af-task-list .tl-ch-bar { padding: 7px 10px; cursor: pointer; font-size: 12px; }
+      #af-task-list .tl-ch-bar b { color: var(--af-c-paper); }
+      #af-task-list .tl-ch-prog { color: var(--af-c-text-dim); font-size: 11px; }
+      #af-task-list .tl-ch-fin { color: var(--af-c-moss); font-size: 11px; }
+      #af-task-list .tl-ch-lock { color: var(--af-c-text-dim); font-size: 10px; }
+      #af-task-list .tl-ch-theme { color: var(--af-c-gold); font-size: 10px; margin-left: 6px; }
+      #af-task-list .tl-ch-next { padding: 0 10px 6px; color: var(--af-c-gold); font-size: 11px; }
+      #af-task-list .tl-ch-body { padding: 2px 10px 8px; }
+      #af-task-list .tl-st { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; padding: 4px 6px; margin: 2px 0; border-radius: 4px; background: var(--af-c-white-04); font-size: 11px; }
+      #af-task-list .tl-st.done { opacity: .55; }
+      #af-task-list .tl-st-n { color: var(--af-c-paper); font-weight: 600; }
+      #af-task-list .tl-st-d { color: var(--af-c-text-dim); flex: 1; min-width: 120px; }
+      #af-task-list .tl-st-p { color: var(--af-c-gold); }
+      #af-task-list .tl-st-r { color: var(--af-c-moss); }
       #af-task-list .tl-it { padding: 8px 10px; margin-bottom: 6px; background: var(--af-c-white-04); border-radius: 6px; border-left: 3px solid var(--af-c-wood); }
       #af-task-list .tl-it.done { opacity: .55; border-left-color: var(--af-c-moss); }
       #af-task-list .tl-it b { color: var(--af-c-paper); }

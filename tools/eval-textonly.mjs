@@ -30,7 +30,8 @@ const CHECKLIST = [
   { step: '开局状态', via: 'observe', needs: ['pos', 'coins', 'backpack', 'scene'], probe: null },
   { step: '路线规划依据', via: '/af/mapdoc', needs: ['全村文本地图'], probe: 'mapdoc' },
   { step: '公告感知', via: 'observe.notices + /af/notices', needs: ['notices'], probe: 'notices' },
-  { step: '任务目标（任务链）', via: 'observe.tasks + act tasks', needs: ['tasks'], probe: 'tasks' },
+  // tasks 占位探针走 /af/economy-design（账号门）；无 token 时跳过，链文本由 WS 断言（见 task-chain-walkthrough）
+  { step: '任务目标（任务链）', via: 'observe.tasks + act tasks', needs: ['tasks'], probe: 'tasks', needToken: true },
   { step: '新手引导下一步', via: 'observe.onboarding + act onboarding', needs: ['onboarding'], probe: 'onboarding' },
   { step: '季节事件线', via: 'observe.seasonEvents + act season', needs: ['seasonEvents'], probe: 'season' },
   { step: '资源认领（抢占）', via: 'act claims', needs: ['claims 清单'], probe: 'claims' },
@@ -50,7 +51,7 @@ console.log(`  基座 ${BASE}，uid=${uid}${token ? '（带 token：运营面也
 const probes = {
   mapdoc: await getJSON('/af/mapdoc'),
   notices: await getJSON('/af/notices'),
-  tasks: await getJSON('/af/economy-design'),           // 占位：observe.tasks 由 WS 断言
+  tasks: token ? await getJSON('/af/economy-design') : { skipped: true },  // 占位：observe.tasks 由 WS 断言（task-chain-walkthrough）
   onboarding: { ok: true },
   season: { ok: true },
   claims: { ok: true },
