@@ -10,7 +10,7 @@
   - `PORT`（默认 8080）、`AF_SLOT`（存档位 1/2/3，默认 1）
   - `AF_NO_TUNNEL=1` 关自动内网穿透；`AF_NO_GIT=1` 关 git 自动备份（测试/本地必开）
   - `AF_WS_HEARTBEAT_MS=2000` 测试时缩短心跳；`AF_ADMIN_TOKEN=<x>` 管理后台口令
-  - `AF_AES_KEY=<32字节hex/base64>` 启用玩家自带 LLM Key 的 AES-256-GCM 保管（不开则 M7 降级运行）
+  - `AF_AES_KEY=<32字节hex/base64>` 启用玩家自带 LLM Key 的 AES-256-GCM 保管（不开则 M7 降级运行；**该值已在 `.env.local` 生成，改动或丢失 = 所有玩家已存 Key 永久无法解密，必须备份到密码管理器**）
   - `AF_DATA_DIR` 把数据目录指到持久卷（容器）
   - `AF_GROW_MS=<ms>` 游戏日长度（默认 10 分钟；**不是** GROW_DAY_MS）；商人/NPC/畜牧/历法周期都按它折算
   - `AF_NO_MERCHANTS=1` 关商人/经济定时器；`AF_NO_NPC_SCHED=1` 关 NPC 日程/畜牧产出定时器（活体冒烟测试建议全开隔离）
@@ -80,6 +80,10 @@
 - **存档版本与迁移（N11）**：`SAVE_VERSION`（`persistence/save-version.ts`，缺省 5）是唯一版本源，`persist()` 与 `/af/save-version` 共用；迁移只能往 `MIGRATIONS` 追加（声明 `[from,to)` 区间 + 幂等 flag），构造时自动按序补齐。加迁移后必跑 `node tools/migration-rehearse.mjs`（16 个真实存档位重演：抹版本号+flag → 跑迁移 → 断言世界键/玩家桶不减少 + 幂等复演）。
 - **抢占与租约（C/D 包，2026-10-03 接上玩家入口 + 事件流）**：`act claim/release/claims {kind,x,y}`（5 分钟 TTL，过期可接管），chop/harvest/mine 会拒绝他人已认领的目标；事件 `claim.granted/released`、`lease.opened/cared/regrown` + apply 分支 + `structuredHash` 覆盖 claims/lease。**事件载荷必须逐字带 live 侧的 Date.now() 值**（`since`/`startTick`/`leaseMs`），否则回放哈希漂移。`noticeData`/`gossipData`/`delegatedData` 多路径直写，暂不入哈希。
 - **场景 1 槽位化（B4，房子私有）**：`tools/gen-home-slots.mjs` 合成 8 槽（29x240，槽间整行阻挡）→ `data/nav/nav-zhujuejia-slots.json` + `data/home-slots.json` + `data/home-collision.json`；`--check` 进 CI 门6。玩家归属按加入序号 `state.playerIdx`（持久化 globals.afPlayerIdx），人类 move 与 Agent move/move_to 跨槽一律拒。
+- **玩家自带 LLM Key 的完整链路（2026-10-03 收口并实机判定）**：客户端指挥面板「🔑 我的 LLM Key」填三项（base_url / model / api_key）→ `POST /af/llm-key`（AES-256-GCM 加密，接口永不回显）→ 路由 `cognition/router.ts routeForAgent` 优先级 **player-key > global-provider > 规则兜底** → `GET` 脱敏查状态、`DELETE` 主动清除（`keyvault.clearLlmKey`，此前 upsert 语义下空 Key=沿用，没有删除路径）。判定法（隔离实例、房间 provider 置空）：未设自带 Key → NPC 只回 tagline 且 `llm-usage` calls=0；设了 → LLM 真实回复 + calls=1。
+- **托管 Agent 起不来的两个根因（2026-10-03 修）**：①`managed.ts` spawn 写死 8080 端口，服务端跑隔离端口时子进程静默连不上；②`stdio:'ignore'` 吞掉全部错误。现在 `--ws` 跟随服务端端口、stderr/stdout 前 20 行转发进服务端日志（`module: managed-agent`）。另：`game-agent.mjs` 对 429 做指数退避（免费档限流时不再紧循环硬打）。
+- **客户端 boot 期异常不得清凭证（2026-10-03 修）**：`tryAutoLogin` 曾把 boot 期任何异常（如 `ReferenceError`）当成「登录过期」→ 清 `af_token` + 弹误导提示，玩家越点越进不去。现在 `loadWorldFromServer()` 返回结构化原因（`auth` / `quota` / `network`），只有 `auth` 才清凭证；`quota`（localStorage 写不下主档）保留凭证并提示清理。
+- **浏览器缓存会骗过验收**：改 `client/mod/*.js` 后截图/实机看到的可能还是旧文件（`Cache-Control: no-cache` 仍会被 Chrome 复用）。验收工具必须 `page.setCacheEnabled(false)`（`tools/shot-session.mjs` 已内置）。
 - **工作纪律（2026-10-03 教训）**：不要对承载多处未提交改动的文件用 `git checkout <file>` 回滚 —— 一次误回滚把 D17 save 护栏与开摊冻结闸从 ws.ts 整段丢掉，靠单测源码断言才发现。改用精确 edit。
 - **文本无障碍设计铁律（2026-10-02 用户明确指示，长期生效）**：本游戏从设计上就不依赖视觉——Agent/LLM 是纯文本大脑，一切玩家可见信息（导航/公告/对话/榜单/任务/赛事）必须有 observe / act / 公开 GET 之一承载的文本等价通道；LLM 靠 `/af/mapdoc` 全村坐标文档 + observe 当下坐标**自行规划路线**，服务端 A* 只做合法性兜底；截图/视觉仅用于开发验收（shot-client），永不进 Agent 决策回路。新增玩家可见功能必须同步交付文本通道（进 CI 表面审计）。契约全文：旗舰书 §5 + online-village spec R9/H 包。
 - **上线部署决策（2026-10-02 用户拍板）**：采用「GitHub 专属单房版」——GitHub Pages 出客户端链接 + Oracle Cloud 永久免费层（A1 ARM）跑唯一村庄进程 + 用户自有域名；2-3 名玩家、0 元约束。方案全文 `docs/上线部署方案.md`（四个工作包 WP1-WP4），**游戏完工后按 §7 触发条件执行**，本会话只规划未动工。完整自架/多房版归「另一个版本」，同库配置区分禁止 fork；Cloudflare 远期候选为 Workers+Durable Objects 重写（单房版 v2 形态）。
