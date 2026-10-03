@@ -12,7 +12,7 @@ import { resolveProvider } from '../cognition/managed.ts';
 import { probeProvider } from '../cognition/provider-probe.ts';
 import { runLocalBackup } from '../persistence/backup.ts';
 import { log } from '../logging.ts';
-import { keyvaultAvailable, upsertLlmKey, readLlmKey, usageSummary } from '../persistence/keyvault.ts';
+import { keyvaultAvailable, upsertLlmKey, readLlmKey, clearLlmKey, usageSummary } from '../persistence/keyvault.ts';
 import { verifyReplayDeterminism } from '../narrative/replay.ts';
 import { buildDailyReport } from '../narrative/report.ts';
 import { economyReport, economyDesignReport } from '../market/economy.ts';
@@ -239,6 +239,13 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
         if (r === 'no-cipher') { json(res, 503, { ok: false, msg: '密钥保管不可用' }); return; }
         log.write('info', 'llm-key', '玩家更新自带 Key', { uid: a.uid, url: baseUrl, model, hasKey: !!apiKey });
         json(res, 200, { ok: true, url: baseUrl, model, keySet: true, msg: apiKey ? '已更新（含新 Key，已加密保管）' : '已更新（沿用已保管 Key）' });
+        return;
+      }
+      if (req.method === 'DELETE') {
+        // 玩家主动停用自己的 Key（此前只能「填新 Key 覆盖」，没有删除路径 —— Key 失效想退回房间配置都做不到）
+        const done = clearLlmKey(app.db, a.uid);
+        log.write('info', 'llm-key', '玩家清除自带 Key', { uid: a.uid, had: done });
+        json(res, 200, { ok: true, cleared: done, msg: done ? '已清除，你的 Agent 将改用房间配置' : '本来就没有设置自带 Key' });
         return;
       }
       // GET：脱敏返回（key 不回显）

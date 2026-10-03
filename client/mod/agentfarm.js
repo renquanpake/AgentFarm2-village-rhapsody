@@ -2195,6 +2195,21 @@
           <button class="btn" id="af-agent-recap-btn">📖 他做了什么</button>
           <span class="tip" id="af-agent-recap-state"></span>
         </div>
+        <div class="row">
+          <button class="btn" id="af-mykey-btn">🔑 我的 LLM Key</button>
+          <span class="tip" id="af-mykey-state"></span>
+        </div>
+        <div id="af-mykey-form" style="display:none;margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;">
+          <p>填入你自己的模型 Key：<b>你的 Key 优先于房间配置</b>，只对你这个账号生效（AES-256-GCM 加密保管，接口永不回显明文）。不填则沿用上面的房间配置。</p>
+          <input id="af-mykey-url" placeholder="API 地址，如 https://api.deepseek.com/v1" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+          <input id="af-mykey-model" placeholder="模型名，如 deepseek-chat" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+          <input id="af-mykey-key" placeholder="你的 API Key（已设置时留空 = 沿用旧 Key）" type="password" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;background:var(--af-c-bg);color:var(--af-c-light-soft);border:1px solid var(--af-c-panel);border-radius:6px;font:13px 'Microsoft YaHei',sans-serif;outline:none;">
+          <div class="row">
+            <button class="btn btn-primary" id="af-mykey-save">保存我的 Key</button>
+            <button class="btn" id="af-mykey-clear">清除我的 Key</button>
+          </div>
+          <div class="tip" id="af-mykey-msg" style="margin-top:8px;"></div>
+        </div>
         <div id="af-agent-mail" style="margin-top:10px;border-top:1px solid var(--af-c-panel);padding-top:10px;display:none;">
           <p style="margin:0 0 6px;color:var(--af-c-gold);font-size:13px;">Agent 回话</p>
           <div id="af-agent-mail-list" style="max-height:150px;overflow:auto;font-size:12px;line-height:1.6;color:var(--af-c-text);"></div>
@@ -2272,6 +2287,55 @@
     }
     AFUNI.on(recapBtn, loadRecap);
     window.__AF_LOAD_RECAP__ = loadRecap;
+    // ---------- 「我的 LLM Key」= 玩家自带（优先于房间配置）----------
+    const myKeyBtn = panel.querySelector('#af-mykey-btn');
+    const myKeyState = panel.querySelector('#af-mykey-state');
+    const myKeyForm = panel.querySelector('#af-mykey-form');
+    const myKeyMsg = panel.querySelector('#af-mykey-msg');
+    async function loadMyKey() {
+      try {
+        const r = await fetch(SERVER + '/af/llm-key?token=' + encodeURIComponent(token));
+        const d = await r.json();
+        if (!d) return;
+        if (!d.available) { myKeyState.textContent = '服务端未开密钥保管（需 AF_AES_KEY）'; return; }
+        myKeyState.textContent = d.set ? ('已设置：' + d.model + ' @ ' + d.url + '（Key 已加密）') : '未设置（沿用房间配置）';
+        panel.querySelector('#af-mykey-url').value = d.url || '';
+        panel.querySelector('#af-mykey-model').value = d.model || '';
+      } catch (e) { myKeyState.textContent = '读取失败'; }
+    }
+    AFUNI.on(myKeyBtn, async () => {
+      const show = myKeyForm.style.display === 'none';
+      myKeyForm.style.display = show ? 'block' : 'none';
+      if (show) loadMyKey();
+    });
+    AFUNI.on(panel.querySelector('#af-mykey-save'), async () => {
+      myKeyMsg.textContent = '保存中…';
+      const body = {
+        base_url: panel.querySelector('#af-mykey-url').value.trim(),
+        model: panel.querySelector('#af-mykey-model').value.trim(),
+        api_key: panel.querySelector('#af-mykey-key').value.trim(),
+      };
+      try {
+        const r = await fetch(SERVER + '/af/llm-key?token=' + encodeURIComponent(token), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        myKeyMsg.textContent = d.ok ? ('✓ ' + (d.msg || '已保存')) : ('✗ ' + (d.msg || ('HTTP ' + r.status)));
+        panel.querySelector('#af-mykey-key').value = '';
+        loadMyKey();
+      } catch (e) { myKeyMsg.textContent = '保存失败：' + e.message; }
+    });
+    AFUNI.on(panel.querySelector('#af-mykey-clear'), async () => {
+      try {
+        const r = await fetch(SERVER + '/af/llm-key?token=' + encodeURIComponent(token), { method: 'DELETE' });
+        const d = await r.json();
+        myKeyMsg.textContent = d.ok ? ('✓ ' + (d.msg || '已清除')) : ('✗ ' + (d.msg || ('HTTP ' + r.status)));
+        panel.querySelector('#af-mykey-key').value = '';
+        loadMyKey();
+      } catch (e) { myKeyMsg.textContent = '清除失败：' + e.message; }
+    });
+    loadMyKey();
+
     function openPanel() { panel.style.display = 'flex'; input.focus(); }
     function closePanel() { panel.style.display = 'none'; }
     function sendMsg() {

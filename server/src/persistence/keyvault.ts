@@ -45,6 +45,12 @@ export function decryptKey(cipher: Buffer, iv: Buffer, tag: Buffer): string {
 }
 
 // ---------- SQLite 存取 ----------
+/** 删除玩家自带 Key（退回房间 provider）。缺 AF_AES_KEY 时无记录可删，返回 false。 */
+export function clearLlmKey(db: DatabaseSync, accountUid: string): boolean {
+  const info = db.prepare('DELETE FROM llm_keys WHERE account_uid = ?').run(accountUid);
+  return Number(info.changes) > 0;
+}
+
 export function upsertLlmKey(db: DatabaseSync, spec: LlmKeySpec, apiKey?: string): 'ok' | 'no-cipher' {
   if (!keyvaultAvailable()) return 'no-cipher';
   let cipher: Buffer; let iv: Buffer; let tag: Buffer;
