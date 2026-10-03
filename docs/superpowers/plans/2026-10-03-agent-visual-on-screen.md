@@ -1,4 +1,4 @@
-# Agent 小人画面可视化修复 Implementation Plan（批1b）
+Agent 小人画面可视化修复 Implementation Plan（批1 之 P1 画面可视化）
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

@@ -1,4 +1,4 @@
-# 任务书升级为游戏故事书 Implementation Plan（批1c）
+任务书升级为游戏故事书 Implementation Plan（批3 故事书扩容 20 链）
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

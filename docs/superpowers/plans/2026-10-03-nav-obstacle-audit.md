@@ -1,4 +1,4 @@
-# 导航障碍数据完整性与 move 门控 Implementation Plan（批1a）
+导航障碍数据完整性与 move 门控 Implementation Plan（批1 之 P1.0 导航审计）
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
