@@ -1,0 +1,199 @@
+{
+ "version": 1,
+ "updated": "2026-10-03",
+ "note": "N9 季节事件线：每季 1 条整季主线（base，保证每天都有事件）+ 2~3 条限定事件（按季内日区间，个别再限定天气）。season 取 calendar.ts 的 Season 枚举（spring/summer/autumn/winter）。触发即写公告（noticeData）、注入八卦池（gossipData）、进 observe.seasonEvents；活跃事件同时作为 NPC 对话 LLM 的 system 素材。",
+ "seasons": [
+  "spring",
+  "summer",
+  "autumn",
+  "winter"
+ ],
+ "gameDayPerSeason": 10,
+ "events": [
+  {
+   "id": "sp-base",
+   "season": "spring",
+   "title": "春耕备种",
+   "dayFrom": 1,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "整季主线：全村备种整地，种子市场需求走高；天气决定当天要不要下田（forecast 可看明日）。",
+   "gossip": "春耕这几日，工具铺前头总排着队。",
+   "effect": "hint"
+  },
+  {
+   "id": "su-base",
+   "season": "summer",
+   "title": "夏日赶集",
+   "dayFrom": 1,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "整季主线：集市流动性最好，鱼产与矿产出同步走高；注意午后风暴预警。",
+   "gossip": "夏天的集市，秤和人心都热。",
+   "effect": "hint"
+  },
+  {
+   "id": "au-base",
+   "season": "autumn",
+   "title": "秋仓储粮",
+   "dayFrom": 1,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "整季主线：作物集中成熟，木材与建造需求上升，是本年最主要的回收口。",
+   "gossip": "仓库满了，粮价就下来了。",
+   "effect": "hint"
+  },
+  {
+   "id": "wi-base",
+   "season": "winter",
+   "title": "冬藏",
+   "dayFrom": 1,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "整季主线：雪日作物减速（非冬作物停长），渔获与社交权重上升，NPC 更爱聚宴会厅。",
+   "gossip": "冬天话多，炉子边挤得慌。",
+   "effect": "hint"
+  },
+  {
+   "id": "sp-plant",
+   "season": "spring",
+   "title": "春播",
+   "dayFrom": 1,
+   "dayTo": 3,
+   "weather": null,
+   "desc": "全村开始春播：种子价格走低，作物生长加快。",
+   "gossip": "谁家的麦子先出芽，都要看今春的雨。",
+   "effect": "hint",
+   "bonus": {
+    "seedPriceMul": 0.6
+   }
+  },
+  {
+   "id": "sp-rain",
+   "season": "spring",
+   "title": "春雨贵如油",
+   "dayFrom": 4,
+   "dayTo": 7,
+   "weather": "rain",
+   "desc": "连续降雨，作物生长 x1.5（历法日效应已生效），钓点丰收。",
+   "gossip": "春雨一下，全村都出来看田。",
+   "effect": "hint"
+  },
+  {
+   "id": "sp-fair",
+   "season": "spring",
+   "title": "春花会前夜",
+   "dayFrom": 8,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "春花会（庭院评比）前夜：把家具摆好，明日中央宴会厅开赛。",
+   "gossip": "今年谁家的院子最好看，赌一袋米。",
+   "effect": "hint"
+  },
+  {
+   "id": "su-fish",
+   "season": "summer",
+   "title": "夏钓赛热身",
+   "dayFrom": 1,
+   "dayTo": 4,
+   "weather": null,
+   "desc": "夏钓赛临近：鱼获 Expectation 上升，河边人多。",
+   "gossip": "夏钓赛的鱼篓，比去年沉。",
+   "effect": "hint"
+  },
+  {
+   "id": "su-storm",
+   "season": "summer",
+   "title": "台风季",
+   "dayFrom": 5,
+   "dayTo": 8,
+   "weather": "storm",
+   "desc": "台风季：风暴会毁 20% 作物，次日保险赔付到账（crop.insurance）。",
+   "gossip": "风暴夜过去，谁家的田埂都补了。",
+   "effect": "hint",
+   "bonus": {
+    "insuranceDays": 1
+   }
+  },
+  {
+   "id": "su-market",
+   "season": "summer",
+   "title": "夏市开秤",
+   "dayFrom": 8,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "夏市开秤：做市商流动性最好，价差最窄。",
+   "gossip": "夏市这几日，秤准得很。",
+   "effect": "hint"
+  },
+  {
+   "id": "au-harvest",
+   "season": "autumn",
+   "title": "秋收",
+   "dayFrom": 1,
+   "dayTo": 4,
+   "weather": null,
+   "desc": "秋收季：作物成熟集中，庭院与仓库同时满载。",
+   "gossip": "秋收这几日，晒谷场上全是人。",
+   "effect": "hint"
+  },
+  {
+   "id": "au-build",
+   "season": "autumn",
+   "title": "修房补屋",
+   "dayFrom": 5,
+   "dayTo": 7,
+   "weather": null,
+   "desc": "修房补屋：木材与水磨石需求上涨，建造消耗是本季主要回收口。",
+   "gossip": "东环那几间新房，木材都用光了。",
+   "effect": "hint",
+   "bonus": {
+    "buildCostMul": 1.2
+   }
+  },
+  {
+   "id": "au-snow",
+   "season": "autumn",
+   "title": "霜降",
+   "dayFrom": 8,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "霜降前夜：冬作物停止生长（雪日 0.5x），把该收的收进仓库。",
+   "gossip": "霜降一到，地就硬了。",
+   "effect": "hint"
+  },
+  {
+   "id": "wi-sculpt",
+   "season": "winter",
+   "title": "冬雪雕筹备",
+   "dayFrom": 1,
+   "dayTo": 4,
+   "weather": null,
+   "desc": "冬雪雕（装饰评分）筹备：庭院装饰分决定名次。",
+   "gossip": "雪雕用的雪，得从北环运。",
+   "effect": "hint"
+  },
+  {
+   "id": "wi-quiet",
+   "season": "winter",
+   "title": "农闲",
+   "dayFrom": 5,
+   "dayTo": 7,
+   "weather": null,
+   "desc": "农闲：钓鱼与社交权重上升，NPC 更爱聚在宴会厅。",
+   "gossip": "农闲下来，村里话也多了。",
+   "effect": "hint"
+  },
+  {
+   "id": "wi-rest",
+   "season": "winter",
+   "title": "冬至守岁",
+   "dayFrom": 8,
+   "dayTo": 10,
+   "weather": null,
+   "desc": "冬至守岁：全年最后一次节日（冬雪雕），中央宴会厅灯火不灭。",
+   "gossip": "守岁那晚，谁都不肯先睡。",
+   "effect": "hint"
+  }
+ ]
+}

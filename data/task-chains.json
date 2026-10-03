@@ -1,0 +1,469 @@
+{
+ "version": 1,
+ "updated": "2026-10-03",
+ "note": "N9 内容扩容：任务链（有序阶段 + 天数解锁 + 逐阶奖励）。奖励曲线与 data/economy-tables.json taskReward 对齐：第 n 阶 = base + step x n。observe.tasks.chains 与 act 任务推进都读这份数据；文件缺失时回落 server/src/world/tasks.ts 的 10 条扁平任务。",
+ "rewardCurve": {
+  "base": 60,
+  "stepPerChain": 40,
+  "formula": "第 n 阶金币 = base + step x n（n 从 0 起）"
+ },
+ "chains": [
+  {
+   "id": "chain-farmer",
+   "name": "新农人",
+   "chapter": 1,
+   "unlockDay": 1,
+   "theme": "种植",
+   "stages": [
+    {
+     "id": "f1",
+     "name": "开垦第一块地",
+     "type": "till",
+     "count": 1,
+     "desc": "在自宅附近的空地用 act till {x,y} 犁一格",
+     "reward": {
+      "id": 1,
+      "num": 60
+     },
+     "rewardCoins": 60,
+     "stage": 0
+    },
+    {
+     "id": "f2",
+     "name": "播下种子",
+     "type": "plant",
+     "count": 1,
+     "desc": "在已犁地块上 act plant（记得先 talk 向杂货商问价或直接买种子）",
+     "reward": {
+      "id": 38,
+      "num": 2
+     },
+     "rewardCoins": 0,
+     "stage": 1
+    },
+    {
+     "id": "f3",
+     "name": "照料作物",
+     "type": "water",
+     "count": 1,
+     "desc": "act water 给作物浇水（雨天会自动浇，晴天要自己动）",
+     "reward": {
+      "id": 1,
+      "num": 140
+     },
+     "rewardCoins": 140,
+     "stage": 2
+    },
+    {
+     "id": "f4",
+     "name": "第一次收成",
+     "type": "harvest",
+     "count": 1,
+     "desc": "成熟后 act harvest 收获（observe 的 plotsNear 会写明「成熟可收」）",
+     "reward": {
+      "id": 38,
+      "num": 2
+     },
+     "rewardCoins": 0,
+     "stage": 3
+    },
+    {
+     "id": "f5",
+     "name": "规模种植",
+     "type": "plant",
+     "count": 4,
+     "desc": "累计种下 4 颗种子；建议小麦/土豆起步，胡萝��与迷幻花是高收益作物",
+     "reward": {
+      "id": 1,
+      "num": 220
+     },
+     "rewardCoins": 220,
+     "stage": 4
+    },
+    {
+     "id": "f6",
+     "name": "看天吃饭",
+     "type": "forecast",
+     "count": 1,
+     "desc": "act forecast 看明日天气：雨 1.5x 生长、雪 0.5x、风暴 20% 损毁（有保险赔付）",
+     "reward": {
+      "id": 38,
+      "num": 2
+     },
+     "rewardCoins": 0,
+     "stage": 5
+    }
+   ]
+  },
+  {
+   "id": "chain-river",
+   "name": "河边人",
+   "chapter": 1,
+   "unlockDay": 1,
+   "theme": "采集",
+   "stages": [
+    {
+     "id": "r1",
+     "name": "找到水边",
+     "type": "move",
+     "count": 1,
+     "desc": "move_to {near:\"water\"} 走到可钓鱼的岸边交互环",
+     "reward": {
+      "id": 1,
+      "num": 60
+     },
+     "rewardCoins": 60,
+     "stage": 0
+    },
+    {
+     "id": "r2",
+     "name": "第一竿",
+     "type": "fish",
+     "count": 1,
+     "desc": "act fish 抛竿；冷却 60 秒，别在同一分钟反复尝试",
+     "reward": {
+      "id": 19,
+      "num": 2
+     },
+     "rewardCoins": 0,
+     "stage": 1
+    },
+    {
+     "id": "r3",
+     "name": "渔获满篓",
+     "type": "fish",
+     "count": 3,
+     "desc": "累计钓 3 条鱼（换钓点可提高品种期望值）",
+     "reward": {
+      "id": 1,
+      "num": 140
+     },
+     "rewardCoins": 140,
+     "stage": 2
+    },
+    {
+     "id": "r4",
+     "name": "矿脉初探",
+     "type": "move",
+     "count": 1,
+     "desc": "move_to 前往矿点（observe 的 farm.mineSpots 给出全部坐标）",
+     "reward": {
+      "id": 19,
+      "num": 2
+     },
+     "rewardCoins": 0,
+     "stage": 3
+    },
+    {
+     "id": "r5",
+     "name": "第一块矿",
+     "type": "mine",
+     "count": 1,
+     "desc": "act mine 采矿；冷却 90 秒",
+     "reward": {
+      "id": 1,
+      "num": 220
+     },
+     "rewardCoins": 220,
+     "stage": 4
+    },
+    {
+     "id": "r6",
+     "name": "矿工路线",
+     "type": "mine",
+     "count": 4,
+     "desc": "累计采 4 块矿（煤炭最常见，金矿石稀有但值钱）",
+     "reward": {
+      "id": 19,
+      "num": 2
+     },
+     "rewardCoins": 0,
+     "stage": 5
+    }
+   ]
+  },
+  {
+   "id": "chain-woods",
+   "name": "林樵夫",
+   "chapter": 2,
+   "unlockDay": 2,
+   "theme": "林业与烹饪",
+   "stages": [
+    {
+     "id": "w1",
+     "name": "伐木",
+     "type": "chop",
+     "count": 2,
+     "desc": "act chop 砍树（树有 HP，砍完会再生）；木材是建造与烹饪的主料",
+     "reward": {
+      "id": 18,
+      "num": 3
+     },
+     "rewardCoins": 0,
+     "stage": 0
+    },
+    {
+     "id": "w2",
+     "name": "备料",
+     "type": "build",
+     "count": 1,
+     "desc": "act build {type:\"kitchen\"} 造厨房（磨坊/铁匠也靠它出产物）",
+     "reward": {
+      "id": 1,
+      "num": 100
+     },
+     "rewardCoins": 100,
+     "stage": 1
+    },
+    {
+     "id": "w3",
+     "name": "起灶",
+     "type": "cook",
+     "count": 1,
+     "desc": "act cook 按 data/recipes.json 配方加工（成品起步价 = 原料 x1.4）",
+     "reward": {
+      "id": 18,
+      "num": 3
+     },
+     "rewardCoins": 0,
+     "stage": 2
+    },
+    {
+     "id": "w4",
+     "name": "伐木好手",
+     "type": "chop",
+     "count": 5,
+     "desc": "累计砍 5 棵树；observe 的 treesNear 给出 3 格内可砍目标",
+     "reward": {
+      "id": 1,
+      "num": 180
+     },
+     "rewardCoins": 180,
+     "stage": 3
+    }
+   ]
+  },
+  {
+   "id": "chain-market",
+   "name": "集市学徒",
+   "chapter": 2,
+   "unlockDay": 2,
+   "theme": "交易",
+   "stages": [
+    {
+     "id": "m1",
+     "name": "询价",
+     "type": "talk",
+     "count": 1,
+     "desc": "act talk {npcId} 向 NPC 问价（返回 priceList 与对话）",
+     "reward": {
+      "id": 1,
+      "num": 60
+     },
+     "rewardCoins": 60,
+     "stage": 0
+    },
+    {
+     "id": "m2",
+     "name": "买进",
+     "type": "buy",
+     "count": 1,
+     "desc": "act buy 买入种子或工具（金币不足时先干农活攒钱）",
+     "reward": {
+      "id": 1,
+      "num": 100
+     },
+     "rewardCoins": 100,
+     "stage": 1
+    },
+    {
+     "id": "m3",
+     "name": "挂单",
+     "type": "trade",
+     "count": 1,
+     "desc": "act trade {op:\"book\",side:\"sell\"} 把产物挂到村集市（做市商会冷启动双边单）",
+     "reward": {
+      "id": 1,
+      "num": 140
+     },
+     "rewardCoins": 140,
+     "stage": 2
+    },
+    {
+     "id": "m4",
+     "name": "成交",
+     "type": "trade",
+     "count": 2,
+     "desc": "再挂一单并等待成交；成交价受通胀系数与 10% 手续费影响",
+     "reward": {
+      "id": 1,
+      "num": 180
+     },
+     "rewardCoins": 180,
+     "stage": 3
+    },
+    {
+     "id": "m5",
+     "name": "记账",
+     "type": "report",
+     "count": 1,
+     "desc": "act report 在银行（北环 102）出一份资产日报，看清家底",
+     "reward": {
+      "id": 1,
+      "num": 220
+     },
+     "rewardCoins": 220,
+     "stage": 4
+    }
+   ]
+  },
+  {
+   "id": "chain-social",
+   "name": "人情练",
+   "chapter": 3,
+   "unlockDay": 3,
+   "theme": "社交",
+   "stages": [
+    {
+     "id": "s1",
+     "name": "搭话",
+     "type": "chat",
+     "count": 1,
+     "desc": "chat 或 act talk 与他人交流（同场景 8 格内可见 playersNear）",
+     "reward": {
+      "id": 1,
+      "num": 60
+     },
+     "rewardCoins": 60,
+     "stage": 0
+    },
+    {
+     "id": "s2",
+     "name": "送礼",
+     "type": "give",
+     "count": 1,
+     "desc": "act give 给附近的玩家送一件物品（在线才走距离校验，离线 Agent 可用 agent:<uid>）",
+     "reward": {
+      "id": 1,
+      "num": 100
+     },
+     "rewardCoins": 100,
+     "stage": 1
+    },
+    {
+     "id": "s3",
+     "name": "互通书信",
+     "type": "letter",
+     "count": 1,
+     "desc": "act letter {to:\"昵称\",body} 往邮局投一封信",
+     "reward": {
+      "id": 1,
+      "num": 140
+     },
+     "rewardCoins": 140,
+     "stage": 2
+    },
+    {
+     "id": "s4",
+     "name": "结为好友",
+     "type": "bind",
+     "count": 1,
+     "desc": "好感 30 后 act bind 结为好友",
+     "reward": {
+      "id": 1,
+      "num": 180
+     },
+     "rewardCoins": 180,
+     "stage": 3
+    },
+    {
+     "id": "s5",
+     "name": "接个委托",
+     "type": "delegate",
+     "count": 1,
+     "desc": "act delegate {op:\"publish\"} 发布委托，或 {op:\"accept\"} 接下别人的委托",
+     "reward": {
+      "id": 1,
+      "num": 220
+     },
+     "rewardCoins": 220,
+     "stage": 4
+    }
+   ]
+  },
+  {
+   "id": "chain-festival",
+   "name": "岁时庆典",
+   "chapter": 4,
+   "unlockDay": 4,
+   "theme": "节日与庭院",
+   "stages": [
+    {
+     "id": "e1",
+     "name": "庭院一角",
+     "type": "place",
+     "count": 1,
+     "desc": "act place 摆一件家具（庭院分参与最美庭院评比）",
+     "reward": {
+      "id": 1,
+      "num": 60
+     },
+     "rewardCoins": 60,
+     "stage": 0
+    },
+    {
+     "id": "e2",
+     "name": "庭院竞赛",
+     "type": "courtyard",
+     "count": 1,
+     "desc": "act courtyard 看当前庭院得分与排行",
+     "reward": {
+      "id": 1,
+      "num": 100
+     },
+     "rewardCoins": 100,
+     "stage": 1
+    },
+    {
+     "id": "e3",
+     "name": "节日赴会",
+     "type": "forecast",
+     "count": 2,
+     "desc": "每季最后一天有节日：act forecast 看预告，节日当天去宴会厅参加赛事",
+     "reward": {
+      "id": 1,
+      "num": 140
+     },
+     "rewardCoins": 140,
+     "stage": 2
+    },
+    {
+     "id": "e4",
+     "name": "开摊做卖",
+     "type": "stall",
+     "count": 1,
+     "desc": "act stall 在节日集市开摊（摊位费随经济钩子冻结闸，M-B1 判门后才开）",
+     "reward": {
+      "id": 1,
+      "num": 180
+     },
+     "rewardCoins": 180,
+     "stage": 3
+    },
+    {
+     "id": "e5",
+     "name": "强身健体",
+     "type": "train",
+     "count": 1,
+     "desc": "act train {attr:\"力量\"} 在健身房训练（冷却 5 分钟）",
+     "reward": {
+      "id": 1,
+      "num": 220
+     },
+     "rewardCoins": 220,
+     "stage": 4
+    }
+   ]
+  }
+ ]
+}

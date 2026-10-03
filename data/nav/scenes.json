@@ -254,5 +254,5 @@
       "h": 61
     }
   ],
-  "note": "27 场景注册：28 场景由 maps/*.json collide 层生成（sceneType 数字待客户端枚举确认）；跨场景 passage 门位待客户端 PassageCollider 源数据。"
+  "note": "28 场景注册（含大地图 daditu），全部由 maps/*.json collide 层生成；状态三分：ready 12 / ready-water-only 4 / ready-empty-collide 12，无 pending-source 残留；跨场景 passage 门位取自 build-scene-portals 全量 56 条。"
 }

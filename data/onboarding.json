@@ -1,0 +1,98 @@
+{
+ "version": 1,
+ "updated": "2026-10-03",
+ "note": "N9 第一小时体验：新手前 60 分钟逐环节引导。每个环节给出「做什么 + 文本指令写法」，完成条件挂在 act 动作类型上（与任务链共用动作词汇）。进度存玩家私有桶 afOnboarding（服务端权威，客户端不可写）。目标：把 2h 留存的入口铺成一条可走通的路径。",
+ "totalTargetMinutes": 60,
+ "steps": [
+  {
+   "id": "ob-1",
+   "title": "看看自己站在哪",
+   "minutes": 2,
+   "act": "move",
+   "count": 1,
+   "hint": "先用 observe 看坐标与场景，再用 act move_to {x,y} 或 {near:\"村纪念碑\"} 走两步。原版相机与走路动画会跟着动。",
+   "doneText": "你会走了 —— 移动是所有其它动作的前提。"
+  },
+  {
+   "id": "ob-2",
+   "title": "看一眼家在哪儿",
+   "minutes": 3,
+   "act": "forecast",
+   "count": 1,
+   "hint": "act forecast 看明日天气（雨 1.5x 生长、雪 0.5x、风暴 20% 损毁）。天气决定今天该不该下田。",
+   "doneText": "知道天气了 —— 农活要看天。"
+  },
+  {
+   "id": "ob-3",
+   "title": "犁第一块地",
+   "minutes": 5,
+   "act": "till",
+   "count": 1,
+   "hint": "observe 的 tillableNear 给出 3 格内可耕地形的像素坐标；act till {x,y}（坐标是格×100+50，像素单位）。",
+   "doneText": "地犁好了 —— 地块是耕地的单位。"
+  },
+  {
+   "id": "ob-4",
+   "title": "买种子并种下",
+   "minutes": 10,
+   "act": "plant",
+   "count": 1,
+   "hint": "没有种子就先 act buy {itemId:38}（土豆种子，杂货商 id13）；有种子直接 act plant {x,y} 播在已犁地块上。",
+   "doneText": "种下去了 —— 之后每天 act water 照料。"
+  },
+  {
+   "id": "ob-5",
+   "title": "浇水照料",
+   "minutes": 5,
+   "act": "water",
+   "count": 1,
+   "hint": "act water {x,y}；雨天会自动浇。洒水器（act build {type:\"sprinkler\"}）能一次覆盖 3x3。",
+   "doneText": "照料链路通了 —— 作物会按天长大。"
+  },
+  {
+   "id": "ob-6",
+   "title": "钓一条鱼",
+   "minutes": 8,
+   "act": "fish",
+   "count": 1,
+   "hint": "move_to {near:\"water\"} 走到岸边交互环，再 act fish。冷却 60 秒，别反复空钩。",
+   "doneText": "会钓鱼了 —— 这是最快的现金来源。"
+  },
+  {
+   "id": "ob-7",
+   "title": "把东西卖出去",
+   "minutes": 10,
+   "act": "trade",
+   "count": 1,
+   "hint": "act trade {op:\"book\",side:\"sell\",item:<id>,price:<价>,qty:<数>} 挂单；做市商会冷启动双边单。成交有 10% 手续费（卖方承担）。",
+   "doneText": "钱能赚到了 —— 经济闭环完成。"
+  },
+  {
+   "id": "ob-8",
+   "title": "砍棵树取木材",
+   "minutes": 8,
+   "act": "chop",
+   "count": 1,
+   "hint": "observe 的 treesNear 给出可砍目标；act chop {x,y}。木材是建造与烹饪的主料。",
+   "doneText": "材料有了 —— 建造与烹饪解锁。"
+  },
+  {
+   "id": "ob-9",
+   "title": "和人说句话",
+   "minutes": 6,
+   "act": "talk",
+   "count": 1,
+   "hint": "act talk {npcId:1}（村长家石伯）能问价也有对话；act chat 与玩家搭话，act give 送礼能加好感。",
+   "doneText": "社交打开了 —— 委托、私聊、结对都在这条线上。"
+  },
+  {
+   "id": "ob-10",
+   "title": "看看今天该做什么",
+   "minutes": 3,
+   "act": "tasks",
+   "count": 1,
+   "hint": "act tasks 读任务链（新农人/河边人/…）；任务链逐阶给奖励，是前两小时的主线。",
+   "doneText": "知道目标了 —— 剩下就是把链条走完。"
+  }
+ ]
+}

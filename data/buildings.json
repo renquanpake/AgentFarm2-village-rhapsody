@@ -1,5 +1,5 @@
 {
- "note": "P2 建筑功能层（world-expansion design.md §4）：统一 buildings.json（trade-hall spec 并入）。C1 中央空房 = 推荐候选 (48,43)-(57,51)（trade-hall spec 待确认项定稿）。mode=hang 为 A 挂牌（原版建筑上挂招牌挂件 311），mode=cover 为 B 覆盖（空地盖生图建筑，artId 307-310，随 +28 环 P3 建成启用）；hooks 中经济类（匹配/计息/投保/开摊）默认关，M-B1 影子窗结束后开启。pending=true 的落位坐标为占位，P3 建环后校正。",
+ "note": "P2 建筑功能层（world-expansion design.md §4）：统一 buildings.json（trade-hall spec 并入）。C1 中央空房 = 推荐候选 (48,43)-(57,51)（trade-hall spec 待确认项定稿）。mode=hang 为 A 挂牌（原版建筑上挂招牌挂件 311），mode=cover 为 B 覆盖（空地盖生图建筑，artId 307-310，随 +28 环 P3 建成启用）；hooks 中经济类（匹配/计息/投保/开摊）走 server/src/world/economy-gates.ts 冻结闸：缺省冻结，运营开 AF_ECON_HOOKS 后解冻（2026-10-03 起实现与本声明一致）。pending=true 的落位坐标为占位，P3 建环后校正。",
  "buildings": [
   {
    "id": "trade-hall",
@@ -28,7 +28,7 @@
    "mode": "hang",
    "pending": false,
    "hooks": [
-    "trade-hall T1-T4：move_to near/小地图金框/行情牌（开）；订单匹配（关至 M-B1）"
+    "trade-hall T1-T4：move_to near/小地图金框/行情牌（开）；订单匹配（冻结：AF_ECON_HOOKS 未开，M-B1 影子窗判门后由运营解冻）"
    ]
   },
   {
@@ -52,7 +52,7 @@
    "mode": "hang",
    "pending": false,
    "hooks": [
-    "资产日报（开）；存取计息（关至 M-B1）"
+    "资产日报（开）；存取计息（冻结：AF_ECON_HOOKS 未开，M-B1 影子窗判门后由运营解冻）"
    ]
   },
   {
@@ -106,7 +106,7 @@
    "mode": "cover",
    "pending": false,
    "hooks": [
-    "明日天气预告（开）；投保（关至 M-B1）"
+    "明日天气预告（开）；投保（冻结：AF_ECON_HOOKS 未开，M-B1 影子窗判门后由运营解冻）"
    ]
   },
   {
@@ -136,7 +136,7 @@
    "mode": "cover",
    "pending": false,
    "hooks": [
-    "四类节日赛事锚点 + 开摊区（开摊关至 M-B1）"
+    "四类节日赛事锚点 + 开摊区（开摊冻结：AF_ECON_HOOKS 未开；act stall 已加闸，2026-10-03）"
    ]
   },
   {

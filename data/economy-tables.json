@@ -1,0 +1,235 @@
+{
+ "version": 1,
+ "updated": "2026-10-03",
+ "note": "N10 经济数值表（唯一设计源）：市场做市基价 / 作物 ROI / 采集期望值 / 费用与回收口 / 通胀目标带。改经济先改这里，勿在代码里散落魔数。",
+ "policy": {
+  "priceOrder": [
+   "economy-tables.basePrice 覆盖",
+   "items.json sell_price x 2（NPC 口径）",
+   "回退 50"
+  ],
+  "seedPriceMul": 0.6,
+  "seedPriceMulNote": "种子类（items.type=4）NPC 售价打 6 折：原版 sell_price x2 让最便宜的作物 ROI 近乎为零（小麦 10/周期），种植线在钓鱼面前没有存在意义。",
+  "hourlyModel": {
+   "plots": 8,
+   "gameDayMinutes": 10,
+   "note": "每个游戏日 = AF_GROW_MS/60000 分钟（缺省 10 分钟）；hourlyAt8Plots = roi x 8 块地 x 每小时循环数，衡量并行种植产能，与钓鱼/挖矿的串行冷却产能对比。"
+  }
+ },
+ "basePrice": {
+  "7": 40,
+  "18": 6,
+  "35": 520,
+  "84": 900,
+  "97": 200
+ },
+ "basePriceNote": "覆盖表：仅列与 items.sell_price x 2 不同的项。18 木材 6（主要作材料）、7 水磨石 40、84 金矿石 900（稀有，避免低阶采集暴富）。",
+ "crops": [
+  {
+   "seedItemId": 36,
+   "plantId": 1,
+   "name": "小麦",
+   "seedCost": 30,
+   "growDays": 2,
+   "cropItemId": 28,
+   "sellPrice": 60,
+   "roi": 30,
+   "hourlyAt8Plots": 720,
+   "seedBuyFromNpc": 50
+  },
+  {
+   "seedItemId": 37,
+   "plantId": 2,
+   "name": "玉米",
+   "seedCost": 24,
+   "growDays": 3,
+   "cropItemId": 29,
+   "sellPrice": 80,
+   "roi": 56,
+   "hourlyAt8Plots": 896,
+   "seedBuyFromNpc": 40
+  },
+  {
+   "seedItemId": 38,
+   "plantId": 3,
+   "name": "土豆",
+   "seedCost": 24,
+   "growDays": 2,
+   "cropItemId": 30,
+   "sellPrice": 60,
+   "roi": 36,
+   "hourlyAt8Plots": 864,
+   "seedBuyFromNpc": 40
+  },
+  {
+   "seedItemId": 39,
+   "plantId": 4,
+   "name": "兰花",
+   "seedCost": 18,
+   "growDays": 2,
+   "cropItemId": 31,
+   "sellPrice": 36,
+   "roi": 18,
+   "hourlyAt8Plots": 432,
+   "seedBuyFromNpc": 30
+  },
+  {
+   "seedItemId": 40,
+   "plantId": 5,
+   "name": "黄菊",
+   "seedCost": 30,
+   "growDays": 3,
+   "cropItemId": 32,
+   "sellPrice": 100,
+   "roi": 70,
+   "hourlyAt8Plots": 1120,
+   "seedBuyFromNpc": 50
+  },
+  {
+   "seedItemId": 41,
+   "plantId": 6,
+   "name": "白菊",
+   "seedCost": 30,
+   "growDays": 3,
+   "cropItemId": 33,
+   "sellPrice": 100,
+   "roi": 70,
+   "hourlyAt8Plots": 1120,
+   "seedBuyFromNpc": 50
+  },
+  {
+   "seedItemId": 42,
+   "plantId": 7,
+   "name": "粉菊",
+   "seedCost": 30,
+   "growDays": 3,
+   "cropItemId": 34,
+   "sellPrice": 100,
+   "roi": 70,
+   "hourlyAt8Plots": 1120,
+   "seedBuyFromNpc": 50
+  },
+  {
+   "seedItemId": 43,
+   "plantId": 8,
+   "name": "迷幻花",
+   "seedCost": 90,
+   "growDays": 4,
+   "cropItemId": 35,
+   "sellPrice": 520,
+   "roi": 430,
+   "hourlyAt8Plots": 5160,
+   "seedBuyFromNpc": 150
+  },
+  {
+   "seedItemId": 52,
+   "plantId": 9,
+   "name": "北美草药",
+   "seedCost": 30,
+   "growDays": 3,
+   "cropItemId": 53,
+   "sellPrice": 80,
+   "roi": 50,
+   "hourlyAt8Plots": 800,
+   "seedBuyFromNpc": 50
+  },
+  {
+   "seedItemId": 54,
+   "plantId": 10,
+   "name": "芥菜",
+   "seedCost": 42,
+   "growDays": 2,
+   "cropItemId": 55,
+   "sellPrice": 84,
+   "roi": 42,
+   "hourlyAt8Plots": 1008,
+   "seedBuyFromNpc": 70
+  },
+  {
+   "seedItemId": 56,
+   "plantId": 11,
+   "name": "辣椒",
+   "seedCost": 24,
+   "growDays": 3,
+   "cropItemId": 57,
+   "sellPrice": 80,
+   "roi": 56,
+   "hourlyAt8Plots": 896,
+   "seedBuyFromNpc": 40
+  },
+  {
+   "seedItemId": 96,
+   "plantId": 12,
+   "name": "胡萝卜",
+   "seedCost": 18,
+   "growDays": 2,
+   "cropItemId": 97,
+   "sellPrice": 200,
+   "roi": 182,
+   "hourlyAt8Plots": 4368,
+   "seedBuyFromNpc": 30
+  }
+ ],
+ "gather": {
+  "tree": {
+   "itemId": 18,
+   "dropNum": 2,
+   "sellPrice": 6,
+   "cooldownSec": 0,
+   "hourly": 360,
+   "note": "树 HP 天然有限（world/stamina.ts 采集冷却的例外）；木材现金化价值刻意压低。"
+  },
+  "fish": {
+   "cooldownSec": 60,
+   "expectedValue": 80,
+   "hourly": 4810,
+   "pool": {
+    "19": 30,
+    "65": 20,
+    "67": 10,
+    "68": 15,
+    "69": 15,
+    "70": 4,
+    "71": 8,
+    "72": 5,
+    "73": 10,
+    "74": 1
+   },
+   "note": "串行冷却产出 = 期望售价 x 60 次/小时；旅行与交互还有开销，实际更低。"
+  },
+  "mine": {
+   "cooldownSec": 90,
+   "expectedValue": 83,
+   "hourly": 3331,
+   "pool": {
+    "7": 10,
+    "60": 30,
+    "61": 20,
+    "84": 3,
+    "109": 35
+   },
+   "note": "90s 冷却 -> 40 次/小时。"
+  }
+ },
+ "fees": {
+  "stallBase": 100,
+  "tradeFeeRate": 0.1,
+  "tradeFeeNote": "成交额 10% 由卖方承担并烧币（market/economy.ts TRADE_FEE_RATE），与 feeMultiplier 通胀上浮正交。",
+  "buildCost": 200
+ },
+ "inflationTarget": {
+  "bandLow": 0.95,
+  "bandHigh": 1.15,
+  "warn": 1.3,
+  "critical": 1.5,
+  "note": "band 为设计目标带（指数 = 当日成交中位 / 近 7 日中位）；超 warn 费用上浮，超 critical 顶格 1.5x。/af/economy-design 报实际值与设计值偏差。"
+ },
+ "netFlow": {
+  "note": "经济总账门口径：产出侧 = 采集/种植/任务投放；回收侧 = 10% 交易手续费 + 摊位费 + 建造/设施开销。净流入持续为正即通胀。"
+ },
+ "taskReward": {
+  "base": 60,
+  "stepPerChain": 40,
+  "note": "任务链第 n 阶奖励 = base + step x n（N9 内容扩容的数值基准，避免任务奖励与采集收益脱节）。"
+ }
+}
