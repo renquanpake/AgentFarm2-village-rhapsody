@@ -69,6 +69,7 @@
 
 ## 工作模式（Workflow & Collaboration，用户指令）
 - **回复语言（2026-10-03 用户明确指示，长期生效）**：一律用**简体中文**回复与输出结论——用户提问可能用繁体，回复仍走简体。
+- **superpowers 工作流（2026-10-03 用户明确指示，长期生效）**：以后所有开发工作必须调用 superpowers skill 合集（已装 `~/.claude/skills/`，15 个，源自 obra/superpowers）驱动流程——新功能先 brainstorming/writing-plans 出计划，执行走 executing-plans 逐任务 + test-driven-development（先红后绿），排障用 systematic-debugging，完成与提交前必须过 verification-before-completion（实跑验证命令拿证据，禁止口头宣称完成）。若 skill 未出现在当前会话可用列表（需重启 opencode 才加载），直接读对应 `~/.claude/skills/<name>/SKILL.md` 按其规程执行。
 - **资源获取策略（2026-09-29 用户明确指示，长期生效）**：需要图片素材就上网搜（图片搜索）或自己生图（tools/art-gen.mjs 管线），双通道保供；对图片质量要求严苛——按 C8 v2 铁律（纯白底+单体锁定+量化+art-qa 机审）与授权合规把关。**入库素材优先级：生图产物（风格可控）> CC0 素材包（Kenney 已有 465 张）> 网络搜索（仅作参考/概念图，直接入库须逐张核授权）**。其他资源同理：缺任何东西（音源/字体/数据/依赖/参考资料）就去上网搜，不空等不空想。
 - **提交前安全审查（2026-09-29 用户明确指示，长期生效）**：每次 git commit 前必须先跑 `node tools/security-check.mjs`（默认扫暂存区；`--all` 扫全仓），PASS 才允许提交。检查项：敏感文件（.env/.env.local/*.pem/*.key 等）禁止入库 + 机密内容规则（sk- 密钥/GitHub PAT/GitLab PAT/AWS/Slack/私钥块/凭据赋值长串，占位符豁免）。首跑即抓出 4 个存量文件硬编码本地 agentToken，已按 P0 模式修复（脚本改读 AF_AGENT_TOKEN，观察记录脱敏 ***REDACTED***）。
 - **分工模式（2026-09-29 用户明确指示，长期生效）**：会话主模型负责对话、规划、拆解、审查、验收；具体写代码等执行类工作，先把任务规划好再委托 agnes-3.0-flash 执行，节省主模型额度。委托通道：`tools/llm-worker.mjs`（`echo 任务 | node tools/llm-worker.mjs`，或 `--in/--out` 文件进出；Key 走 .env 的 AF_LLM_*/USER_IMG_* 用户自备 Key，模型缺省 agnes-3.0-flash）。
