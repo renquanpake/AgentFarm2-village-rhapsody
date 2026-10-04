@@ -106,11 +106,12 @@ try {
     console.log(`[agent-vis] 已关弹层: ${dismissed}`);
     await sleep(800);
   }
-  // 2) 等原版主菜单出现「开始游戏」并点击（复用 _dbg-afterstart 的坐标标定：1440x900 → 0.75 比例）
+  // 2) 等原版主菜单出现「开始游戏」并点击
+  //    主路径用 ClickEvent.emit 直派发（tools/_probe13.mjs 已验 fired=1/1，鼠标坐标点击在软渲染下不落点）；
   //    循环内持续尝试关弹层（引导弹窗可能延迟出现，会挡住按钮）
   let startClicked = false, btnSeen = false;
   const t0boot = Date.now();
-  while (Date.now() - t0boot < 70000 && !startClicked) {
+  while (Date.now() - t0boot < 200000 && !startClicked) {
     await sleep(2000);
     if (hook !== 'ok') continue;
     await page.evaluate(() => {
@@ -120,52 +121,100 @@ try {
         if (el) { el.click(); return; }
       }
     }).catch(() => {});
-    const btn = await page.evaluate(`(() => {
+    const fired = await page.evaluate(() => {
       try {
-        const scene = cc.director.getScene(); if (!scene) return null;
+        const scene = cc.director.getRunningScene ? cc.director.getRunningScene() : cc.director.getScene();
+        if (!scene) return 'no-scene';
         let hit = null;
-        scene.walk((n) => { if (hit || !n.activeInHierarchy) return; const lb = n.getComponent && n.getComponent(cc.Label); if (lb && /开始游戏/.test(lb.string||'')) hit = n; });
-        if (!hit) return null;
-        const wp = hit.parent ? hit.parent.convertToWorldSpaceAR(hit.position) : hit.position;
-        return { x: Math.round(${VPW / 1920} * wp.x), y: Math.round(${VPH} - ${VPW / 1920} * wp.y) };
-      } catch (e) { return null; }
-    })()`).catch(() => null);
-    if (btn) {
+        scene.walk((n) => { if (hit || !n.activeInHierarchy) return; const lb = n.getComponent && n.getComponent(cc.Label); if (lb && /开始游戏/.test(lb.string || '')) hit = n; });
+        if (!hit) return 'label-not-found';
+        let node = hit;
+        for (let i = 0; i < 5 && node; i++) {
+          const btn = node.getComponent && node.getComponent(cc.Button);
+          if (btn) {
+            const evs = btn.clickEvents || [];
+            if (!evs.length) return 'no-click-events';
+            let n = 0;
+            for (const ce of evs) { try { ce.emit([btn]); n++; } catch (e) { return 'emit-err'; } }
+            return 'fired=' + n + '/' + evs.length;
+          }
+          node = node.parent;
+        }
+        return 'no-button-ancestor';
+      } catch (e) { return 'err ' + String(e.message).slice(0, 50); }
+    }).catch(() => 'eval-err');
+    if (String(fired).startsWith('fired')) {
       btnSeen = true;
-      await page.mouse.click(btn.x, btn.y).catch(() => {});
       startClicked = true;
-      console.log(`[agent-vis] 已点「开始游戏」@(${btn.x},${btn.y}) t=${Math.round((Date.now() - t0boot) / 100)}0ms`);
+      console.log(`[agent-vis] 已点「开始游戏」（ClickEvent.emit ${fired}）t=${Math.round((Date.now() - t0boot) / 1000)}s`);
+      break;
+    }
+    // 兜底：坐标点击（emit 路径不通时）
+    if (Date.now() - t0boot > 60000 && !btnSeen) {
+      const btn = await page.evaluate(`(() => {
+        try {
+          const scene = cc.director.getRunningScene ? cc.director.getRunningScene() : cc.director.getScene(); if (!scene) return null;
+          let hit = null;
+          scene.walk((n) => { if (hit || !n.activeInHierarchy) return; const lb = n.getComponent && n.getComponent(cc.Label); if (lb && /开始游戏/.test(lb.string||'')) hit = n; });
+          if (!hit) return null;
+          const wp = hit.parent ? hit.parent.convertToWorldSpaceAR(hit.position) : hit.position;
+          return { x: Math.round(${VPW / 1920} * wp.x), y: Math.round(${VPH} - ${VPW / 1920} * wp.y) };
+        } catch (e) { return null; }
+      })()`).catch(() => null);
+      if (btn) {
+        btnSeen = true;
+        await page.mouse.click(btn.x, btn.y).catch(() => {});
+        startClicked = true;
+        console.log(`[agent-vis] 已点「开始游戏」@(${btn.x},${btn.y})（坐标兜底）t=${Math.round((Date.now() - t0boot) / 1000)}s`);
+      }
     }
   }
-  // 2.5) 点存档槽进村：原版流程是 主菜单 → 开始游戏 → 存档面板 → 点槽，缺这一步永远 GAME-NOT-READY
-  //      Cocos 侧按钮用 ClickEvent.emit 直派发（tools/_probe13.mjs 已验 fired=1/1），比鼠标坐标稳
-  const fireBtn = (name) => {
+  // 2.5) 进村：原版流程是 主菜单 → 开始游戏 → 存档面板 → 点槽 →（新号）改名框 → 确定
+  //      存档槽走原版自定义 MouseEventMgr，ClickEvent/坐标点击都不落点；
+  //      直接调组件入口（实测 tools/_probe21.mjs 拿到的方法体）：
+  //        storageItem.onClick(e) 需 e.getButton()===BUTTON_LEFT；无存档时先弹 UiRename
+  //        UiRename.onBtnSure() 才真正 startGame(storageKey)
+  const enterVillage = () => {
     try {
-      const scene = cc.director.getScene();
-      let hit = null;
-      scene.walk((n) => { if (!hit && n.activeInHierarchy && n.name === name) hit = n; });
-      if (!hit) return 'node-not-found';
-      const btn = hit.getComponent(cc.Button);
-      if (!btn) return 'no-Button-comp';
-      const evs = btn.clickEvents || [];
-      let fired = 0;
-      for (const ce of evs) { try { ce.emit([btn]); fired++; } catch (e) { return 'emit-err'; } }
-      return 'fired=' + fired + '/' + evs.length;
-    } catch (e) { return 'err'; }
+      const scene = cc.director.getRunningScene ? cc.director.getRunningScene() : cc.director.getScene();
+      if (!scene) return 'no-scene';
+      let slot = null;
+      scene.walk((n) => { if (!slot && n.activeInHierarchy && /^storageItem1$/.test(n.name)) slot = n; });
+      if (!slot) return 'no-slot';
+      let clicked = false;
+      for (const c of (slot.getComponents(cc.Component) || [])) {
+        if (c && typeof c.onClick === 'function' && typeof c.storageKey === 'number') {
+          c.onClick({ getButton: () => cc.Event.EventMouse.BUTTON_LEFT });
+          clicked = true;
+          break;
+        }
+      }
+      if (!clicked) return 'no-slot-comp';
+      let rn = null;
+      scene.walk((n) => { if (!rn && n.name === 'UiRename' && n.activeInHierarchy) rn = n; });
+      if (rn) {
+        for (const c of (rn.getComponents(cc.Component) || [])) {
+          if (c && typeof c.onBtnSure === 'function') {
+            try { if (c.editBoxName && !c.editBoxName.string) c.editBoxName.string = 'vis'; } catch (e) { /* ignore */ }
+            c.onBtnSure();
+            return 'slot+sure';
+          }
+        }
+        return 'slot(rename-open)';
+      }
+      return 'slot-clicked';
+    } catch (e) { return 'err ' + String(e.message).slice(0, 70); }
   };
   let slotClicked = false, slotSeen = false;
   const t0slot = Date.now();
-  while (Date.now() - t0slot < 90000 && !slotClicked) {
+  while (Date.now() - t0slot < 150000 && !slotClicked) {
     await sleep(2000);
-    for (const cand of ['storageItem1', 'storageItem0', 'item1']) {
-      const r = await page.evaluate(fireBtn, cand).catch(() => 'err');
-      if (String(r).startsWith('fired')) {
-        slotSeen = true; slotClicked = true;
-        console.log(`[agent-vis] 已点存档槽 ${cand}（${r}）t=${Math.round((Date.now() - t0slot) / 1000)}s`);
-        break;
-      }
+    const r = await page.evaluate(enterVillage).catch(() => 'err');
+    if (r === 'slot+sure' || r === 'slot-clicked') {
+      slotSeen = true; slotClicked = true;
+      console.log(`[agent-vis] 已点存档槽（${r}）t=${Math.round((Date.now() - t0slot) / 1000)}s`);
+      break;
     }
-    if (slotClicked) break;
     await page.evaluate(() => {
       const texts = ['稍后再说', '✕', '关闭'];
       for (const t of texts) {
