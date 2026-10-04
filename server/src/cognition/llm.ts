@@ -107,13 +107,16 @@ export async function llmExtract(llm: LlmOps, agent: string, eventJson: string):
   } catch { return null; }
 }
 
-/** LLM 次日计划（flagship 档；失败回落规则 planDaily） */
-export async function llmDailyPlan(llm: LlmOps, agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[] }): Promise<string[] | null> {
-  const system = '你是像素农场游戏的角色规划器。根据人设/天气/节日/记忆/倾向动作，输出明日 3-5 条可执行计划（简短中文，每行一条，不要编号前缀以外的内容）。';
+/** LLM 次日计划（flagship 档；失败回落规则 planDaily）
+ *  rules：P3 规则上下文（精简档 ≤300 token），由调用方用 plannerSystemPrompt 装配后传入 */
+export async function llmDailyPlan(llm: LlmOps, agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[]; rules?: string }): Promise<string[] | null> {
+  const head = '你是像素农场游戏的角色规划器。根据人设/天气/节日/记忆/倾向动作，输出明日 3-5 条可执行计划（简短中文，每行一条，不要编号前缀以外的内容）。';
+  const system = ctx.rules ? `${head}\n计划里的动作名、价格、坐标必须用下面【规则】里的写法，别自己编。\n\n${ctx.rules}` : head;
   const user = JSON.stringify(ctx);
   const text = await llm.chat(agent, system, user, 'plan');
   if (!text) return null;
-  const lines = text.split('\n').map(s => s.replace(/^[\s\d\.、\-—]+/, '').trim()).filter(Boolean);
+  // 剥编号前缀：阿拉伯数字/中文序号/圆圈序号都算（LLM 常带 ① ②）
+  const lines = text.split('\n').map(s => s.replace(/^[\s\d\.、\-—①②③④⑤⑥⑦⑧⑨⑩第]+/, '').trim()).filter(Boolean);
   return lines.length ? lines.slice(0, 5) : null;
 }
 

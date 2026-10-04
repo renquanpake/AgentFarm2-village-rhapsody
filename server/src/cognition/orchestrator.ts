@@ -9,6 +9,8 @@ import { affectDelta, decayAffect, saveAffect, loadAffect, emptyAffect, actionPr
 import { triggerGossipOnFavChange } from './gossip.ts';
 import { GoalStore } from './goals.ts';
 import { createLlmOps, type LlmOps, llmExtract, llmDailyPlan } from './llm.ts';
+import { rulesPrompt } from '../world/rules-prompt.ts';
+import { plannerSystemPrompt } from '../world/dialogue-prompt.ts';
 
 export class CognitionService {
   memory: MemoryStore;
@@ -44,9 +46,13 @@ export class CognitionService {
     return this.facts.commitExtraction(ev); // 规则兜底
   }
 
-  /** LLM 次日计划（失败回落规则 planDaily；返回计划条数） */
+  /** LLM 次日计划（失败回落规则 planDaily；返回计划条数）
+   *  P3：system 注入精简版规则上下文（lite ≤300 token），计划里的动作名/价格/坐标不许自编 */
   async planDailyLlm(agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[] }): Promise<number> {
-    const plans = await llmDailyPlan(this.llm(agent), agent, ctx);
+    const plans = await llmDailyPlan(this.llm(agent), agent, {
+      ...ctx,
+      rules: plannerSystemPrompt(rulesPrompt(this.app, { budget: 'lite', uid: agent })),
+    });
     const goals = new GoalStore(this.app.db);
     if (plans) {
       for (const p of plans) goals.add(agent, 'daily', p);

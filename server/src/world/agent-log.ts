@@ -21,6 +21,8 @@ export interface AgentOp {
   scene?: number;
   x?: number;
   y?: number;
+  /** P3：本次动作所依据的规则提示词 hash（对话/规划类才有；旧行无此字段，兼容降级） */
+  rulesHash?: string;
 }
 
 interface LogData { ops: Record<string, AgentOp[]> }
@@ -82,17 +84,22 @@ export function recapLines(state: WorldState, uid: string, n = 12, now = Date.no
 
 /** 流水结构（observe.recap / /af/agent-recap 用） */
 export function recapView(state: WorldState, uid: string, n = 12, now = Date.now()): {
-  total: number; recent: Array<{ at: number; ago: string; day: number; action: string; actionCn: string; ok: boolean; detail: string; scene?: number; x?: number; y?: number }>;
+  total: number; recent: Array<{ at: number; ago: string; day: number; action: string; actionCn: string; ok: boolean; detail: string; scene?: number; x?: number; y?: number; rulesHash?: string }>;
   lines: string[];
   note: string;
+  /** 最近一次带 rulesHash 的规则版本（旧行无该字段 → null，归因降级不报错） */
+  rulesHash?: string | null;
 } | null {
   const ops = opsOf(state, uid, n);
   if (!ops.length) return null;
+  const recent = ops.map(op => ({ at: op.ts, ago: ago(op.ts, now), day: op.day, action: op.action, actionCn: actionCn(op.action), ok: op.ok, detail: op.detail, scene: op.scene, x: op.x, y: op.y, rulesHash: op.rulesHash }));
+  const withHash = [...recent].reverse().find((r) => !!r.rulesHash);
   return {
     total: (data(state).ops[uid] || []).length,
-    recent: ops.map(op => ({ at: op.ts, ago: ago(op.ts, now), day: op.day, action: op.action, actionCn: actionCn(op.action), ok: op.ok, detail: op.detail, scene: op.scene, x: op.x, y: op.y })),
+    recent,
     lines: recapLines(state, uid, n, now),
     note: `最近 ${ops.length} 条行为流水（世界桶 ${AGENT_LOG_KEY}，玩家与 Agent 共用同一份事实）`,
+    rulesHash: withHash?.rulesHash ?? null,
   };
 }
 

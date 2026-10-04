@@ -36,6 +36,8 @@ import { economyHookEnabled, economyHookFrozenMsg } from '../world/economy-gates
 import { worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cropAtWorld, knapAdd, knapHas, knapSub, treeOf, nextPlantUid, soilAt, waterAt, plotAt } from '../world/farm.ts';
 import { PLANT_CROPS, pickWeighted, FISH_POOL, MINE_POOL } from '../world/tables.ts';
 import { catalogNotice } from '../world/act-catalog.ts';
+import { npcDialoguePrompt } from '../world/dialogue-prompt.ts';
+import { rulesPrompt } from '../world/rules-prompt.ts';
 import { freshSeed, pickWeightedSeeded } from '../world/rng.ts';
 import { WORLD_KEYS } from '../persistence/state.ts';
 import { doBuy, shopTable } from '../market/shop.ts';
@@ -1213,13 +1215,17 @@ responseType = 'move_started';
               // 天气/季节给模型中文名：原始键（clear/spring）会被 LLM 原样念给玩家听
               const WX_CN: Record<string, string> = { clear: '晴', rain: '雨', snow: '雪', storm: '风暴' };
               const SEASON_CN: Record<string, string> = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
-              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${SEASON_CN[tm.season] ?? tm.season}季、${WX_CN[tm.weather] ?? tm.weather}${tm.festival ? '，今天是「'+tm.festival+'」节' : ''}。${(() => { const g = latestGossip(state); return g ? `村里最近的事：${g.text}（可顺带一提）。` : ''; })()}用村民口吻说话，中文回答`;
+              // P3：规则上下文完整版一次拼装（权威源），对话与归因共用同一份 rulesHash
+              const rules = rulesPrompt(app, { budget: 'full', uid });
+              const system = npcDialoguePrompt({ npcName: npc.name || `NPC${npcId}`, identity: persona.identity, tagline: persona.tagline, desc: persona.desc, day, seasonCn: SEASON_CN[tm.season] ?? tm.season, weatherCn: WX_CN[tm.weather] ?? tm.weather, festival: tm.festival, gossip: (() => { const g = latestGossip(state); return g ? g.text : null; })() }, rules);
               const userMsg = String(msg.text || '你好');
               ;(async () => {
                 try {
                   const reply = await app.cognition.llm(uid).chat(uid, system, userMsg, 'dialogue') ?? fallback;
-                  send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}` });
-                } catch { /* llm 不可用：已发价目表，对话降级 */ }
+                  // 归因：把本次对话依据的规则版本 hash 记进行为流水（回答质量可追责到规则版本）
+                  recordAgentOp(state, uid, { day, action: 'talk_npc', ok: true, detail: `与 ${npc.name} 对话：${String(reply).slice(0, 60)}`, scene: apos.scene ?? 2, rulesHash: rules.rulesHash });
+                  send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}`, rulesHash: rules.rulesHash });
+                } catch (e) { console.warn(`[talk] NPC 对话失败（已降级为 tagline）：${e instanceof Error ? e.message : String(e)}`); }
               })();
             }
             // 无 persona / 无认知栈时同步给一句 tagline，不让玩家的搭话落空（dialogue=null 像哑巴）

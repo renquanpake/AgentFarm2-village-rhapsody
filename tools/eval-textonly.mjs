@@ -39,6 +39,8 @@ const CHECKLIST = [
   { step: '障碍绕行', via: 'observe.obstacles', needs: ['obstacles'], probe: null },
   { step: '节日赛计分', via: 'observe.festival', needs: ['festival'], probe: null },
   { step: '对话', via: 'act talk（LLM 中文）', needs: ['dialogue 文本条'], probe: null },
+  // P3：规则上下文可读（价格/坐标/日历/动作语义），且 NPC 收购价是基价六折 —— 幻觉的正面防线
+  { step: '规则上下文（价格/坐标/日历）', via: '/af/prompts', needs: ['rulesHash', 'text 九段'], probe: 'prompts', needToken: true },
   // 带 token 的运营面（无 token 时跳过，不判死：这些不是玩家决策必需）
   { step: '经济总账（设计 vs 实盘）', via: '/af/economy-design', needs: ['crops', 'inflationTarget'], probe: 'economyDesign', needToken: true },
   { step: '里程碑度量（留存/漏斗）', via: '/af/metrics', needs: ['players', 'funnel'], probe: 'metrics', needToken: true },
@@ -58,6 +60,7 @@ const probes = {
   economyDesign: token ? await getJSON('/af/economy-design') : { skipped: true },
   metrics: token ? await getJSON('/af/metrics') : { skipped: true },
   saveVersion: token ? await getJSON('/af/save-version') : { skipped: true },
+  prompts: token ? await getJSON('/af/prompts?budget=full') : { skipped: true },
 };
 console.log(`  路线规划依据 /af/mapdoc: ${probes.mapdoc.ok ? '可读' : '不可读 ' + (probes.mapdoc.error || probes.mapdoc.raw || '')}`);
 console.log(`  公告 /af/notices: ${probes.notices.ok ? `可读（lastSeq=${probes.notices.lastSeq}）` : '不可读 ' + (probes.notices.error || '')}`);
@@ -79,6 +82,21 @@ for (const c of CHECKLIST) {
   if (ok && c.probe === 'economyDesign') ok = Array.isArray(probes.economyDesign.crops) && !!probes.economyDesign.inflationTarget;
   if (ok && c.probe === 'metrics') ok = !!probes.metrics.players && Array.isArray(probes.metrics.funnel);
   if (ok && c.probe === 'saveVersion') ok = typeof probes.saveVersion.current === 'number' && Array.isArray(probes.saveVersion.plan);
+  // 字段级校验（P3 规则上下文）：九段齐全 + 1200 token 预算 + 反幻觉尾句 + NPC 收购六折可核对
+  if (ok && c.probe === 'prompts') {
+    const t = String(probes.prompts.text || '');
+    ok = !!probes.prompts.rulesHash
+      && probes.prompts.tokens <= 1200
+      && ['【世界观】', '【日历】', '【价目】', '【地标】', '【建筑】', '【NPC 名册】', '【动作】', '【任务】', '【条款】'].every((s) => t.includes(s))
+      && t.includes('以上资料未写明的，回答不知道。');
+    // 六折口径：价目段里每个条目都满足「NPC 收购 = round(基价 × 0.6)」
+    if (ok) {
+      const seg = (t.match(/【价目】[\s\S]*?(?=\n【)/) || [''])[0];
+      const rows = [...seg.matchAll(/市场基价 (\d+)，NPC 收购 (\d+)/g)];
+      ok = rows.length > 0 && rows.every(([, base, buy]) => Number(buy) === Math.max(1, Math.round(Number(base) * 0.6)));
+      if (!ok) console.log(`  六折核对失败：${JSON.stringify(rows.slice(0, 3))}`);
+    }
+  }
   console.log(`  [${ok ? 'OK' : '死点'}] ${c.step} <- ${c.via}`);
   if (!ok) dead++;
 }

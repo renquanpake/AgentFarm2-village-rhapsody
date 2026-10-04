@@ -162,14 +162,41 @@ function getPersonalityBlock() {
   return `## 你的性格：${p.name}\n${p.desc||''}\n社交欲${p.sociability}/100(${f(p.sociability)}) 勤劳度${p.industriousness}/100(${f(p.industriousness)}) 冒险心${p.adventurousness}/100(${f(p.adventurousness)}) 商业心${p.mercantile}/100(${f(p.mercantile)}) 创造力${p.creativity}/100(${f(p.creativity)})\n说话风格：${p.speech_style||'自然随和'}\n喜欢：${(p.daily_prefs||[]).join('、')||'随心所欲'}  不喜欢：${(p.avoid||[]).join('、')||'没有'}\n行为：社交欲低→少找人；高→主动聊天。勤劳度高→多干活；低→多休息。冒险心高→多探索；低→安分。商业心高→追求利润；低→不在乎钱。创造力高→装饰美化；低→实用为主。`;
 }
 
+// ---------- 村庄规则（P3：服务端权威规则上下文，取代本文件里的硬编码世界数据） ----------
+// 拉 GET /af/prompts 拿 rulesPrompt 输出；失败降级为本地兜底句，绝不阻断对话。
+const HTTP_BASE = (process.env.AF_HTTP_BASE || _wsBase.replace(/^ws/, 'http').replace(/\/agent.*$/, '')).replace(/\/$/, '');
+const RULES_FALLBACK = '【村庄规则】拉取失败：坐标与价格只信 observe 返回值；动作名用 move_to/plant/water/harvest/chop/buy/talk/letter；以上资料未写明的，回答不知道。';
+let _rulesCache = null;
+
+async function fetchRules(budget = 'full') {
+  if (_rulesCache) return _rulesCache;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 8000);
+  try {
+    const res = await fetch(`${HTTP_BASE}/af/prompts?token=${encodeURIComponent(TOKEN)}&budget=${budget}`, { signal: ac.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    if (!j.ok || typeof j.text !== 'string' || !j.text) throw new Error('bad payload');
+    _rulesCache = j.text;
+  } catch {
+    _rulesCache = RULES_FALLBACK;
+  } finally {
+    clearTimeout(timer);
+  }
+  return _rulesCache;
+}
+
 // ---------- System Prompt ----------
-function systemPrompt() {
+function systemPrompt(rulesText = RULES_FALLBACK) {
   loadPersonalities();
   return `你是《乡村狂想曲》联机版里的一名村民 Agent，以玩家身份在村庄里生活。
 
 - 你是纯文本模型，看不到画面：一切感知来自 game_observe 的文本 JSON。不要编造画面/颜色/长相。
 
 ${getPersonalityBlock()}
+
+## 村庄规则（服务端下发，权威；坐标/价格/动作语法只以此为准）
+${rulesText}
 
 ## 第一件事：先读笔记
 启动后先 note_list，然后 note_read "agent.md"（我的性格人设，必须严格按它行动）、
@@ -188,11 +215,9 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
 - 精力管理：每天100点，不同活动消耗不同（种地10/钓鱼15/砍树20/挖矿25/聊天5/睡觉恢复20）
 - 读任务书看看有没有想做的任务，按自己的节奏做（可以不听）
 
-## 世界（文本导航）
-- 场景 2 = 村庄（133×117 格，一格=100 单位，x∈[0,13300], y∈[0,11700]，坐标原点左上）
-- 地标：村庄中心/商店区 (3500,3000)；宅基地 #2树根家(3100,500) #3小卖部(6000,1400)
-  #4木匠家(3000,6700) #5老太太家(5800,5900) #6屠夫家(7600,1600) #7村长家(8400,4600) #8家石伯家(1200,2800)
-- NPC 商店（都在村中心附近）：屠夫(4)肉/鱼、木匠(6)建材、杂货店老板(13)种子粮食、村长(7)粮食、医生(25)杂货
+## 世界（权威数据见下方【村庄规则】，不要凭记忆报坐标/价格）
+- 地图尺寸、地标坐标、建筑门位、NPC 名册、价格全部以【村庄规则】段为准（服务端运行时下发，改数据即时生效）
+- 下面的【村庄规则】拉取失败时降级为「只信 observe 返回的坐标与价格」，绝不自己编数字
 
 ## 玩法（服务器模拟，动作由服务器判定）
 - **坐标约定**：observe 里的 gx/gy 是格子号，**px/py 是像素坐标**。move_to / till / water / plant / harvest / chop 的 x,y 一律填**像素坐标**（直接用 observe 给的 px/py 即可）。
@@ -363,7 +388,8 @@ async function main() {
     }
   });
 
-  const messages = [{ role: 'system', content: systemPrompt() }];
+  // P3：system 首包先拉服务端规则上下文（拉取失败自动降级为兜底句，不阻断本轮）
+  const messages = [{ role: 'system', content: systemPrompt(await fetchRules('full')) }];
   let round = 0;
   let lastDay = null;
   let lastOpAt = 0; // 已处理的玩家操作时间戳（打断检测）
