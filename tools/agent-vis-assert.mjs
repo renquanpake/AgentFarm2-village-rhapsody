@@ -52,14 +52,22 @@ const check = (name, cond, expected, actual) => {
   console.log(`${cond ? 'PASS' : 'FAIL'} - ${name}${actual ? ` | ${actual}` : ''}`);
 };
 
-// ---------- 启动浏览器（复用 shot-session 生命周期） ----------
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--window-size=800,600'] });
+// ---------- 启动浏览器（复用 shot-session 生命周期；1440x900 是「开始游戏」按钮坐标公式标定口径） ----------
+const VPW = Number(arg('viewport-w', 1440)), VPH = Number(arg('viewport-h', 900));
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', `--window-size=${VPW},${VPH}`] });
 try {
   const page = await browser.newPage();
-  await page.setViewport({ width: 800, height: 600, deviceScaleFactor: 1 });
+  await page.setViewport({ width: VPW, height: VPH, deviceScaleFactor: 1 });
   await page.setCacheEnabled(false);
   const consoleErrors = [];
-  page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(String(m.text()).slice(0, 200)); });
+  const resource404s = [];
+  // 静态资源 404（favicon 等）是资源缺失信号，归入 resource404s；JS 野错（pageerror / 非资源 console error）才计 P0 野错
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    const t = String(m.text());
+    if (/Failed to load resource/i.test(t)) { resource404s.push(t.slice(0, 120)); return; }
+    consoleErrors.push(t.slice(0, 200));
+  });
   page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + String(e.message).slice(0, 200)));
 
   // 身份 + 测试钩子旗标在页面脚本执行前注入（免登录直达；af.test=1 才注册 __AF_TEST__）
@@ -72,21 +80,74 @@ try {
     } catch (e) { /* ignore */ }
   }, { token: acc.token, uid: acc.uid, nick: USER });
 
-  // 游戏 WS（模拟客户端，agent 的 move 广播经它对账）—— 复用 dbg-agent-vis 模式
-  const pws = new WebSocket(BASE.replace(/^http/, 'ws') + '/ws');
-  await new Promise((res) => pws.on('open', res));
-  pws.send(JSON.stringify({ t: 'join', uid: acc.uid, nick: USER, token: acc.token, scene: 2, x: 3500, y: 3000 }));
-  await new Promise((res) => pws.on('message', (d) => { const m = JSON.parse(d.toString()); if (m.t === 'welcome') res(); }));
-  const agentMoves = [];
-  pws.on('message', (d) => {
-    const m = JSON.parse(d.toString());
-    if (m.t === 'agent_move' || m.t === 'agent_move_done') agentMoves.push(m);
-  });
+  // 注：不另开 /ws 连接——join 是单点登录，会踢掉客户端页面的连接。
+  // 观察节点/服务端位置一律走页面钩子 __AF_TEST__；_agent 通道只下 act 指令。
+  // /agent 在页面 boot 前接入：state.online 尚无 → agentPos 走存档回落 = 客户端节点出生位，天然对齐。
 
-  // agent WS（下 act 指令）
+  // 注：不另开 /ws 连接——join 是单点登录，会踢掉客户端页面的连接。
+  // 观察一律走页面钩子 __AF_TEST__；/agent 在「游戏世界就绪」之后才接入，
+  // 此时页面 posTimer 已把真实节点坐标同步进 state.online，agentPos 起步即与画面对齐。
+  await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => console.log('[agent-vis] goto 警告（客户端可能未就绪）'));
+
+  // 1) mod 钩子注册（af.test=1 时 IIFE 顶层定义 __AF_TEST__）
+  const hook = await page.waitForFunction('window.__AF_TEST__ !== undefined', { timeout: 20000 })
+    .then(() => 'ok').catch(() => 'MISSING-TEST-HOOK');
+  // 1.5) 关掉 mod 新手引导弹层（「连接你的 Agent」弹窗居中，会挡住原版「开始游戏」按钮——shot-session 同款坑）
+  for (let i = 0; i < 10; i++) {
+    const dismissed = await page.evaluate(() => {
+      const texts = ['稍后再说', '✕', '关闭'];
+      for (const t of texts) {
+        const el = [...document.querySelectorAll('button, .x, [data-act="back"]')].find(e => (e.innerText || '').trim() === t && e.offsetParent !== null);
+        if (el) { el.click(); return t; }
+      }
+      return null;
+    }).catch(() => null);
+    if (!dismissed) break;
+    console.log(`[agent-vis] 已关弹层: ${dismissed}`);
+    await sleep(800);
+  }
+  // 2) 等原版主菜单出现「开始游戏」并点击（复用 _dbg-afterstart 的坐标标定：1440x900 → 0.75 比例）
+  //    循环内持续尝试关弹层（引导弹窗可能延迟出现，会挡住按钮）
+  let startClicked = false, btnSeen = false;
+  const t0boot = Date.now();
+  while (Date.now() - t0boot < 70000 && !startClicked) {
+    await sleep(2000);
+    if (hook !== 'ok') continue;
+    await page.evaluate(() => {
+      const texts = ['稍后再说', '✕', '关闭'];
+      for (const t of texts) {
+        const el = [...document.querySelectorAll('button, .x, [data-act="back"]')].find(e => (e.innerText || '').trim() === t && e.offsetParent !== null);
+        if (el) { el.click(); return; }
+      }
+    }).catch(() => {});
+    const btn = await page.evaluate(`(() => {
+      try {
+        const scene = cc.director.getScene(); if (!scene) return null;
+        let hit = null;
+        scene.walk((n) => { if (hit || !n.activeInHierarchy) return; const lb = n.getComponent && n.getComponent(cc.Label); if (lb && /开始游戏/.test(lb.string||'')) hit = n; });
+        if (!hit) return null;
+        const wp = hit.parent ? hit.parent.convertToWorldSpaceAR(hit.position) : hit.position;
+        return { x: Math.round(${VPW / 1920} * wp.x), y: Math.round(${VPH} - ${VPW / 1920} * wp.y) };
+      } catch (e) { return null; }
+    })()`).catch(() => null);
+    if (btn) {
+      btnSeen = true;
+      await page.mouse.click(btn.x, btn.y).catch(() => {});
+      startClicked = true;
+      console.log(`[agent-vis] 已点「开始游戏」@(${btn.x},${btn.y}) t=${Math.round((Date.now() - t0boot) / 100)}0ms`);
+    }
+  }
+  // 3) 等 Cocos 玩家节点挂载（Application.playerNode 挂上即世界就绪；轻量直读避免 scene.walk 反复开销；软件 WebGL 下村景贴图慢，给 240s）
+  const boot = hook !== 'ok' ? hook
+    : await page.waitForFunction(`(() => { try { const m=window.__AF_MODS__; const A=m&&m['Application']&&m['Application'].exports; const i=A&&A.default&&A.default.getIns&&A.default.getIns(); return !!(i&&i.playerNode&&i.playerNode.isValid); } catch (e) { return false; } })()`, { timeout: 240000, polling: 1500 })
+      .then(() => 'ok').catch(() => 'GAME-NOT-READY');
+  check('boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪', boot === 'ok', '__AF_TEST__ + node() 非 null',
+    `${boot}${btnSeen ? '' : ' | 未见开始游戏按钮'}${resource404s.length ? ' | 资源404 x' + resource404s.length : ''}`);
+
+  // agent WS（游戏就绪后才接入，下 act 指令）
   const aws = new WebSocket(BASE.replace(/^http/, 'ws') + '/agent?token=' + encodeURIComponent(ag.agentToken));
   await new Promise((res) => aws.on('open', res));
-  await new Promise((r) => setTimeout(r, 1000));
+  await sleep(1000);
   let seq = 0;
   const act = (action, payload = {}, ms = 20000) => new Promise((resolve) => {
     const s = ++seq;
@@ -96,26 +157,41 @@ try {
     setTimeout(() => { aws.off('message', onMsg); resolve(null); }, ms);
   });
 
-  await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => console.log('[agent-vis] goto 警告（客户端可能未就绪）'));
-  // 等 __AF_TEST__ 定义（af.test=1 时注入；未注入则场景会 TypeError，正是 RED 需要的信号）
-  const boot = await page.waitForFunction('window.__AF_TEST__ !== undefined', { timeout: 15000 }).then(() => 'ok').catch(() => 'MISSING-TEST-HOOK');
-  check('boot：页面加载 & __AF_TEST__ 就位', boot === 'ok', '__AF_TEST__ defined', boot);
-
   const ts = (v) => `window.__AF_TEST__ && window.__AF_TEST__.${v}`;
   const nodePos = async () => page.evaluate(`${ts('node()')}  ? JSON.parse(JSON.stringify(window.__AF_TEST__.node())) : null`);
   const serverPos = async () => page.evaluate(`${ts('serverPos()')} ? JSON.parse(JSON.stringify(window.__AF_TEST__.serverPos())) : null`);
-  const floatCount = async () => page.evaluate(`${ts('floatCount()')} ? window.__AF_TEST__.floatCount() : -1`);
+  const floatCount = async () => page.evaluate(`(window.__AF_TEST__ && typeof window.__AF_TEST__.floatCount === 'function') ? window.__AF_TEST__.floatCount() : -1`);
   const setBlackhole = async (n) => page.evaluate(`${ts('blackhole')} ? window.__AF_TEST__.blackhole(${n}) : 0`);
+  const doneCount = async () => page.evaluate(`(window.__AF_TEST__ && typeof window.__AF_TEST__.doneCount === 'function') ? window.__AF_TEST__.doneCount() : -1`);
+
+  // 等 move_to 走完（页面钩子计 agent_move_done，串行避免服务端「上个移动没走完」拒单）
+  const waitAgentDone = async (timeoutMs = 45000) => {
+    const base = await doneCount();
+    const t0 = Date.now();
+    for (;;) {
+      const n = await doneCount();
+      if (n > base) return true;
+      if (Date.now() - t0 > timeoutMs) return false;
+      await sleep(400);
+    }
+  };
+  const moveToDone = async (target, ms = 45000) => {
+    const r = await act('move_to', target, ms);
+    const done = await waitAgentDone(ms);
+    return { r, done };
+  };
 
   // ---------- 场景 A：dir 步随 ----------
-  // 观察服务端初始 pos，随后 act move dir ×6，比对 node 与服务端位移
-  const aStart = serverPos();
+  // 先读服务端位置锚点（无 agent_move 帧则先发 1 步 dir 生成锚点），再 dir ×5 共 6 步，比对 node 与服务端位移
+  let apos0 = await serverPos();
   await sleep(800);
-  const a0 = await aStart;
-  const apos0 = a0 ? { x: a0.x, y: a0.y } : null;
+  if (!apos0) {
+    const w = await act('move', { dir: 'down' }, 8000);
+    if (w && w.ok) { const sp = await serverPos(); apos0 = sp ? { x: sp.x, y: sp.y } : null; }
+  }
   let aOk = false, aInfo = '';
   if (apos0) {
-    for (const dir of ['right', 'down', 'right', 'down', 'right', 'down']) {
+    for (const dir of ['down', 'down', 'down', 'down', 'down']) {
       await act('move', { dir }, 8000);
       await sleep(250);
     }
@@ -131,10 +207,11 @@ try {
   check('A dir 步随：node 位移≈服务端且终漂移 ≤440px', aOk, '|Δnode-Δserver| ≤240 且 dist ≤440', aInfo);
 
   // ---------- 场景 C：黑洞重放 ----------
-  // blackhole(3) 丢弃 3 条 agent_move → act move 到目标 → 解除 → 等 ≤2.5s node 对齐服务端
-  const cTarget = { x: (apos0 ? apos0.x : 3500) + 600, y: (apos0 ? apos0.y : 3000) };
+  // blackhole(3) → 发 3 步 dir move（每步 1 条 agent_move，共 3 帧全入 pending）
+  // → 400ms 后解除黑洞 → posTimer flush 重放 → 等 ≤2.5s node 对齐服务端
+  const cBase = apos0 ? apos0 : { x: 3500, y: 3000 };
   setBlackhole(3);
-  await act('move', { x: cTarget.x, y: cTarget.y }, 10000);
+  for (let i = 0; i < 3; i++) await act('move', { dir: 'right' }, 8000);
   await sleep(400);
   setBlackhole(0);
   await sleep(2500);
@@ -144,26 +221,32 @@ try {
   check('C-blackhole 钩子可用（RED 信号）', boot === 'ok', 'blackhole() 存在', boot);
 
   // ---------- 场景 D：move_to 终点对齐 ----------
+  // 串行：move_to 后必须等 agent_move_done（服务端走完）再读终点，避免与下一场景并发被拒单
   const dTarget = { x: 3350, y: 550 };
-  const dres = await act('move_to', dTarget, 30000);
-  await sleep(3000);
+  const { r: dres, done: dDone } = await moveToDone(dTarget);
+  await sleep(1500);
   const d1 = await nodePos(), d2 = await serverPos();
   check('D move_to 终点对齐：node 距服务端 ≤40px', !!(d1 && d2 && Math.hypot(d1.x - d2.x, d1.y - d2.y) <= 40),
-    'dist ≤40px', d1 && d2 ? `dist ${Math.hypot(d1.x - d2.x, d1.y - d2.y).toFixed(0)}px` : 'null');
+    'dist ≤40px', d1 && d2 ? `dist ${Math.hypot(d1.x - d2.x, d1.y - d2.y).toFixed(0)}px (done=${dDone})` : 'null (done=' + dDone + ')');
   check('D-move_to 可发起（服务端未回 error）', !!dres, 'move_started', dres?.msg || dres?.t || 'timeout');
 
   // ---------- 场景 B/E：行为飘字 + 面板文案 ----------
-  let chopTarget = null;
+  // D 走后在当前位置附近找树丛（observe.regions 格坐标），move_to 到树丛边缘再 chop
+  let chopRes = null, chopped = false;
   const obs = await act('observe', {}, 8000);
-  if (obs && Array.isArray(obs.obstacles) && obs.obstacles.length) {
-    const t = obs.obstacles.find((o) => String(o.kind || o.type).includes('tree')) || obs.obstacles[0];
-    chopTarget = { x: (t.x ?? 6550), y: (t.y ?? 5350) };
-    await act('move_to', chopTarget, 30000);
-    await act('chop', chopTarget, 15000);
-  } else { await act('move_to', { x: 6550, y: 5350 }, 30000); await act('chop', { x: 6550, y: 5350 }, 15000); }
-  await sleep(1500);
+  const regions = (obs && obs.obstacles && Array.isArray(obs.obstacles.regions)) ? obs.obstacles.regions : [];
+  const treeR = regions.find(r => String(r.name).includes('树'));
+  let chopTarget = null;
+  if (treeR) {
+    const cx = Math.round((treeR.x1 + treeR.x2) / 2), cy = Math.round((treeR.y1 + treeR.y2) / 2);
+    chopTarget = { x: cx * 100 + 50, y: cy * 100 + 50 };
+    await moveToDone({ x: treeR.x1 * 100 + 50, y: treeR.y1 * 100 + 50 }, 45000); // 到树丛边缘
+    chopRes = await act('chop', chopTarget, 15000);
+    chopped = !!(chopRes && (chopRes.ok || /砍/.test(String(chopRes.msg || ''))));
+  }
+  await sleep(1200);
   const fc = await floatCount();
-  check('B 行为飘字：chop 后 floatCount ≥1', fc >= 1, '≥1', String(fc));
+  check('B 行为飘字：chop 后 floatCount ≥1', fc >= 1, '≥1', `fc=${fc} chopped=${chopped} msg=${(chopRes && chopRes.msg) || 'n/a'}`);
   const liveT = await page.evaluate(() => (document.getElementById('af-agent-live-t') || { textContent: '' }).textContent);
   const hudT = await page.evaluate(() => (document.getElementById('af-hud-agent') || { textContent: '' }).textContent);
   check('E 面板文案：chop 后含「砍|正在」', /砍|正在/.test(String(liveT) + ' ' + String(hudT)),
