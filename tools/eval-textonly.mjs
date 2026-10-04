@@ -41,6 +41,8 @@ const CHECKLIST = [
   { step: '对话', via: 'act talk（LLM 中文）', needs: ['dialogue 文本条'], probe: null },
   // P3：规则上下文可读（价格/坐标/日历/动作语义），且 NPC 收购价是基价六折 —— 幻觉的正面防线
   { step: '规则上下文（价格/坐标/日历）', via: '/af/prompts', needs: ['rulesHash', 'text 九段'], probe: 'prompts', needToken: true },
+  // P4：新手教程 7 步（文本通道可读；带 token 时进度可查 —— 教程不能只活在画面里）
+  { step: '新手教程（7 步引导）', via: '/af/tutorial', needs: ['steps 7 步 + progress'], probe: 'tutorial' },
   // 带 token 的运营面（无 token 时跳过，不判死：这些不是玩家决策必需）
   { step: '经济总账（设计 vs 实盘）', via: '/af/economy-design', needs: ['crops', 'inflationTarget'], probe: 'economyDesign', needToken: true },
   { step: '里程碑度量（留存/漏斗）', via: '/af/metrics', needs: ['players', 'funnel'], probe: 'metrics', needToken: true },
@@ -61,9 +63,11 @@ const probes = {
   metrics: token ? await getJSON('/af/metrics') : { skipped: true },
   saveVersion: token ? await getJSON('/af/save-version') : { skipped: true },
   prompts: token ? await getJSON('/af/prompts?budget=full') : { skipped: true },
+  tutorial: await getJSON('/af/tutorial'),   // 公开面：无 token 也能读 7 步文案
 };
 console.log(`  路线规划依据 /af/mapdoc: ${probes.mapdoc.ok ? '可读' : '不可读 ' + (probes.mapdoc.error || probes.mapdoc.raw || '')}`);
 console.log(`  公告 /af/notices: ${probes.notices.ok ? `可读（lastSeq=${probes.notices.lastSeq}）` : '不可读 ' + (probes.notices.error || '')}`);
+console.log(`  新手教程 /af/tutorial: ${probes.tutorial.ok ? `可读（${probes.tutorial.steps?.length ?? 0} 步，active=${probes.tutorial.progress?.active ?? '-'}）` : '不可读 ' + (probes.tutorial.error || '')}`);
 if (token) {
   console.log(`  经济总账 /af/economy-design: ${probes.economyDesign.ok ? `可读（${probes.economyDesign.crops?.length ?? 0} 种作物设计行）` : '不可读 ' + (probes.economyDesign.raw || '')}`);
   console.log(`  里程碑度量 /af/metrics: ${probes.metrics.ok ? `可读（玩家 ${probes.metrics.players?.total ?? 0}）` : '不可读 ' + (probes.metrics.raw || '')}`);
@@ -82,6 +86,13 @@ for (const c of CHECKLIST) {
   if (ok && c.probe === 'economyDesign') ok = Array.isArray(probes.economyDesign.crops) && !!probes.economyDesign.inflationTarget;
   if (ok && c.probe === 'metrics') ok = !!probes.metrics.players && Array.isArray(probes.metrics.funnel);
   if (ok && c.probe === 'saveVersion') ok = typeof probes.saveVersion.current === 'number' && Array.isArray(probes.saveVersion.plan);
+  // 字段级校验（P4 教程）：7 步齐 + 每步有 title/hint + 进度结构完整
+  if (ok && c.probe === 'tutorial') {
+    const t = probes.tutorial;
+    const steps = Array.isArray(t.steps) ? t.steps : [];
+    ok = steps.length === 7 && steps.every((x) => x && x.id && x.title && x.hint !== undefined)
+      && !!t.progress && Array.isArray(t.progress.done) && ('active' in t.progress);
+  }
   // 字段级校验（P3 规则上下文）：九段齐全 + 1200 token 预算 + 反幻觉尾句 + NPC 收购六折可核对
   if (ok && c.probe === 'prompts') {
     const t = String(probes.prompts.text || '');

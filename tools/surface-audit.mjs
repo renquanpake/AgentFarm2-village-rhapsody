@@ -15,7 +15,9 @@ const surfaces = [
   { name: '全村地图', probe: () => httpSrc.includes("'/af/mapdoc'") },
   { name: '公告', probe: () => httpSrc.includes("'/af/notices'") && obsSrc.includes('notices') },
   { name: '任务清单（任务链）', probe: () => obsSrc.includes('chains') && wsSrc.includes('taskView') },
-  { name: '新手引导', probe: () => obsSrc.includes('onboarding') && wsSrc.includes('onboardingView') },
+  { name: '新手引导（Agent 侧 10 环）', probe: () => obsSrc.includes('onboarding') && wsSrc.includes('onboardingView') },
+  // P4：人类玩家 7 步教程（data/tutorial.json 驱动 + GET /af/tutorial 公开面 + 客户端步骤条）
+  { name: '新手教程（玩家 7 步）', probe: () => httpSrc.includes("'/af/tutorial'") && httpSrc.includes('tutorialView') && wsSrc.includes('tutorialAct') && fs.existsSync(path.join(repo, 'data', 'tutorial.json')) },
   { name: '季节事件线', probe: () => obsSrc.includes('seasonEvents') || wsSrc.includes('seasonEventsView') },
   { name: '资源认领（抢占）', probe: () => wsSrc.includes("'claim'") && wsSrc.includes('tryClaim') },
   { name: '节日板（计分/摊位）', probe: () => obsSrc.includes('festival') },
