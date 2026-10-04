@@ -40,7 +40,7 @@
   const unlock = () => {
     const ctx = ensureCtx();
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
-    if (AFAUD.enabled.bgm) startBgm(AFAUD._lastMode || 'day');
+    if (AFAUD.enabled.bgm && typeof AFAUD.setBgmMode === 'function') AFAUD.setBgmMode(AFAUD._lastMode || 'day');
   };
   window.addEventListener('pointerdown', unlock, { once: true, capture: true });
   window.addEventListener('keydown', unlock, { once: true, capture: true });
