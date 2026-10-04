@@ -87,7 +87,7 @@ try {
   // 注：不另开 /ws 连接——join 是单点登录，会踢掉客户端页面的连接。
   // 观察一律走页面钩子 __AF_TEST__；/agent 在「游戏世界就绪」之后才接入，
   // 此时页面 posTimer 已把真实节点坐标同步进 state.online，agentPos 起步即与画面对齐。
-  await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => console.log('[agent-vis] goto 警告（客户端可能未就绪）'));
+  await page.goto(BASE + '/?ci=1', { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => console.log('[agent-vis] goto 警告（客户端可能未就绪）'));
 
   // 1) mod 钩子注册（af.test=1 时 IIFE 顶层定义 __AF_TEST__）
   const hook = await page.waitForFunction('window.__AF_TEST__ !== undefined', { timeout: 20000 })
@@ -137,12 +137,49 @@ try {
       console.log(`[agent-vis] 已点「开始游戏」@(${btn.x},${btn.y}) t=${Math.round((Date.now() - t0boot) / 100)}0ms`);
     }
   }
+  // 2.5) 点存档槽进村：原版流程是 主菜单 → 开始游戏 → 存档面板 → 点槽，缺这一步永远 GAME-NOT-READY
+  //      Cocos 侧按钮用 ClickEvent.emit 直派发（tools/_probe13.mjs 已验 fired=1/1），比鼠标坐标稳
+  const fireBtn = (name) => {
+    try {
+      const scene = cc.director.getScene();
+      let hit = null;
+      scene.walk((n) => { if (!hit && n.activeInHierarchy && n.name === name) hit = n; });
+      if (!hit) return 'node-not-found';
+      const btn = hit.getComponent(cc.Button);
+      if (!btn) return 'no-Button-comp';
+      const evs = btn.clickEvents || [];
+      let fired = 0;
+      for (const ce of evs) { try { ce.emit([btn]); fired++; } catch (e) { return 'emit-err'; } }
+      return 'fired=' + fired + '/' + evs.length;
+    } catch (e) { return 'err'; }
+  };
+  let slotClicked = false, slotSeen = false;
+  const t0slot = Date.now();
+  while (Date.now() - t0slot < 90000 && !slotClicked) {
+    await sleep(2000);
+    for (const cand of ['storageItem1', 'storageItem0', 'item1']) {
+      const r = await page.evaluate(fireBtn, cand).catch(() => 'err');
+      if (String(r).startsWith('fired')) {
+        slotSeen = true; slotClicked = true;
+        console.log(`[agent-vis] 已点存档槽 ${cand}（${r}）t=${Math.round((Date.now() - t0slot) / 1000)}s`);
+        break;
+      }
+    }
+    if (slotClicked) break;
+    await page.evaluate(() => {
+      const texts = ['稍后再说', '✕', '关闭'];
+      for (const t of texts) {
+        const el = [...document.querySelectorAll('button, .x, [data-act="back"]')].find(e => (e.innerText || '').trim() === t && e.offsetParent !== null);
+        if (el) { el.click(); return; }
+      }
+    }).catch(() => {});
+  }
   // 3) 等 Cocos 玩家节点挂载（Application.playerNode 挂上即世界就绪；轻量直读避免 scene.walk 反复开销；软件 WebGL 下村景贴图慢，给 240s）
   const boot = hook !== 'ok' ? hook
     : await page.waitForFunction(`(() => { try { const m=window.__AF_MODS__; const A=m&&m['Application']&&m['Application'].exports; const i=A&&A.default&&A.default.getIns&&A.default.getIns(); return !!(i&&i.playerNode&&i.playerNode.isValid); } catch (e) { return false; } })()`, { timeout: 240000, polling: 1500 })
       .then(() => 'ok').catch(() => 'GAME-NOT-READY');
   check('boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪', boot === 'ok', '__AF_TEST__ + node() 非 null',
-    `${boot}${btnSeen ? '' : ' | 未见开始游戏按钮'}${resource404s.length ? ' | 资源404 x' + resource404s.length : ''}`);
+    `${boot}${btnSeen ? '' : ' | 未见开始游戏按钮'}${slotSeen ? '' : ' | 未点存档槽'}${resource404s.length ? ' | 资源404 x' + resource404s.length : ''}`);
 
   // agent WS（游戏就绪后才接入，下 act 指令）
   const aws = new WebSocket(BASE.replace(/^http/, 'ws') + '/agent?token=' + encodeURIComponent(ag.agentToken));
