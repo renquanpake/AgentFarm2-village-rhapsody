@@ -43,7 +43,7 @@ import { navGridFromTables } from '../navigation/navgen.ts';
 import { applyRoads, roadOf, type RoadLine } from '../navigation/roads.ts';
 import { municipalOf, buildingTargetOf } from '../navigation/municipal.ts';
 import { astarClearance, checkArrive, snapInteraction, planRoute } from '../navigation/hpath.ts';
-import { cellKindOf, bestStandCell, moveFailMsg } from '../navigation/reloc.ts';
+import { cellKindOf, bestStandCell, moveFailMsg, actionPrecheck } from '../navigation/reloc.ts';
 import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { cook, buildFacility } from '../world/cooking.ts';
 import { placeDecor, removeDecor, courtyardScore, courtyardCompletion, courtyardContest } from '../world/decor.ts';
@@ -1070,13 +1070,22 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               } else {
                 goal = (nav && snapInteraction(nav, tx, ty, ring)) ?? [tx, ty];
               }
-              const gx = goal[0], gy = goal[1];
-              if (sx === gx && sy === gy) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
-              const path = (nav && astarClearance(nav, sx, sy, gx, gy, { wallHug: msg.wallHug === true })) ?? bfsPath(app.tables, sx, sy, gx, gy);
-              console.log(`[agent-move_to] 路径: ${path ? path.length + ' 步' : '不可达'}（目标吸附到 ${gx},${gy}）`);
+              const gx0 = goal[0], gy0 = goal[1];
+              if (sx === gx0 && sy === gy0) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
+              let path = (nav && astarClearance(nav, sx, sy, gx0, gy0, { wallHug: msg.wallHug === true })) ?? bfsPath(app.tables, sx, sy, gx0, gy0);
+              // 目标格在阻挡上且 A*/BFS 无法直达：吸附到 8 邻可站格重寻一次（杜绝「离目标太远」式死胡同）
+              let gx = gx0, gy = gy0;
+              if (!path && nav) {
+                const alt = bestStandCell(nav, gx0, gy0, [sx, sy], 1);
+                if (alt && (alt[0] !== sx || alt[1] !== sy)) {
+                  const p2 = astarClearance(nav, sx, sy, alt[0], alt[1], { wallHug: msg.wallHug === true }) ?? bfsPath(app.tables, sx, sy, alt[0], alt[1]);
+                  if (p2 && p2.length >= 2) {
+                    console.log(`[agent-move_to] 目标 ${gx0},${gy0} 不可直达，吸附到可站格 ${alt[0]},${alt[1]}`);
+                    path = p2; gx = alt[0]; gy = alt[1];
+                  }
+                }
+              }
               if (!path) {
-                const kind = nav ? cellKindOf(nav, gx, gy) : 'out';
-                const alt = nav ? bestStandCell(nav, gx, gy, [sx, sy]) : null;
                 if (nav) result = { ok: false, msg: moveFailMsg([sx, sy], [gx, gy], nav, nav) };
                 else result = { ok: false, msg: `目标不可达（被障碍包围）：从 ${sx},${sy} 到 ${gx},${gy}（无场景导航数据）` }; continue;
               }
@@ -1143,8 +1152,8 @@ responseType = 'move_started';
             if (!pr.ok) {
               const gk: 'open' | 'block' | 'water' | 'tree' | 'out' = toNav ? cellKindOf(toNav, goal[0], goal[1]) : 'out';
               const gkCn = { open: '空地', block: '建筑/障碍', water: '水面', tree: '树丛', out: '越界' } as Record<'open' | 'block' | 'water' | 'tree' | 'out', string>;
-              const altStand = toNav ? bestStandCell(toNav, goal[0], goal[1], [tx, ty]) : null;
-              result = { ok: false, msg: `${pr.msg || '跨场景不可达'}；目标格 ${goal[0]},${goal[1]}（${gkCn[gk]}）${altStand ? `；建议改投 ${altStand[0] * 100 + 50},${altStand[1] * 100 + 50}` : ''}` }; continue;
+              const altCross = toNav ? bestStandCell(toNav, goal[0], goal[1], [tx, ty], 1) : null;
+              result = { ok: false, msg: `${pr.msg || '跨场景不可达'}；目标格 ${goal[0]},${goal[1]}（${gkCn[gk]}）${altCross ? `；建议改投 ${altCross[0] * 100 + 50},${altCross[1] * 100 + 50}` : ''}` }; continue;
             }
             if (pr.waypoints.length < 1) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
             publish(`跨场景赶路中：${curScene} -> ${targetScene}（${pr.waypoints.length} 航点）`);
@@ -1287,7 +1296,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
+            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
             if (plotAt(state, gx, gy)) { result.msg = '这块地已经犁过了'; continue; }
             if (plantAtWorld(state, gx, gy)) { result.msg = '这个格子上有植物了'; continue; }
             if (waterAt(app.tables, gx, gy) || blockedAt(app.tables, gx, gy)) { result.msg = '这个格子不能犁（水面/障碍）'; continue; }
@@ -1303,7 +1312,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
+            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
             const p = cropAtWorld(state, gx, gy);
             if (!p) { result.msg = '这个格子上没有作物可浇'; continue; }
             if (p.farmType !== 1) { result.msg = '这是场景植物，不需要浇水'; continue; }
@@ -1326,7 +1335,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = `离目标太远（需要站在目标格相邻格，当前 (${px},${py}) 目标 (${gx},${gy})）`; continue; }
+            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
             if (!knapHas(pm, seedId, 1)) { result.msg = `背包里没有 ${crop.name}种子（先用 buy 买 id=${seedId}）`; continue; }
             if (!soilAt(app.tables, gx, gy) && !plotAt(state, gx, gy)) { result.msg = `这个格子不能种（${gx},${gy}）：不是可种土或农田`; continue; }
             if (plantAtWorld(state, gx, gy)) { result.msg = '这个格子已经有植物了'; continue; }
@@ -1345,7 +1354,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
+            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
             const _holderplot = claimHolder(state, 'plot', `plot@${gx},${gy}`);
             if (_holderplot && _holderplot !== uid) { result = { ok: false, holder: _holderplot, msg: `这块地已被 ${_holderplot} 认领（5 分钟后可接管）` }; continue; }
             const p = cropAtWorld(state, gx, gy);
@@ -1371,7 +1380,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
+            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
             const p = growPlants(state).find(pl => pl.x === gx && pl.y === gy && treeOf(pl));
             if (!p) { result.msg = '这个格子上没有树'; continue; }
             const _holdertree = claimHolder(state, 'tree', `tree@${Math.floor(_t.x / 100)},${Math.floor(_t.y / 100)}`);
@@ -1444,7 +1453,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
+            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
             if (!knapHas(pm, itemId, 1)) { result.msg = `背包里没有 ${it.name}（先用 buy 买 id=${itemId}）`; continue; }
             if (worldSprinklers(state).find(s => s.x === gx && s.y === gy)) { result.msg = '这个格子已经安装了洒水器'; continue; }
             if (waterAt(app.tables, gx, gy) || blockedAt(app.tables, gx, gy)) { result.msg = '这个格子不能安装洒水器（水面/障碍）'; continue; }

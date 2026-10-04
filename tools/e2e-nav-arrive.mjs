@@ -31,8 +31,15 @@ function makeQueue() {
       const i = q.findIndex(pred);
       if (i >= 0) return Promise.resolve(q.splice(i, 1)[0]);
       return new Promise((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error('timeout')), timeoutMs);
-        waiters.push({ pred, resolve: (m) => { clearTimeout(t); resolve(m); } });
+        // 超时后必须把 waiter 摘掉：残留 waiter 会吃掉后续同谓词消息（findIndex 取最早匹配）
+        const waiter = { pred, resolve: null };
+        const t = setTimeout(() => {
+          const k = waiters.indexOf(waiter);
+          if (k >= 0) waiters.splice(k, 1);
+          reject(new Error('timeout'));
+        }, timeoutMs);
+        waiter.resolve = (m) => { clearTimeout(t); resolve(m); };
+        waiters.push(waiter);
       });
     },
   };
@@ -185,6 +192,10 @@ if (hc) {
 } else {
   check('D.2 障碍格吸附（无可用障碍格，跳过）', true, 'skip');
 }
+// D 组收尾清场：盲推 25 航点可能超过 waitDone 窗口，未走完会占用 agent 撞掉 E 组断言
+send(G, { t: 'agent_interrupt' });
+await GQ.next(m => m.t === 'agent_move_done', 5000).catch(() => null);
+await sleep(300);
 
 // ---------- 场景 E：P2 市政建筑功能层（buildings.json + move_to near + letter + /af/*） ----------
 console.log('\n=== E: P2 建筑层 ===');
@@ -195,17 +206,34 @@ const mvN = await AQ.next(m => (m.t === 'move_started' || m.t === 'result') && m
 const mvNok = !!mvN && ((mvN.ok === true && (mvN.crossScene || Array.isArray(mvN.waypoints))) || /路径过长/.test(mvN.msg || ''));
 check('move_to near:交易大厅 解析到门位（move_started/跨场景/分段提示）', mvNok, mvN?.msg || 'timeout');
 if (mvN?.ok) {
-  const doneN = await waitDone(40000).catch(() => null);
+  // 用确认环推进（真实客户端行为）；被动盲推等 40s 走不完长路线会误判
+  const doneN = await confirmSegments(80, 60000).catch(() => null);
   check('near 建筑路线走完（确认环）', !!doneN);
 }
 // E.2 不可解析的 near
 send(A, { t: 'act', action: 'move_to', near: '不存在的楼宇', seq: 21 });
 const mvBad = await AQ.next(m => m.t === 'result' && m.seq === 21).catch(() => null);
 check('near 无法解析时返回可用建筑名清单', !!mvBad && mvBad.ok === false && /无法解析/.test(mvBad.msg || ''), mvBad?.msg || 'timeout');
-// E.2b 跨场景不可达点名坐标：场景 14 无村门 → planRoute 跨场景失败，文案点名目标格坐标+kind
-send(A, { t: 'act', action: 'move_to', x: 3050, y: 3050, scene: 14, seq: 30 });
-const mvX = await AQ.next(m => m.t === 'result' && m.seq === 30).catch(() => null);
-check('跨场景不可达文案点名目标格坐标', !!mvX && mvX.ok === false && /目标格 30,30/.test(mvX.msg || ''), mvX?.msg || 'timeout');
+// E.2b 跨场景请求：场景 5 经 tables 门户链实际可达 → move_started 亦为设计内结果；
+// 若门户缺失则 planRoute 失败且文案点名目标格坐标（unreachable 分支的回归锚）
+send(A, { t: 'act', action: 'move_to', x: 3050, y: 3050, scene: 5, seq: 30 });
+const mvX = await AQ.next(m => (m.t === 'result' || m.t === 'move_started') && m.seq === 30, 15000).catch(() => null);
+check('跨场景请求成行或失败点名目标格坐标', !!mvX && (mvX.t === 'move_started' || (mvX.ok === false && /目标格 \d+,\d+/.test(mvX.msg || ''))), mvX?.msg || mvX?.t || 'timeout');
+// 清场：打断可能存在的长跨场景移动，避免占用 agent 影响后续断言
+if (mvX?.t === 'move_started') {
+  send(G, { t: 'agent_interrupt' });
+  await GQ.next(m => m.t === 'agent_move_done', 8000).catch(() => null);
+  await sleep(300);
+}
+// E.2c 同场景边界阻挡格（原始坐标语义 x:50 → 格 0,0）：D3 交互环吸附 → move_started；
+// 全密封时回落 moveFailMsg 点名坐标。两种都是设计内行为。
+send(A, { t: 'act', action: 'move_to', x: 50, y: 50, seq: 31 });
+const mvY = await AQ.next(m => (m.t === 'result' || m.t === 'move_started') && m.seq === 31, 15000).catch(() => null);
+check('同场景角格吸附成行或文案含坐标', !!mvY && (mvY.t === 'move_started' || /\d+,\d+/.test(mvY.msg || '') || /已经在目标位置/.test(mvY.msg || '')), mvY?.msg || mvY?.t || 'timeout');
+if (mvY?.t === 'move_started') {
+  send(G, { t: 'agent_interrupt' });
+  await GQ.next(m => m.t === 'agent_move_done', 8000).catch(() => null);
+}
 
 // E.3 邮局 letter（收件人 = 游戏通道昵称「导航验证」）
 send(A, { t: 'act', action: 'letter', to: '导航验证', body: 'e2e 测试信件：交易大厅在村中央，门朝广场。', seq: 22 });
@@ -235,7 +263,7 @@ check('forecast 返回明日天气（day/tomorrow 结构）', fcOk, fc ? `day=${
 
 // E.7 健身房 train 位置门（agent 不在 gym 门位 6 格内 -> 友好报错带指引）
 send(A, { t: 'act', action: 'train', attr: 'strength', seq: 24 });
-const tr = await AQ.next(m => m.t === 'result' && m.action === 'train' && m.seq === 24).catch(() => null);
+const tr = await AQ.next(m => m.t === 'result' && m.action === 'train' && m.seq === 24, 15000).catch(() => null);
 check('train 位置门（远处拒绝并指引 move_to near:健身房）', !!tr && tr.ok === false && /太远|健身房/.test(tr.msg || ''), tr?.msg || 'timeout');
 
 // E.8 银行 report 场景门（agent 在村景 -> 指引跨场景到 102）

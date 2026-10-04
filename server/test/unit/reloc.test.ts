@@ -112,3 +112,38 @@ describe('actionPrecheck（目标格动作三 reason）', () => {
     expect(r).toEqual({ ok: true } as const);
   });
 });
+
+describe('reloc：同场景不可达时吸附可站环重试（ws.ts 行为）', () => {
+  it('目标格 blocked 但 8 邻有可站格 -> bestStandCell 给出可站环', () => {
+    // 构造 3x3，中心(1,1) blocked，四周 open
+    const blocked = [0,0,0, 0,1,0, 0,0,0];
+    const n = buildNavGrid(9, blocked, 3, 3);
+    const alt = bestStandCell(n, 1, 1, [0, 0], 1);
+    expect(alt).not.toBeNull();
+    expect(cellKindOf(n, alt[0], alt[1])).toBe('open');
+  });
+});
+
+describe('actionPrecheck', () => {
+  const nav5 = buildNavGrid(2, [0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0], 5, 5);
+  it('far: 距离>1 报 far', () => {
+    const r = actionPrecheck(nav5, [0,0], [4,4]);
+    expect(r).toMatchObject({ ok: false, reason: 'far' });
+    expect(r.msg).toMatch(/离目标太远/);
+  });
+  it('target-blocked: 目标格 blocked 报 target-blocked', () => {
+    const r = actionPrecheck(nav5, [2,1], [2,1]);
+    expect(r).toMatchObject({ ok: false, reason: 'target-blocked' });
+    expect(r.msg).toMatch(/2,1/);
+  });
+  it('no-stand: 目标格可站但四周全 block 报 no-stand', () => {
+    const blocked = [1,1,1,1,1, 1,1,0,1,1, 1,1,1,1,1, 0,0,0,0,0, 0,0,0,0,0];
+    const n = buildNavGrid(2, blocked, 5, 5);
+    const r = actionPrecheck(n, [2,1], [2,1]);
+    expect(r).toMatchObject({ ok: false, reason: 'no-stand' });
+  });
+  it('ok: 目标格 open 且邻接可站', () => {
+    const r = actionPrecheck(nav5, [0,0], [0,0]);
+    expect(r).toEqual({ ok: true });
+  });
+});
