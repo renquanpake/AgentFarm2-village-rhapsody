@@ -157,6 +157,22 @@ export function normXYOf(app: App, x: unknown, y: unknown): { x: number; y: numb
   return normXY(app.tables, x, y);
 }
 
+// ---------- CI 旁路观察者（验收工具与玩家同 uid 共存） ----------
+
+/** CI 连接判定：join 载荷带 ci=1，或升级 URL 带 is_ci_bot=true（两方案等价，工具侧任选） */
+export function isCiJoin(msg: Record<string, unknown>, url?: URL | null): boolean {
+  if (String(msg.ci ?? '') === '1') return true;
+  return url?.searchParams.get('is_ci_bot') === 'true';
+}
+
+/** 把 agent 自身视角消息补发给同 uid 的 CI 观察者（玩家侧广播照旧走 state.online） */
+export function mirrorToCiObs(state: WorldState, uid: string, payload: Record<string, unknown>): void {
+  const set = state.ciObs.get(uid);
+  if (!set || !set.size) return;
+  const raw = JSON.stringify(payload);
+  for (const w of set) { if (w.readyState === 1) w.send(raw); }
+}
+
 // ---------- 托管移动广播（agent_move 给自己的客户端；move 给别人） ----------
 // seg = 当前航点序号（D1 执行确认闭环：客户端按 seg 回报 agent_arrive）
 // passage = 场景切换门户名（跨场景段：客户端据此走原版 changeSceneEasy）
@@ -167,6 +183,7 @@ function publishAgentMove(app: App, state: WorldState, uid: string, pos: { x: nu
     if (otherUid === uid) sendTo(player, { t: 'agent_move', scene: pos.scene, x: pos.x, y: pos.y, seg, passage });
     else sendTo(player, { t: 'move', uid, scene: pos.scene, x: pos.x, y: pos.y });
   }
+  mirrorToCiObs(state, uid, { t: 'agent_move', scene: pos.scene, x: pos.x, y: pos.y, seg, passage });
 }
 
 function publishAgentMoveDone(app: App, state: WorldState, uid: string, pos: { x: number; y: number; scene: number }): void {
@@ -176,6 +193,7 @@ function publishAgentMoveDone(app: App, state: WorldState, uid: string, pos: { x
     if (otherUid === uid) sendTo(player, { t: 'agent_move_done', scene: pos.scene, x: pos.x, y: pos.y });
     else sendTo(player, { t: 'move', uid, scene: pos.scene, x: pos.x, y: pos.y });
   }
+  mirrorToCiObs(state, uid, { t: 'agent_move_done', scene: pos.scene, x: pos.x, y: pos.y });
 }
 
 function persistAgentPosition(app: App, state: WorldState, uid: string, pos: { x: number; y: number; scene: number }): void {
@@ -402,9 +420,10 @@ async function runNavTask(app: App, state: WorldState, uid: string, apos: AgentP
 // ============================================================
 // 游戏通道 /ws
 // ============================================================
-export function gameConn(app: App, ws: WebSocket): void {
+export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
   const state = app.state;
   let uid: string | null = null;
+  let ciMode = false; // CI 旁路观察连接：只收不发，不占单点登录名额
   const send = (obj: unknown) => { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); };
   // 协议/网络层错误（如消息超过 maxPayload）只断开该连接，绝不冒泡崩溃进程
   ws.on('error', () => { try { ws.terminate(); } catch { /* ignore */ } });
@@ -424,6 +443,20 @@ export function gameConn(app: App, ws: WebSocket): void {
         }
         let nick = String(msg.nick || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16);
         if (!nick) nick = '玩家' + uid.slice(-4);
+        // CI 旁路观察：与玩家同 uid 共存（跳过踢人 / 不写 online / 不广播 player_join），
+        // 只旁收 agent_move / agent_move_done / agent_activity，供画面可视化活体断言用。
+        if (isCiJoin(msg, url)) {
+          ciMode = true;
+          if (!state.playersDb.has(uid)) state.playersDb.set(uid, new Map());
+          let set = state.ciObs.get(uid);
+          if (!set) { set = new Set(); state.ciObs.set(uid, set); }
+          set.add(ws);
+          send({ t: 'welcome', uid, ci: true, players: Array.from(state.online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })) });
+          const myAgent = app.agentSockets.has(uid);
+          send({ t: 'agent_status', online: myAgent, nick: myAgent ? nick : null });
+          console.log(`[join:ci] ${uid} (${nick}) 旁路观察，在线:${state.online.size}`);
+          break;
+        }
         // 单点登录：同一 uid 重复上线时踢掉旧连接
         const old = state.online.get(uid);
         if (old && old.ws && old.ws !== ws) {
@@ -762,6 +795,12 @@ export function gameConn(app: App, ws: WebSocket): void {
   });
 
   ws.on('close', () => {
+    // CI 旁路观察连接：从旁路集合摘除（不碰 online，玩家连接不受影响）
+    if (ciMode && uid) {
+      const set = state.ciObs.get(uid);
+      if (set) { set.delete(ws); if (!set.size) state.ciObs.delete(uid); }
+      return;
+    }
     // 仅当关闭的是当前在线记录对应的连接时才移除（防双开被顶掉的旧连接误删新连接）
     if (uid && state.online.get(uid)?.ws === ws) {
       state.online.delete(uid);

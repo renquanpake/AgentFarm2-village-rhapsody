@@ -125,6 +125,12 @@ export function publishAgentActivityGlobal(app: App, uid: string, text: string):
   app.state.actState.set(uid, s);
   const p = app.state.online.get(uid);
   if (p && p.ws.readyState === 1) p.ws.send(JSON.stringify({ t: 'agent_activity', activity: text }));
+  // CI 旁路观察者（验收工具与玩家同 uid 共存）同步收一条
+  const ciSet = app.state.ciObs.get(uid);
+  if (ciSet && ciSet.size) {
+    const raw = JSON.stringify({ t: 'agent_activity', activity: text });
+    for (const w of ciSet) { if (w.readyState === 1) w.send(raw); }
+  }
 }
 
 /** 记录玩家操作（cap 10），5s 节流推 player_op 给在线 agent，并切活动状态 */

@@ -1,6 +1,7 @@
 // persistence/state.ts —— 世界状态容器 + 存档桶路由 + 存档位（slot）管理
 // 等价 legacy afserver.mjs 的 world/globals/playersDb/bucketOf/persist/switch-slot 段。
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import type WebSocket from 'ws';
 import type {
   BucketKind, OnlinePlayer, AgentPos, SaveDoc, SpawnDef, SocialPair,
 } from '../types.ts';
@@ -104,6 +105,9 @@ export class WorldState {
   agentRoutes = new Map<string, AgentRoute>();
   // D1：uid -> 待确认 arrive 消费者（客户端/agent 上报实际落点）
   agentArrives = new Map<string, (v: { index: number; x: number; y: number }) => void>();
+  // CI 旁路观察者（slot 级）：uid -> 观察连接集合。验收工具以同 uid 直连 /ws 旁观自己的 agent，
+  // 走旁路可跳过单点登录踢人、不写 online、不广播 player_join，只收 agent 自身视角消息。
+  ciObs = new Map<string, Set<WebSocket>>();
   // B7 NPC 日程运行时（slot 级）：npcId -> 最近一次广播位置（幂等去重用；NPC 位置可重算，不落盘）
   npcSched = new Map<string, { x: number; y: number; scene: number; activity: string }>();
 

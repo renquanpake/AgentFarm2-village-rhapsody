@@ -51,7 +51,7 @@ server.on('upgrade', (req, socket, head) => {
     handler(ws);
   };
   if (u.pathname === '/ws') {
-    wss.handleUpgrade(req, socket, head, (ws) => setupAlive(ws, (w) => gameConn(app, w)));
+    wss.handleUpgrade(req, socket, head, (ws) => setupAlive(ws, (w) => gameConn(app, w, u)));
   } else if (u.pathname === '/agent') {
     wss.handleUpgrade(req, socket, head, (ws) => setupAlive(ws, (w) => agentConn(app, w, u)));
   } else {
