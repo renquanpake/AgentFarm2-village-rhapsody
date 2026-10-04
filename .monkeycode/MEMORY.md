@@ -19,7 +19,7 @@
 
 ## 构建与验证（Build & Test）
 - 类型检查：`cd server && npx tsc --noEmit`（tsconfig strict + erasableSyntaxOnly，禁用 enum/namespace/参数属性）。
-- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 343 项/41 文件）。
+- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 **448 项/48 文件**）。
 - 协议回归：起服务 `AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 node src/index.ts`，另跑 `AF_BASE=http://127.0.0.1:8080 node server/ws-test.mjs`（13 项全过；**ws-test 自备账号**：register/login + `POST /af/agent-token` 铸 agentToken，不再读 gitignore 的 `data/accounts.json`——全新 checkout 直接 ENOENT 是旧坑）。
 - **隔离数据目录必须铺静态数据（2026-10-03 修）**：`AF_DATA_DIR` 是整目录替换，空临时目录会让 `Tables` 回落空数组（npcs/items/collision/spawns 全空 → 协议回归报「没有这个 NPC」）。用 `bash tools/ci-seed-datadir.sh "$AF_DATA_DIR"` 复制 git 跟踪的 data/**（跳过 saves/accounts）；CI 门3/门9 已接。此前门3 依赖本地 `data/accounts.json` + 空数据目录，**必然红**。
 - **压测/灰度并发两条硬约束（2026-10-03 实测）**：①`ensurePlayerData` 必须走 `schedulePersist()`（同步 persist 把 >1MB world.json 写进事件循环 → 客户端 ECONNRESET，30 并发必现/12 并发正常）；②`accounts.register` 有「每秒 5 个」硬限流（accounts.ts regWin），并发注册只有前 5 个成功 —— 压测脚本要串行备号 + 退避。
@@ -49,6 +49,9 @@
 - **P1 build 空坐标刷币已修**：`normXY` 对 undefined 坐标返 NaN，`act build` 不传 x/y → NaN 设施 + 同格防重(NaN!==NaN)失效 → 无限 200 币刷。修：build 缺坐标回落"自身所在格"（apos）+ 校验有限/边界，防重恢复生效。实机验 3 连 build 仅落 1 条有效坐标、0 null 设施。
 - **玩家视角审计工具**：`tools/player-cli.mjs`（observe/act/book 走 /agent+HTTP，供 LLM 玩家 agent 游玩挑刺）+ `tools/llm-player.mjs`（self/trade）。审计法：起隔离 slot 实例 + 种子 1 玩家（注册密码须 >=4 位，否则 400）+ 派 1 子 Agent 完整游玩逐项挑刺。已知待修（审计发现）：P2 买入跨价不退价差/train 只认英文键但报错给中文/near=water 静默回落/move_to target 误报/挖矿钓鱼无冷却刷钱。P1 砍树已修（见下条）。
 - **原版 SceneType 枚举实测值（2026-10-02，22a9c2b，重要/难重发现）**：从 `client/assets/main/index.e6d95.js` 提取 —— **1=HOME_MAP 出生小岛 / 2=VILLAGE_MAP 村庄 / 3=RIVER_MAP / 4=PADDY_MAP / 5=NUNNERY_MAP / 6=HOTSPRING_MAP / 7=BAOLONG_MAP / 8=MINEGATE_MAP / 9=CEMETERY_MAP / 10=TRAIL_MAP / 11=BRIDGE_MAP / 12=HILLTOP_MAP / 13=FOREST_MAP / 14=CABLEWAY_MAP / 101+=各 HOUSE**。**服务端唯一服务的地图就是村 = scene 2**（判据：`village-farm/collision` 189×173 + `/af/mapgrid` 下发 `origW:77 origH:61` 恰为村存档格 0..76/0..60 + observe/出生场景默认 2 + 市政道路建筑地标全在 scene 2 键）。据此修掉 P1：`farm.ts` 原来写死 `sceneType===1`（= 出生小岛），只加载 29×29 的角，村桶 173 棵tree 有 139棵（80%）玩家永远砍不到；现 `WORLD_SCENE_TYPE=2`，`PLOT_SCENE_TYPE=1`（原版 `farmData.plotDatas` 记在 HOME 桶，世界坐标已落在村图内）。**不能并桶**：HOME∩VILLAGE 43 个坐标、VILLAGE∩RIVER 32 个坐标重叠，并桶会同格多树、砍错对象。配套：①`migratePlantBucket()` 只搬 `farmType=1` 玩家作物，装饰留原桶，标记 `afPlantBucketVillage`（**必须登记进 `GLOBAL_KEYS`**，否则 `importSave` 按 `bucketOf` 丢弃该键导致每次启动重跑）；②迁移**重发 uId**——slot94 实测玩家作物 uId=1365 与村桶装饰重号，搬运会撞号，须同步改写地块 `plantUID`；③新增 `cropAtWorld()`——村桶 1018 株装饰与玩家作物**同格并存是常态**，`plantAtWorld` 的 `find()` 会先撞装饰株导致玩家收不到自己的麦子（harvest 报"这是场景植物"），占位判定仍用 `plantAtWorld`，water/harvest/observe 预览用 `cropAtWorld`（无作物回退场景株以保留提示文案）。
+- 本轮新增验证工具（批2）：`node tools/agent-act-e2e.mjs`（目标格动作预检 10 项，需 8087/slot91 实例）、`node tools/e2e-rules-injection.mjs`（规则注入 NPC 对话 10 项，需先 `node tools/fake-llm-echo.mjs` 起假 LLM 8099）、`node tools/eval-textonly.mjs`（文本盲测，含 P3 规则上下文环 + P4 教程环）、`node tools/surface-audit.mjs`（16 面文本通道审计）。
+- 画面可视化活体断言（进行中）：`node tools/agent-vis-assert.mjs --base http://127.0.0.1:8097`，依赖 puppeteer + `AF_CHROME` 指向的 chrome；**客户端由服务端 `app.clientRoot` 静态托管**（`/` → index.html），所以 base 就是游戏服务地址，无需另起静态服。
+
 ## 排障要点（Troubleshooting）
 - **测试隔离**：`config.ts` 在模块加载时读 `AF_DATA_DIR`。单测必须直接构造 `WorldState`/`EventLog`（临时目录），**不要**在单测里 `new App()`（会把测试夹具写进真实 `data/saves/`——曾发生，已隔离）。
 - **回放态禁落盘**：`rebuildState`/`fromSnapshot` 的重建态必须 `noPersist:true`，否则一致性校验会把回放结果写进生产存档（已修）。
@@ -59,6 +62,11 @@
 - **文案即契约**：玩家动作的 `welcome` 通知、报错提示里出现的参数写法，实现必须能吃。`train` 的 welcome 写 `attr:力量/敏捷/亲和` 而 `trainAttr` 只收 `strength/agility/charisma`，玩家照抄指引必然失败。改这类不一致时只补**文案已公示**的写法，别顺手扩同义词（那是擅自扩契约）。
 
 ## 施工进度与续作（Workflow）
+- **⚡ 交接点（2026-10-04，上下文已清空的新会话从这里接手）**：
+  1. 详细台账在 `.superpowers/sdd/<计划名>/progress.md`（每个 superpowers 计划一个目录，含 `Ruling:` 裁决与实跑证据）。**接手第一步：读目标计划的 progress.md。**
+  2. 已完成并 commit：批1b/1c（72297a6）、批2 P3 规则提示词（bc75add→8b5e476→55d955b→fc5beba→1913974 含终审修复）、批2 P4 新手教程（8bb0b53→c8b48ad→169aad2）、规划书 §8 索引（491c6f2）。全量回归全绿（tsc 0 错 / vitest 448/448 / 壳哈希 5140 / nav-audit 违规 0）。
+  3. **进行中：批2 P1.3/P1.4 画面可视化**（计划 `docs/superpowers/plans/2026-10-03-agent-visual-on-screen.md`）。`tools/agent-vis-assert.mjs` 已写完但**未跑、未 commit（唯一未跟踪文件）**。下一步 = 按 `.superpowers/sdd/2026-10-03-agent-visual-on-screen/progress.md` 的「下一步」段打 RED 基线（起 8097 隔离实例 + 跑工具 + commit），再 Task 2-5。
+  4. 未开工：批3 故事书扩容（现 26 链/126 阶 → 目标 260 阶）；P4 遗留第 4/5/7 步（纯人类玩家侧无服务端信号，原版交互不上报服务端，需引擎钩子或存档态派生）。
 - 当前进度与任务清单：`.monkeycode/specs/agentfarm2-playability-upgrade/tasklist.md`（先读它确认，再读同目录 requirements.md / design.md）。
 - 已收口：A 轨全量 + B 轨全量（B1-B11）+ C 轨认知栈 C1-C5 + 美术管线 C6/C7/C8/C9（C8：52 件生图 + 8 件 CC0 = 60/60 闭环）+ C 轨 LLM 编排层（llm.ts 走 M7 路由，规则兜底）+ F1/F2/F3/F4（评测集、导航回放、Tailscale 验收清单）+ 进化书 D1-D7/D9/D10/D11 收口 + 旗舰美化 M1-M5 代码侧（tokens/AFUNI 组件/particles/atmosphere/audio + 日历驱动接线 /af/calendar hour 字段）。vitest 141 项全绿。
 - C8 生图管线（运维）：`tools/art-gen.mjs` 批量生成（`.env` 的 USER_IMG_* 用户自备凭据，gitignored；`assets/generated/` 量化产物入库，`data/art/raw/` 原图不入库）。模型：agnes-image-2.5-flash（512x512 / 512x768 非方形）。**免费档分钟级 429：大批量用 `--concurrency 1 --gap 20` 慢跑；高并发会触发限速**（429 退避 30s x 次数已内置）。
