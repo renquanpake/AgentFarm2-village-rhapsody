@@ -602,6 +602,13 @@
             window.__AF_AGENT_ACTIVITY__(msg.activity, waiting);
           }
           if (window.__AF_CHAT_ADD__ && msg.activity) window.__AF_CHAT_ADD__('Agent', msg.activity);
+          // P1.3 行为飘字：agent_activity 出现时在玩家头顶生成 cc.Label，1600ms 淡出销毁
+          if (msg.activity) {
+            const n = resolvePlayerNode();
+            if (n && n.isValid && typeof cc !== 'undefined') {
+              spawnAgentFloatText(n, msg.activity);
+            }
+          }
           break;
         }
         case 'agent_move': onAgentMove(msg); break;
@@ -628,6 +635,61 @@
   const remotes = new Map();       // uid -> cocos node
   let posTimer = null, lastScene = null, sceneWatchTimer = null;
   let hostedAgentOnline = false, agentStopTimer = null;
+  let agentPending = null, agentPendingDone = null;
+  let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
+  let lastAgentMovePayload = null, agentMoveDoneCount = 0;
+
+  // P1.1 节点冗余获取链：Application.getIns().playerNode → PlayerMoudle._gPlayer.node → 场景 walk 节点
+  function resolvePlayerNode() {
+    const mods = window.__AF_MODS__;
+    if (!mods) return null;
+    const App = mods['Application'] && mods['Application'].exports;
+    let node = null;
+    if (App && App.default && App.default.getIns) {
+      try { node = App.default.getIns().playerNode; } catch (e) {}
+    }
+    if (!node) {
+      const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+      const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+      if (p && p.node) node = p.node;
+    }
+    if (!node) {
+      try {
+        const scene = cc.director.getScene();
+        if (scene && scene.walk) {
+          scene.walk((n) => {
+            if (!node && n.name && n.name.indexOf('Player') >= 0 && n.isValid) node = n;
+          });
+        }
+      } catch (e) {}
+    }
+    return (node && node.isValid) ? node : null;
+  }
+
+  function getPlayerItem(node) {
+    const mods = window.__AF_MODS__;
+    const PlayerItem = mods && mods['PlayerItem'] && mods['PlayerItem'].exports;
+    return (PlayerItem && node.getComponent(PlayerItem.default || PlayerItem)) || node.getComponent('PlayerItem');
+  }
+
+  // P1.3 行为飘字：玩家头顶 cc.Label，1600ms 淡出销毁；同帧同文去重
+  function spawnAgentFloatText(node, text) {
+    if (!text || !node || !node.isValid) return;
+    try {
+      if (node.__afFloatLast && node.__afFloatLast.text === text && Date.now() - node.__afFloatLast.at < 400) return;
+      node.__afFloatLast = { text, at: Date.now() };
+      floatTextCount++;
+      const fnode = new cc.Node('afAgentFloat_' + (floatTextSeq++));
+      fnode.parent = node;
+      fnode.setPosition(cc.v2(0, 90));
+      const label = fnode.addComponent(cc.Label);
+      label.string = String(text).slice(0, 30);
+      label.fontSize = 14;
+      label.lineHeight = 18;
+      fnode.runAction(cc.sequence(cc.delayTime(1.2), cc.fadeOut(0.4)));
+      setTimeout(() => { try { fnode.destroy(); } catch (e) {} }, 2000);
+    } catch (e) { /* Cocos 环境不可用时静默 */ }
+  }
 
   // 捕获游戏模块：cc._RF.push(t, uuid, name) 的 t 是模块 exports 表
   function hookModuleCapture() {
@@ -666,6 +728,15 @@
       if (pos && connected && !hostedAgentOnline) {
         if (pos.scene !== lastScene) { lastScene = pos.scene; sceneChangeAt = Date.now(); spawnFixed = false; }
         try { ws.send(JSON.stringify({ t: 'move', scene: pos.scene, x: pos.x, y: pos.y })); } catch (e) {}
+      }
+      // P1.1 pending 重放 flush：节点未就绪时收到的 agent_move 在 tick 尝试应用
+      if (agentPending) flushAgentPending();
+      if (agentPendingDone && !agentPending) {
+        const n = resolvePlayerNode();
+        if (n) {
+          const it = getPlayerItem(n);
+          if (it) { clearAgentMoveState(it); agentPendingDone = null; }
+        }
       }
       // D1 执行确认闭环：托管期间到达航点即回报实际落点（服务端校验/重规划）
       if (pos && connected && hostedAgentOnline && agentMoveTarget && !agentArriveSent) {
@@ -904,27 +975,23 @@
     if (agentStopTimer) { clearTimeout(agentStopTimer); agentStopTimer = null; }
     try { if (item && item.isValid) item.changeDir(0, false); } catch (e) {}
   }
-  function onAgentMove(msg) {
-    if (!msg || typeof msg.x !== 'number') return;
+  function applyAgentMoveMsg(item, msg) {
+    stopAgentTweens();
     const mods = window.__AF_MODS__;
-    const App = mods && mods['Application'] && mods['Application'].exports;
-    const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
+    const node = item.node || null;
     if (!node || !node.isValid) return;
-    const PlayerItem = mods && mods['PlayerItem'] && mods['PlayerItem'].exports;
-    const item = (PlayerItem && node.getComponent(PlayerItem.default || PlayerItem)) || node.getComponent('PlayerItem');
-    if (!item) return;
     // D6 跨场景段：目标场景与当前不同 -> 走原版场景传送（changeSceneEasy + 门户 passage 名）
     const myScene = (() => {
       try {
-        const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+        const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
         const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
         return p ? p.getSceneType() : null;
       } catch (e) { return null; }
     })();
     if (msg.scene !== undefined && myScene !== null && msg.scene !== myScene) {
       try {
-        const GD = mods['GameDefine'] && mods['GameDefine'].exports;
-        const GM = mods['GameManager'] && mods['GameManager'].exports;
+        const GD = mods && mods['GameDefine'] && mods['GameDefine'].exports;
+        const GM = mods && mods['GameManager'] && mods['GameManager'].exports;
         const GMClass = GM && (GM.default || GM);
         if (GD && GMClass && typeof GMClass.getIns().changeSceneEasy === 'function') {
           const passageType = msg.passage && GD.ScenePassageType ? GD.ScenePassageType[msg.passage] : undefined;
@@ -936,6 +1003,7 @@
       } catch (e) { console.warn('[AF] 跨场景传送失败:', e.message); }
     }
     const p = node.getPosition(), dx = msg.x - p.x, dy = msg.y - p.y;
+    const startPos = { x: p.x, y: p.y };
     // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。走路状态机负责动画、碰撞和镜头。
     const dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 5 : 2) : (dy >= 0 ? 10 : 11);
     item.changeDir(dir, false);
@@ -947,17 +1015,115 @@
     if (agentStopTimer) clearTimeout(agentStopTimer);
     // 兜底：完成事件丢失则恢复本地同步（跨场景段含传送+加载，给更宽窗口）
     agentStopTimer = setTimeout(() => { clearAgentMoveState(item); }, (msg.scene !== undefined && msg.scene !== myScene) ? 20000 : 12000);
+    // P1.2 插值兜底：apply 后 350ms 采样，相对 apply 时刻位移 <2px 判定走路状态机接管失败 → tween 强制收敛到 msg 坐标（同场景才插值）
+    setTimeout(() => {
+      const n2 = resolvePlayerNode();
+      if (!n2 || !n2.isValid) return;
+      const p2 = n2.getPosition();
+      const moved = Math.hypot(p2.x - startPos.x, p2.y - startPos.y);
+      if (moved < 2) {
+        const myScene2 = (() => {
+          try {
+            const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+            const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+            return p ? p.getSceneType() : null;
+          } catch (e) { return null; }
+        })();
+        if (myScene2 !== null && msg.scene !== undefined && msg.scene !== myScene2) return;
+        const tween = cc.tween(n2).to(0.15, { position: new cc.Vec2(msg.x, msg.y) }).start();
+        agentMoveTweens.push(tween);
+      }
+    }, 350);
+  }
+
+  function onAgentMove(msg) {
+    if (!msg || typeof msg.x !== 'number') return;
+    lastAgentMovePayload = { x: msg.x, y: msg.y, scene: msg.scene };
+    // P1.1 黑洞模拟：测试钩子将前 N 条 agent_move 路由进 pending（覆盖式），解除后重放
+    if (blackholeCount > 0) { blackholeCount--; agentPending = { msg, at: Date.now() }; return; }
+    // P1.1 节点冗余链获取
+    const node = resolvePlayerNode();
+    const item = node ? getPlayerItem(node) : null;
+    if (!item) {
+      // 节点未就绪：存最新一条（覆盖式），等 posTimer tick flush
+      agentPending = { msg, at: Date.now() };
+      // 跨场景传送仍立即执行（不依赖节点）
+      const mods = window.__AF_MODS__;
+      const myScene = (() => {
+        try {
+          const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+          const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+          return p ? p.getSceneType() : null;
+        } catch (e) { return null; }
+      })();
+      if (msg.scene !== undefined && myScene !== null && msg.scene !== myScene) {
+        try {
+          const GD = mods && mods['GameDefine'] && mods['GameDefine'].exports;
+          const GM = mods && mods['GameManager'] && mods['GameManager'].exports;
+          const GMClass = GM && (GM.default || GM);
+          if (GD && GMClass && typeof GMClass.getIns().changeSceneEasy === 'function') {
+            const passageType = msg.passage && GD.ScenePassageType ? GD.ScenePassageType[msg.passage] : undefined;
+            if (typeof passageType === 'number') GMClass.getIns().changeSceneEasy(msg.scene, passageType);
+          }
+        } catch (e) { console.warn('[AF] 跨场景传送失败:', e.message); }
+      }
+      return;
+    }
+    applyAgentMoveMsg(item, msg);
+  }
+
+  // P1.1 posTimer tick 的 pending 重放 flush：节点有效 + 同场景才应用
+  function flushAgentPending() {
+    if (!agentPending) return;
+    const age = Date.now() - agentPending.at;
+    if (age > 20000) {
+      console.warn('[af-visual] dropped agent_move pending', agentPending.msg.x, agentPending.msg.y, agentPending.msg.scene);
+      agentPending = null;
+      return;
+    }
+    const node = resolvePlayerNode();
+    if (!node) return;
+    const msg = agentPending.msg;
+    const mods = window.__AF_MODS__;
+    let sameScene = true;
+    if (msg.scene !== undefined) {
+      try {
+        const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+        const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+        if (p && p.getSceneType() !== msg.scene) sameScene = false;
+      } catch (e) { sameScene = false; }
+    }
+    if (!sameScene) return;
+    const item = getPlayerItem(node);
+    if (!item) return;
+    agentPending = null;
+    applyAgentMoveMsg(item, msg); // 内部含 P1.2 350ms 插值兜底
+  }
+
+  // P1.2 新 agent_move 到达时中止旧 tween（Review Focus 第 3 条）
+  function stopAgentTweens() {
+    for (const t of agentMoveTweens) { try { t.stop && t.stop(); } catch (e) {} }
+    agentMoveTweens.length = 0;
   }
 
   function onAgentMoveDone(msg) {
     if (!msg) return;
-    const mods = window.__AF_MODS__;
-    const App = mods && mods['Application'] && mods['Application'].exports;
-    const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
-    if (!node || !node.isValid) return;
-    const PlayerItem = mods && mods['PlayerItem'] && mods['PlayerItem'].exports;
-    const item = (PlayerItem && node.getComponent(PlayerItem.default || PlayerItem)) || node.getComponent('PlayerItem');
-    clearAgentMoveState(item);
+    agentMoveDoneCount++;
+    // P1.1 节点冗余链获取
+    const node = resolvePlayerNode();
+    const item = node ? getPlayerItem(node) : null;
+    if (item) {
+      // P1.2 终点收敛：无条件 tween 到 msg 坐标后清移动态
+      if (typeof msg.x === 'number' && typeof msg.y === 'number' && node && node.isValid) {
+        stopAgentTweens();
+        const tween = cc.tween(node).to(0.15, { position: new cc.Vec2(msg.x, msg.y) }).start();
+        agentMoveTweens.push(tween);
+      }
+      clearAgentMoveState(item);
+    } else {
+      // 节点未就绪：存 pending
+      agentPendingDone = { msg, at: Date.now() };
+    }
   }
 
   // ---------- 统一阻挡注入（宅基地/水面/扩展区栅栏：回滚盒 + 物理碰撞兜底） ----------
@@ -3307,6 +3473,43 @@
   }
 
   window.__AF__ = { uid, nick, get remotePlayers() { return remotePlayers; } };
+
+  // ---------- P1 画面可视化测试钩子：仅当 localStorage.af.test==='1' 时注册 ----------
+  // 泄漏防护：无旗标时 __AF_TEST__ 完全不定义（文本无障碍审计不受影响）
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('af.test') === '1') {
+      window.__AF_TEST__ = {
+        node() {
+          const n = resolvePlayerNode();
+          if (!n) return null;
+          const p = n.getPosition();
+          let scene = null;
+          try {
+            const mods = window.__AF_MODS__;
+            const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+            const pl = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+            if (pl) scene = pl.getSceneType();
+          } catch (e) { /* ignore */ }
+          return { x: Math.round(p.x), y: Math.round(p.y), scene };
+        },
+        serverPos() {
+          if (!lastAgentMovePayload) return null;
+          return { x: lastAgentMovePayload.x, y: lastAgentMovePayload.y, scene: lastAgentMovePayload.scene };
+        },
+        blackhole(n) {
+          blackholeCount = Number(n) | 0;
+        },
+        floatCount() {
+          return floatTextCount;
+        },
+        doneCount() {
+          return agentMoveDoneCount;
+        },
+      };
+      console.log('[AF] __AF_TEST__ 测试钩子已注册（af.test=1）');
+    }
+  } catch (e) { /* ignore */ }
+
   console.log('[AF] AgentFarm2 注入层就绪 uid=' + uid + ' nick=' + nick + ' sync=' + syncReady);
 
   tryAutoLogin(); // 启动流程：自动登录或弹登录框（放在所有定义之后）
