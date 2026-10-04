@@ -35,6 +35,7 @@ const SILENT_OPS = new Set(['recap', 'mail', 'reply', 'observe', 'inbox', 'chat_
 import { economyHookEnabled, economyHookFrozenMsg } from '../world/economy-gates.ts';
 import { worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cropAtWorld, knapAdd, knapHas, knapSub, treeOf, nextPlantUid, soilAt, waterAt, plotAt } from '../world/farm.ts';
 import { PLANT_CROPS, pickWeighted, FISH_POOL, MINE_POOL } from '../world/tables.ts';
+import { catalogNotice } from '../world/act-catalog.ts';
 import { freshSeed, pickWeightedSeeded } from '../world/rng.ts';
 import { WORLD_KEYS } from '../persistence/state.ts';
 import { doBuy, shopTable } from '../market/shop.ts';
@@ -1676,8 +1677,8 @@ responseType = 'move_started';
     for (const [k, p] of state.online) if (k === uid) sendTo(p, { t: 'agent_status', online: false });
   });
 
-  // 欢迎 + 初始状态
-  send({ t: 'welcome', uid, nick, notice: 'AgentFarm2 游戏接入。发送 {t:"observe"} 查看世界，{t:"act",action:"move|chat|buy|trade|letter|forecast|train|report|move_to|arrive",...} 行动（trade: op=place|cancel|book；letter: {to, body} 写信给在线玩家；forecast 明日天气/节日预告；train {attr:力量/敏捷/亲和} 在健身房训练；report 在银行生成资产日报；move_to 返回 waypoints，near 可填 water/npc 或建筑名（如 move_to {near:"交易大厅"} 自动跨场景到门位），可用 arrive {index,x,y} 确认航点）。' });
+  // 欢迎 + 初始状态（notice 由 act-catalog 派生：新增 act 自动进文档，杜绝「文档说的 ≠ 代码做的」）
+  send({ t: 'welcome', uid, nick, notice: catalogNotice() });
   send({ t: 'state', ...observeState(app, uid, username, nick) });
 }
 
