@@ -9,6 +9,7 @@ import { AccountStore } from '../persistence/accounts.ts';
 import { PROVIDER_FILE, SAVES_DIR, PORT, slotPaths } from '../config.ts';
 import { readJsonBody, RegisterBody, AgentProviderBody, AgentControlBody, SwitchSlotBody, RenameSlotBody, JoinRoomBody, GiveCoinsBody, GiveItemBody, AgentSetupBody } from './protocol.ts';
 import { resolveProvider } from '../cognition/managed.ts';
+import { rulesPrompt, rulesTokenEstimate } from '../world/rules-prompt.ts';
 import { probeProvider } from '../cognition/provider-probe.ts';
 import { runLocalBackup } from '../persistence/backup.ts';
 import { log } from '../logging.ts';
@@ -436,6 +437,29 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
         memTail: app.memSamples.slice(-20),
         // D17：客户端 save 直写防护计数（按拒写原因分类，异常刷可直接看见）
         saveGuard: saveGuardStats(),
+      });
+      return;
+    }
+
+    // AI 接入规则提示词现场查询（P3/规划书 §3.2）：运营/调试看当前拼装结果与 rulesHash 归因
+    // 鉴权：admin token 优先（可查任意 uid）；登录玩家 token 只能取自己的任务段
+    // 响应不含敏感（价格/日历/地标/动作表均为公开游戏数据，玩家自带 LLM Key 永不进 prompt）
+    if (u.pathname === '/af/prompts') {
+      const tok = u.searchParams.get('token');
+      const isAdmin = !!process.env.AF_ADMIN_TOKEN && tok === process.env.AF_ADMIN_TOKEN;
+      const acc = app.accounts.findAccountByToken(tok);
+      if (!isAdmin && !acc) { text(res, 401, 'bad token'); return; }
+      const wantUid = u.searchParams.get('uid');
+      const uid = isAdmin ? (wantUid || undefined) : acc?.uid || undefined;
+      const budget: 'full' | 'lite' = u.searchParams.get('budget') === 'lite' ? 'lite' : 'full';
+      const rp = rulesPrompt(app, { budget, uid });
+      json(res, 200, {
+        ok: true,
+        budget,
+        uid: uid ?? null,
+        rulesHash: rp.rulesHash,
+        tokens: rulesTokenEstimate(rp.text),
+        text: rp.text,
       });
       return;
     }
