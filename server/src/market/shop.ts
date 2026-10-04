@@ -9,6 +9,18 @@ export function sellX2(tables: Tables, itemId: number): number {
   return tables.npcUnitPrice(itemId);
 }
 
+/**
+ * NPC 收购折扣（规划书 §3.1 价格摘要口径：NPC 收购 6 折）。
+ * 唯一数值源：任何地方要报「NPC 收购价」都必须走 npcBuyPrice，
+ * 规则提示词/对话/文档都不得另写一份 0.6。
+ */
+export const NPC_BUY_RATE = 0.6;
+
+/** NPC 收购价 = 市场基价 × NPC_BUY_RATE（向下取整，最少 1 金币） */
+export function npcBuyPrice(tables: Tables, itemId: number): number {
+  return Math.max(1, Math.round(tables.basePriceOf(itemId) * NPC_BUY_RATE));
+}
+
 // NPC 商店价目（服务器内部；agent 通过 talk 向 NPC 询价获得）
 export function shopTable(tables: Tables): Record<number, Array<[number, number]>> {
   return {
