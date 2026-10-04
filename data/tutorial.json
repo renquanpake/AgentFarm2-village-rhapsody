@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "note": "P4 新手教程 7 步（规划书 §4.1）。need 只填既有 act 名（P1：不新增 act）；空 need = 由服务端/客户端显式上报（如 agent 步=托管 Agent 上线）。第 1 步用 act onboarding（客户端首次展示引导时读一次引导状态）作「我看过引导了」信号。",
+  "steps": [
+    {
+      "id": "see-self",
+      "title": "认识你的小人与镜头",
+      "hint": "画面里那个小人就是你。镜头跟着你动，村里的一切都是真的——先随便看看四周。",
+      "need": "onboarding"
+    },
+    {
+      "id": "move",
+      "title": "走两步",
+      "hint": "用方向键或屏幕摇杆走两步。走动时脚下会实时显示你的坐标。",
+      "need": "move"
+    },
+    {
+      "id": "tasks",
+      "title": "打开任务书",
+      "hint": "点右上角 📜 任务书，看「新手村·日常」第一条。一年 40 天，任务按章节推进。",
+      "need": "tasks"
+    },
+    {
+      "id": "farm",
+      "title": "种一块地",
+      "hint": "找附近可犁的格子：till 犁地 → plant 播种子 → water 浇水 → harvest 收菜。作物要等一天成熟。",
+      "need": "till+plant+water+harvest"
+    },
+    {
+      "id": "talk",
+      "title": "和 NPC 说句话",
+      "hint": "走到任意 NPC 身边点一下，试着问价或闲聊。他们知道村里的行情。",
+      "need": "talk"
+    },
+    {
+      "id": "agent",
+      "title": "雇佣 Agent 替你干活",
+      "hint": "打开 Agent 面板把你的 Key 交给托管 Agent（或直接发指令）：指令出去，小人真的会在村里走动、干活、钓鱼。",
+      "need": ""
+    },
+    {
+      "id": "delegate",
+      "title": "完成第一单委托",
+      "hint": "在委托板挂一单或接一单，完成后金币入包。背包在下方工具栏打开。",
+      "need": "delegate"
+    }
+  ]
+}

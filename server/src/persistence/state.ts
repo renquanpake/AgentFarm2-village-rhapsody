@@ -20,7 +20,7 @@ export const WORLD_KEYS = new Set([
   'fitnessData', 'staminaData', 'facilityData', 'afStalls', 'gossipData',
   'metricData', 'afSeasonEventFired', 'agentLogData',
 ]);
-export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks', 'afOnboarding', 'afAgentMail', 'afAgentAsk']);
+export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks', 'afOnboarding', 'afAgentMail', 'afAgentAsk', 'afTutorial']);
 export const GLOBAL_KEYS = new Set([
   'audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage', 'afStrayBucketRepaired',
   'afDayAnchor', 'afLastGameDay', 'afLastStorm', 'afSaveVersion', 'afPlayerIdx',

@@ -28,6 +28,7 @@ const PUBLIC = {
   '/af/art-manifest': 'CC0/生图资产清单（公开只读）',
   '/af/art/{id}': '资产 PNG（公开只读）',
   '/af/mapgrid': '小地图网格/道路/地标（客户端渲染数据源，刻意公开）',
+  '/af/tutorial': 'P4 新手教程 7 步文案（公开只读；带 token 时附该玩家进度）',
 };
 
 function routes() {

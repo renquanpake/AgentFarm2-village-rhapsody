@@ -78,6 +78,8 @@ export class Tables {
   economy: EconomyTable;
   /** N9 任务链文档（world/tasks.ts 消费；null = 回落旧扁平任务） */
   taskChains: { version: number; chains: unknown[] } | null;
+  /** 数据目录（P4 tutorial.json 等「按需读取的数据表」用 readJson；勿在构造器外散落 readFileSync） */
+  readonly dataDir: string;
   /** N9 季节事件线文档（world/season-events.ts 消费） */
   seasonEvents: { version: number; events: unknown[] } | null;
   /** N9 新手引导文档（world/onboarding.ts 消费） */
@@ -86,6 +88,7 @@ export class Tables {
   readonly gridH: number;
 
   constructor(dataDir: string) {
+    this.dataDir = dataDir;
     const L = <T>(rel: string, fb: T): T => {
       try { return JSON.parse(readFileSync(join(dataDir, rel), 'utf8')) as T; } catch { return fb; }
     };
@@ -141,6 +144,11 @@ export class Tables {
   /** 作物设计行（N10：ROI/日产能基准） */
   cropEconomy(cropItemId: number): EconomyCrop | null {
     return (this.economy?.crops || []).find(c => c.cropItemId === cropItemId) || null;
+  }
+
+  /** 按需读取数据表（如 data/tutorial.json）；读不到回落 fb（表损坏不炸服） */
+  readJson<T>(rel: string, fb: T): T {
+    try { return JSON.parse(readFileSync(join(this.dataDir, rel), 'utf8')) as T; } catch { return fb; }
   }
 
   /** 通胀目标带（N10：/af/economy-design 对账用） */

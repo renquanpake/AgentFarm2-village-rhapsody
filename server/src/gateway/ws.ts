@@ -37,6 +37,7 @@ import { worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cro
 import { PLANT_CROPS, pickWeighted, FISH_POOL, MINE_POOL } from '../world/tables.ts';
 import { catalogNotice } from '../world/act-catalog.ts';
 import { npcDialoguePrompt } from '../world/dialogue-prompt.ts';
+import { tutorialAct, tutorialProgress, tutorialSteps } from '../world/tutorial.ts';
 import { rulesPrompt } from '../world/rules-prompt.ts';
 import { freshSeed, pickWeightedSeeded } from '../world/rng.ts';
 import { WORLD_KEYS } from '../persistence/state.ts';
@@ -65,6 +66,12 @@ import { notePlayerOp, publishAgentActivityGlobal } from '../cognition/managed.t
 
 // 模块级共享（与 legacy 等价：shop 价目表启动时算一次）
 let shopCache: { tables: App['tables']; table: Record<number, Array<[number, number]>> } | null = null;
+// P4 教程步骤表缓存（每次 act 都读 JSON 会把热路径拖慢；换档/换 tables 时失效）
+let tutCache: { tables: App['tables']; steps: ReturnType<typeof tutorialSteps> } | null = null;
+function tutStepsOf(app: App): ReturnType<typeof tutorialSteps> {
+  if (!tutCache || tutCache.tables !== app.tables) tutCache = { tables: app.tables, steps: tutorialSteps(app.tables) };
+  return tutCache.steps;
+}
 export function shopOf(app: App): Record<number, Array<[number, number]>> {
   if (!shopCache || shopCache.tables !== app.tables) shopCache = { tables: app.tables, table: shopTable(app.tables) };
   return shopCache.table;
@@ -1663,6 +1670,11 @@ responseType = 'move_started';
             app.log.append('onboarding.step', uid, { uid, step: step.id, minutes: step.minutes });
             result.onboarding = { done: step.title, next: step.doneText };
           }
+          // P4：人类玩家 7 步教程进度（数据驱动；只认 ok 的 act，与 onboarding 同一出口）
+          const tutSteps = tutStepsOf(app);
+          tutorialAct(state, uid, action, true, tutSteps);
+          const tp = tutorialProgress(state, uid, tutSteps);
+          if (tp.done.length) result.tutorial = { done: tp.done, active: tp.active };
           metricsAction(app, uid, action);
         }
         // 行为流水（成功与失败都记）：玩家问「你刚才干了什么」时，答案来自这里而不是 LLM 记忆
