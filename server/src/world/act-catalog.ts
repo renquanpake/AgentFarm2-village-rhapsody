@@ -58,8 +58,9 @@ export const ACT_CATALOG: ActEntry[] = [
 
 /**
  * 非 act 的直发消息类型（agent 通道 / 游戏通道 case 分支）。
- * 与 ACT_CATALOG 分开：前者对齐 `action === '...'`，本表对齐 `case '...'`，
- * 两侧都由 act-catalog.test.ts 做双向漂移守卫。
+ * 与 ACT_CATALOG 分开：前者对齐 `action === '...`（测试做双向守卫），
+ * 本表对齐 `case '...'` 中「agent 真会用到的消息类型」——测试做的是
+ * 「表内每条都有 case」单向守卫（ws.ts 还有 join/save/move/social_* 等客户端消息，不在文档表内）。
  */
 export const DIRECT_MESSAGES: ActEntry[] = [
   { act: 'observe', args: '{t:"observe"}', returns: 'state 世界快照：pos/scene/npcs/buildings/calendar/tasks/festival' },
@@ -76,9 +77,42 @@ export const DIRECT_MESSAGES: ActEntry[] = [
 /** 动作名清单（按目录顺序） */
 export const ACT_NAMES: string[] = ACT_CATALOG.map((e) => e.act);
 
-/** 一行式动作清单：每条一行，供 rulesPrompt / welcome / 文档复用 */
+/** 一行式动作清单：每条一行，供 rulesPrompt / welcome / 文档复用
+ *  预算：整表 ≤600 token（终审要求：完整动作表必须装得进 rulesPrompt 的 1200 预算，
+ *  此前 2427 字符/1214 token 会让拼装器恒降档到「压缩动作名」分支，等于没交付） */
 export function catalogText(): string {
   return [...ACT_CATALOG, ...DIRECT_MESSAGES].map((e) => `${e.act} ${e.args} → ${e.returns}`).join('\n');
+}
+
+/** 高频动作：紧凑渲染时仍给全参数（agent 日常真正会调的那些） */
+export const HIGH_FREQ_ACTS = new Set([
+  'move', 'move_to', 'arrive', 'observe', 'chat', 'talk', 'buy', 'trade', 'letter',
+  'till', 'plant', 'water', 'harvest', 'chop', 'fish', 'mine', 'tasks', 'forecast', 'report', 'train',
+]);
+
+/** returns 紧凑形：取第一分句并截断（「目标格动作需站相邻格；无种子…」→「目标格动作需站相邻格」） */
+function shortReturns(s: string): string {
+  const first = s.split('；')[0].trim();
+  return first.length <= 12 ? first : first.slice(0, 12) + '…';
+}
+
+/** args 紧凑形：砍掉 `|备选` 尾巴并截断（保留主参数名，agent 照 observe 提示即可） */
+function shortArgs(s: string): string {
+  const head = s.replace(/\s*\|[^|]*$/, '').trim();
+  return head.length <= 20 ? head : head.slice(0, 20) + '…';
+}
+
+/** 紧凑渲染时仍带「返回要点」的动作（返回语义会改变 agent 行为的那几个）；
+ *  其余只给 act+参数：26 人名册与价目比低频动作的失败文案更值钱（终审预算取舍） */
+export const RETURNS_ACTS = new Set(['move_to', 'plant', 'water', 'harvest', 'till', 'buy', 'talk', 'chop']);
+
+/** 动作清单紧凑行：给 rulesPrompt 的 1200 token 预算用。
+ *  契约：①全部动作名都出现（agent 不会凭空发明动作）②高频动作带参数与首要返回
+ *  ③≤560 token（终审硬指标：全表 1214 token 会让拼装器恒降档，规格 §3.1 第 2 项等于没交付） */
+export function catalogTextTerse(): string {
+  return [...ACT_CATALOG, ...DIRECT_MESSAGES]
+    .map((e) => (RETURNS_ACTS.has(e.act) ? `${e.act} ${shortArgs(e.args)} → ${shortReturns(e.returns)}` : `${e.act}${shortArgs(e.args)}`))
+    .join('\n');
 }
 
 /** agent welcome notice：从本表派生，保证「文档说的」与「代码做的」同源 */

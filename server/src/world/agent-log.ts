@@ -93,7 +93,7 @@ export function recapView(state: WorldState, uid: string, n = 12, now = Date.now
   const ops = opsOf(state, uid, n);
   if (!ops.length) return null;
   const recent = ops.map(op => ({ at: op.ts, ago: ago(op.ts, now), day: op.day, action: op.action, actionCn: actionCn(op.action), ok: op.ok, detail: op.detail, scene: op.scene, x: op.x, y: op.y, rulesHash: op.rulesHash }));
-  const withHash = [...recent].reverse().find((r) => !!r.rulesHash);
+  const withHash = recent.find((r) => !!r.rulesHash); // recent 已是最在前（opsOf 倒序返回）
   return {
     total: (data(state).ops[uid] || []).length,
     recent,

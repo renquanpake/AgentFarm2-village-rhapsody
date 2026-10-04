@@ -3,6 +3,13 @@
 // 规则段一律来自 rulesPrompt（权威源），本文件只做「人设 + 现场 + 规则」三段编排。
 import type { RulesPrompt } from './rules-prompt.ts';
 
+/** 人设/现场字段统一消毒（去换行 + 长度截断）：NPC 数据与 gossip 会直进 system，
+ *  一条带换行的注入句就能把 system 后的指令分隔掉 */
+function clip(s: unknown, max: number): string {
+  const t = String(s ?? '').replace(/[\r\n]+/g, ' ').trim();
+  return t.length <= max ? t : t.slice(0, max) + '…';
+}
+
 export interface NpcPromptCtx {
   npcName: string;
   /** npcs.json 的 persona 字段均可选（缺失按「未设」处理，不让 undefined 拼进 system） */
@@ -18,13 +25,13 @@ export interface NpcPromptCtx {
 
 /** NPC 对话 system（完整版规则 ≤1200 token 预算由 rulesPrompt 保证） */
 export function npcDialoguePrompt(ctx: NpcPromptCtx, rules: RulesPrompt): string {
-  const fest = ctx.festival ? `，今天是「${ctx.festival}」节` : '';
-  const gossip = ctx.gossip ? `村里最近的事：${ctx.gossip}（可顺带一提）。` : '';
+  const fest = ctx.festival ? `，今天是「${clip(ctx.festival, 12)}」节` : '';
+  const gossip = ctx.gossip ? `村里最近的事：${clip(ctx.gossip, 60)}（可顺带一提）。` : '';
   const who = [
-    ctx.npcName,
-    ctx.identity || '村民',
-    ctx.tagline ? `口头禅：${ctx.tagline}。` : '',
-    ctx.desc ? `性格：${ctx.desc}` : '',
+    clip(ctx.npcName, 8),
+    ctx.identity ? clip(ctx.identity, 12) : '村民',
+    ctx.tagline ? `口头禅：${clip(ctx.tagline, 24)}。` : '',
+    ctx.desc ? `性格：${clip(ctx.desc, 60)}` : '',
   ].filter(Boolean).join('，');
   return [
     `${who}。`,

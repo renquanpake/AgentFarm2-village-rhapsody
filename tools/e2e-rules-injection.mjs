@@ -59,13 +59,16 @@ check('talk result 带 rulesHash（归因可追规则版本）', !!llmResult?.ru
 // 与 /af/prompts 的权威价目逐条核对（六折口径）
 const rp = await fetch(`${BASE}/af/prompts?token=${encodeURIComponent(token)}&budget=full`).then(r => r.json());
 const seg = (rp.text.match(/【价目】[\s\S]*?(?=\n【)/) || [''])[0];
-const rows = [...seg.matchAll(/(\d+)=(\S+?)（市场基价 (\d+)，NPC 收购 (\d+)）/g)];
-check('权威价目段可解析出条目', rows.length > 0, `${rows.length} 条`);
-const sixFoldOk = rows.length > 0 && rows.every(([, , , base, buy]) => Number(buy) === Math.max(1, Math.round(Number(base) * 0.6)));
-check('NPC 收购价 = round(基价 × 0.6) 逐条成立', sixFoldOk, rows.slice(0, 3).map(r => `${r[2]}:${r[3]}→${r[4]}`).join(' '));
+const rows = [...seg.matchAll(/(\d+)=(\S+?)（买入 (\d+)，NPC 收购参考 (\d+)）/g)];
+check('权威价目段可解析出条目（id/名称/买入/收购参考）', rows.length > 0, `${rows.length} 条`);
+check('价目段声明口径（买入=实付，收购=六折参考且无卖出通道）', /买入=玩家实付金币/.test(seg) && /六折/.test(seg) && /无卖出通道/.test(seg));
+// 六折恒等式由单测锁（rules-prompt.test.ts：npcBuyPrice==round(basePriceOf×0.6)、buyPriceOf==doBuy）；
+// 这里只能做结构不变量：买入 > 0、收购参考 ≥ 1、收购参考 ≤ 买入
+const sane = rows.length > 0 && rows.every(([, , , buy, ref]) => Number(buy) > 0 && Number(ref) >= 1 && Number(ref) <= Number(buy));
+check('价目行不变量成立（买入>0、1≤收购参考≤买入）', sane, rows.slice(0, 3).map(r => `${r[2]}:买入${r[3]}/参考${r[4]}`).join(' '));
 const echo = llmResult?.dialogue || '';
-const inEcho = rows.filter(r => echo.includes(r[4]));
-check('价目真值出现在 LLM 收到的 system 里', inEcho.length > 0, `${inEcho.length}/${rows.length} 条被回声`);
+const inEcho = rows.filter(r => echo.includes(r[3]));
+check('价目真值（买入价）出现在 LLM 收到的 system 里', inEcho.length > 0, `${inEcho.length}/${rows.length} 条被回声`);
 
 console.log(`----\n结果: ${results.filter(Boolean).length}/${results.length} 通过`);
 process.exit(results.every(Boolean) ? 0 : 1);

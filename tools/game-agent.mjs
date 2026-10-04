@@ -164,12 +164,19 @@ function getPersonalityBlock() {
 
 // ---------- 村庄规则（P3：服务端权威规则上下文，取代本文件里的硬编码世界数据） ----------
 // 拉 GET /af/prompts 拿 rulesPrompt 输出；失败降级为本地兜底句，绝不阻断对话。
+// 缓存纪律（终审 C1）：①带 TTL —— 规则文本含日历日（1 游戏日=10 分钟），常驻 Agent
+//   （托管 --rounds 999999）永久缓存会把「第 N 天/季节/天气」钉死在启动那一刻；
+//  ②失败不写缓存 —— 否则一次启动抖动会让该 Agent 终生只有兜底句且永不重试；
+//  ③失败必打日志 —— 托管 stderr 已被 managed.ts 转发到服务端日志，静默等于零信号。
 const HTTP_BASE = (process.env.AF_HTTP_BASE || _wsBase.replace(/^ws/, 'http').replace(/\/agent.*$/, '')).replace(/\/$/, '');
 const RULES_FALLBACK = '【村庄规则】拉取失败：坐标与价格只信 observe 返回值；动作名用 move_to/plant/water/harvest/chop/buy/talk/letter；以上资料未写明的，回答不知道。';
-let _rulesCache = null;
+const RULES_TTL_MS = Number(process.env.AF_RULES_TTL_MS || 60_000);
+const _rulesCache = new Map(); // budget -> { text, at }
 
-async function fetchRules(budget = 'full') {
-  if (_rulesCache) return _rulesCache;
+/** 拉规则（带 TTL 与重试；失败返回兜底句且不落缓存，下轮会再试） */
+async function fetchRules(budget = 'full', attempt = 0) {
+  const hit = _rulesCache.get(budget);
+  if (hit && Date.now() - hit.at < RULES_TTL_MS) return hit.text;
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 8000);
   try {
@@ -177,13 +184,19 @@ async function fetchRules(budget = 'full') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const j = await res.json();
     if (!j.ok || typeof j.text !== 'string' || !j.text) throw new Error('bad payload');
-    _rulesCache = j.text;
-  } catch {
-    _rulesCache = RULES_FALLBACK;
+    _rulesCache.set(budget, { text: j.text, at: Date.now() });
+    return j.text;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (attempt < 2) {                      // 首拉失败退避重试两次（服务刚起/瞬时抖动）
+      await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+      return fetchRules(budget, attempt + 1);
+    }
+    console.warn(`[rules] 拉取 ${HTTP_BASE}/af/prompts 失败（已用兜底句，下轮重试）：${msg}`);
+    return RULES_FALLBACK;
   } finally {
     clearTimeout(timer);
   }
-  return _rulesCache;
 }
 
 // ---------- System Prompt ----------
@@ -308,23 +321,28 @@ note_read "村庄指南.md"（地标坐标/NPC商店/碰撞规则）和 note_rea
 }
 
 // ---------- 收件箱规则执行（LLM 不可用时仍能执行明确指令） ----------
-const LANDMARKS = {
-  '村中心': [3500, 3000], '商店': [3500, 3000], '杂货': [3500, 3000],
-  '树根家': [3100, 550], '小卖部': [6000, 1400], '木匠': [3000, 6700],
-  '老太太': [5800, 5900], '屠夫': [7600, 1600], '村长': [8400, 4600], '家石伯': [1200, 2800],
-};
+// 地标坐标不再硬编码：规则上下文（/af/prompts）里已有权威地标；这里只保留解析与兜底，
+// 避免同一份坐标在两处漂移（此前 LANDMARKS 与实际地标已不一致，且随扩建必然失效）。
+const GRID_W = 189, GRID_H = 173; // 村景格数；仅用于「玩家写了格坐标还是像素」的判别
 async function executeInboxRules(text) {
   if (!text) return false;
   // 1) 匹配 (x,y) 或 "x,y" 形式的坐标
-  const m = /\(?\s*(\d{3,5})\s*[,，]\s*(\d{3,5})\s*\)?/.exec(text);
+  const m = /\(?\s*(\d{1,5})\s*[,，]\s*(\d{1,5})\s*\)?/.exec(text);
   let x, y;
   if (m) {
     x = Number(m[1]); y = Number(m[2]);
-    if (x < 133 && y < 117) { x = x * 100 + 50; y = y * 100 + 50; } // 格坐标 -> 像素（扩展地图 133×117）
+    // 小数值按格坐标换算成像素（格 → 像素 = ×100+50）；已是像素的大数值原样用
+    if (x < GRID_W && y < GRID_H) { x = x * 100 + 50; y = y * 100 + 50; }
   } else {
-    // 2) 关键词地标
+    // 2) 关键词地标：只认权威规则文本里的地标名，命中后按其坐标换算
+    const rules = await fetchRules('full');
     let hit = null;
-    for (const k of Object.keys(LANDMARKS)) if (text.includes(k)) { hit = LANDMARKS[k]; break; }
+    for (const seg of (rules.match(/【地标】[\s\S]*?(?=\n【)/) || [''])[0].split(/[、@]/)) {
+      const nm = seg.trim();
+      if (!nm || !text.includes(nm.replace(/（.*$/, ''))) continue;
+      const c = nm.match(/@\((\d+),(\d+)\)/);
+      if (c) { hit = [Number(c[1]), Number(c[2])]; break; }
+    }
     if (hit) { x = hit[0]; y = hit[1]; }
     else return false; // 无法解析，交给 LLM
   }

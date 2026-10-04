@@ -89,12 +89,14 @@ for (const c of CHECKLIST) {
       && probes.prompts.tokens <= 1200
       && ['【世界观】', '【日历】', '【价目】', '【地标】', '【建筑】', '【NPC 名册】', '【动作】', '【任务】', '【条款】'].every((s) => t.includes(s))
       && t.includes('以上资料未写明的，回答不知道。');
-    // 六折口径：价目段里每个条目都满足「NPC 收购 = round(基价 × 0.6)」
+    // 价目口径：声明齐全 + 每行不变量（买入>0、1≤收购参考≤买入）
+    // 六折恒等式本身由 rules-prompt.test.ts 锁（npcBuyPrice==round(basePriceOf×0.6)、buyPriceOf==doBuy）
     if (ok) {
       const seg = (t.match(/【价目】[\s\S]*?(?=\n【)/) || [''])[0];
-      const rows = [...seg.matchAll(/市场基价 (\d+)，NPC 收购 (\d+)/g)];
-      ok = rows.length > 0 && rows.every(([, base, buy]) => Number(buy) === Math.max(1, Math.round(Number(base) * 0.6)));
-      if (!ok) console.log(`  六折核对失败：${JSON.stringify(rows.slice(0, 3))}`);
+      ok = /买入=玩家实付金币/.test(seg) && /六折/.test(seg) && /无卖出通道/.test(seg);
+      const rows = [...seg.matchAll(/买入 (\d+)，NPC 收购参考 (\d+)/g)];
+      ok = ok && rows.length > 0 && rows.every(([, buy, ref]) => Number(buy) > 0 && Number(ref) >= 1 && Number(ref) <= Number(buy));
+      if (!ok) console.log(`  价目口径核对失败：${JSON.stringify(rows.slice(0, 3))}`);
     }
   }
   console.log(`  [${ok ? 'OK' : '死点'}] ${c.step} <- ${c.via}`);

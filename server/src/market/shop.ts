@@ -13,12 +13,30 @@ export function sellX2(tables: Tables, itemId: number): number {
  * NPC 收购折扣（规划书 §3.1 价格摘要口径：NPC 收购 6 折）。
  * 唯一数值源：任何地方要报「NPC 收购价」都必须走 npcBuyPrice，
  * 规则提示词/对话/文档都不得另写一份 0.6。
+ * 注意与 economy-tables.policy.seedPriceMul（当前也是 0.6，但那是**种子买入折扣**）是两回事：
+ * 两者数值相同纯属巧合，改动其一会让种子行的「收购参考」与买入价关系漂移 —— 靠测试盯住。
  */
 export const NPC_BUY_RATE = 0.6;
 
-/** NPC 收购价 = 市场基价 × NPC_BUY_RATE（向下取整，最少 1 金币） */
+/** NPC 收购价 = 市场基价 × NPC_BUY_RATE（向下取整，最少 1 金币）
+ *  注意：这是**规则参考口径**（spec §3.1），当前没有卖出/回收通道，
+ *  agent 报这个数时必须同时说明「暂无卖出通道」，否则等于教 LLM 编造交易路径。 */
 export function npcBuyPrice(tables: Tables, itemId: number): number {
   return Math.max(1, Math.round(tables.basePriceOf(itemId) * NPC_BUY_RATE));
+}
+
+/**
+ * 玩家实付价（与 doBuy 同一解析顺序：商店价目 → npcUnitPrice → 0=不可购买）。
+ * 规则提示词必须报这个数：basePriceOf 对 sell_price=0 的物品会兜底成 50（凭空价），
+ * 且种子少了 seedPriceMul 折扣，两者都不是玩家真实付出的金币。
+ */
+export function buyPriceOf(tables: Tables, itemId: number, shop?: Record<number, Array<[number, number]>>): number {
+  const table = shop ?? shopTable(tables);
+  for (const list of Object.values(table)) {
+    const hit = list.find(([id]) => id === itemId);
+    if (hit) return hit[1];
+  }
+  return tables.npcUnitPrice(itemId);
 }
 
 // NPC 商店价目（服务器内部；agent 通过 talk 向 NPC 询价获得）

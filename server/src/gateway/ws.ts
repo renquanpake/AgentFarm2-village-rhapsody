@@ -27,7 +27,7 @@ import { onboardingCount, onboardingView } from '../world/onboarding.ts';
 import { seasonEventsView } from '../world/season-events.ts';
 import { metricsAction, metricsSessionStart, metricsSessionEnd } from '../world/metrics.ts';
 import { guardSaveKey } from '../world/save-guard.ts';
-import { recordAgentOp, recapView } from '../world/agent-log.ts';
+import { recordAgentOp, recapView, opsOf } from '../world/agent-log.ts';
 import { pushAgentMail, agentMailOf, pushAsk, asksOf, ASK_KEY } from '../world/agent-mail.ts';
 
 // 查询类动作不写行为流水（否则「看流水」本身会污染流水，问答里出现「他刚看了流水」）
@@ -1223,7 +1223,12 @@ responseType = 'move_started';
                 try {
                   const reply = await app.cognition.llm(uid).chat(uid, system, userMsg, 'dialogue') ?? fallback;
                   // 归因：把本次对话依据的规则版本 hash 记进行为流水（回答质量可追责到规则版本）
-                  recordAgentOp(state, uid, { day, action: 'talk_npc', ok: true, detail: `与 ${npc.name} 对话：${String(reply).slice(0, 60)}`, scene: apos.scene ?? 2, rulesHash: rules.rulesHash });
+                  // 归因记在同一条 talk 流水上（不另开 talk_npc：通用出口已记一条，会变双份且 actionCn 无中文名）
+                  const lastOp = opsOf(state, uid, 1)[0];
+                  if (lastOp && lastOp.action === 'talk') {
+                    lastOp.detail = `与 ${npc.name} 对话：${String(reply).slice(0, 60)}`;
+                    lastOp.rulesHash = rules.rulesHash;
+                  }
                   send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}`, rulesHash: rules.rulesHash });
                 } catch (e) { console.warn(`[talk] NPC 对话失败（已降级为 tagline）：${e instanceof Error ? e.message : String(e)}`); }
               })();

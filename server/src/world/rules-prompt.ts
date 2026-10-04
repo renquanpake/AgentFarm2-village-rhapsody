@@ -9,8 +9,8 @@ import type { WorldState } from '../persistence/state.ts';
 import { calendarDay, currentGameDay, SEASON_DAYS } from './calendar.ts';
 import { municipalOf } from '../navigation/municipal.ts';
 import { taskView } from './tasks.ts';
-import { npcBuyPrice, NPC_BUY_RATE } from '../market/shop.ts';
-import { ACT_CATALOG, DIRECT_MESSAGES, catalogText } from './act-catalog.ts';
+import { npcBuyPrice, buyPriceOf, shopTable } from '../market/shop.ts';
+import { ACT_CATALOG, DIRECT_MESSAGES, HIGH_FREQ_ACTS, catalogTextTerse } from './act-catalog.ts';
 
 export type PromptBudget = 'full' | 'lite';
 
@@ -41,15 +41,24 @@ function clip(s: unknown, max: number): string {
   return t.length <= max ? t : t.slice(0, max) + '…';
 }
 
-/** 高频物品 id（种子/工具/鱼竿/镐/常见作物）——价目摘要只列这些，避免 2000 行 items 爆预算 */
-const PRICE_FOCUS = [1, 6, 12, 18, 22, 28, 29, 30, 36, 37, 38, 58];
+/** 地图尺寸（来自权威数据 tables.farm，不硬编码；随世界扩建自动生效） */
+function mapSizeText(app: App): string {
+  const w = app.tables.farm?.soilW;
+  const h = app.tables.farm?.soilH;
+  return typeof w === 'number' && typeof h === 'number' ? `${w}×${h} 格` : '尺寸见 mapdoc';
+}
+
+/** 高频物品 id（核心循环：种子/作物/工具/肉鱼/建材）——价目摘要只列可购买项，
+ *  绝不列 sell_price=0 的物品（basePriceOf 会兜底成 50，凭空报价比不报价更坏） */
+const PRICE_FOCUS = [36, 37, 38, 96, 28, 29, 30, 12, 10, 19, 18, 7];
 
 function priceLine(app: App, id: number): string | null {
   const it = app.tables.items.find((x) => x.id === id);
   if (!it) return null;
-  const base = app.tables.basePriceOf(id);
-  const buy = npcBuyPrice(app.tables, id);
-  return `${id}=${clip(it.name, 8)}（市场基价 ${base}，NPC 收购 ${buy}）`;
+  const buy = buyPriceOf(app.tables, id);
+  if (buy <= 0) return null; // 不可购买：不报价（0 才是真相）
+  const ref = npcBuyPrice(app.tables, id);
+  return `${id}=${clip(it.name, 8)}（买入 ${buy}，NPC 收购参考 ${ref}）`;
 }
 
 function pricesSection(app: App, limit: number): string {
@@ -59,7 +68,7 @@ function pricesSection(app: App, limit: number): string {
     const l = priceLine(app, id);
     if (l) lines.push(l);
   }
-  return `【价目】id 名称（市场基价 / NPC 收购 ${NPC_BUY_RATE} 折）\n${lines.join('；')}`;
+  return `【价目】id 名称（买入=玩家实付金币；NPC 收购参考=市场基价六折，当前无卖出通道）：\n${lines.join('；')}`;
 }
 
 function landmarksSection(app: App, limit: number): string {
@@ -71,10 +80,11 @@ function landmarksSection(app: App, limit: number): string {
     for (const lm of list) {
       if (out.length >= limit) break;
       if (typeof lm.x !== 'number' || typeof lm.y !== 'number') continue;
-      out.push(`${clip(lm.name, 12)}@(${lm.x},${lm.y})`);
+      // 输出像素坐标：与条款「坐标一律像素」一致，避免 agent 把格坐标当像素用
+      out.push(`${clip(lm.name, 12)}@(${lm.x * 100 + 50},${lm.y * 100 + 50})`);
     }
   }
-  return `【地标】村景坐标（格）：${out.join('、')}`;
+  return `【地标】村景坐标（像素）：${out.join('、')}`;
 }
 
 function buildingsSection(app: App, limit: number): string {
@@ -85,19 +95,23 @@ function buildingsSection(app: App, limit: number): string {
       if (out.length >= limit) break;
       const d = b.door;
       if (!d) continue;
-      const gx = Math.floor(d.x / 100), gy = Math.floor(d.y / 100);
-      out.push(`${clip(b.name, 10)}(场景${scene} 门位 ${gx},${gy})`);
+      out.push(`${clip(b.name, 10)}(场景${scene} 门位 ${d.x},${d.y})`);
     }
   }
-  return `【建筑】move_to near 建筑名 自动到门位：${out.join('、')}`;
+  return `【建筑】move_to near 建筑名 到门位：${out.join('、')}`;
 }
 
-function npcSection(app: App, limit: number): string {
-  const list = (app.tables.npcs || []).slice(0, limit);
+function npcSection(app: App, limit: number, tagCount: number): string {
+  // 商店 NPC 优先（agent 最需要知道「去哪买」），其余按 id 顺序补齐
+  // 口头禅只给前 tagCount 人（装饰性信息，26 人全给会把动作全表挤出预算）
+  const shopIds = new Set(Object.keys(shopTable(app.tables)).map(Number));
+  const all = app.tables.npcs || [];
+  const sorted = [...all].sort((a, b) => (shopIds.has(b.id) ? 1 : 0) - (shopIds.has(a.id) ? 1 : 0));
+  const list = sorted.slice(0, limit);
   const out = list
-    .map((n) => {
+    .map((n, i) => {
       const id = clip((n as { identity?: string }).identity ?? (n as { persona?: { identity?: string } }).persona?.identity, 6);
-      const tag = clip((n as { persona?: { tagline?: string } }).persona?.tagline, 10);
+      const tag = i < tagCount ? clip((n as { persona?: { tagline?: string } }).persona?.tagline, 10) : '';
       return `${clip(n.name, 6)}${id ? `(${id})` : ''}${tag ? `「${tag}」` : ''}`;
     })
     .filter((s) => s.length > 0);
@@ -150,6 +164,7 @@ function termsSection(): string {
   return [
     '【条款】价格/日历/坐标/动作语义以本段所列权威数据为准，改数据即改规则。',
     '坐标一律像素坐标（格 → 格*100+50，如格 15 → 1550）；目标格动作需站相邻格。',
+    `买入价=玩家在商店实付金币；NPC 收购参考=市场基价六折（规则口径，当前没有卖出通道，别承诺能卖）。`,
     '以上资料未写明的，回答不知道。',
   ].join('\n');
 }
@@ -158,12 +173,14 @@ function termsSection(): string {
  * 拼装规则上下文。
  * full 档段序固定（世界观→日历→价目→地标→建筑→NPC→动作→任务→条款），
  * 超预算时按固定顺序裁剪：动作表 → 地标 → 价目（规则主干最后动）。
+ * 注：动作表用 catalogTextTerse()（全动作名 + 高频全参数，≤600 token）——
+ * 此前用全表（1214 token）会让阶梯恒定落到「压缩动作名」分支，规格 §3.1 第 2 项等于没交付。
  */
 export function rulesPrompt(app: App, opts: RulesPromptOptions): RulesPrompt {
   const state = app.state;
   if (opts.budget === 'lite') {
     const text = [
-      '【世界观】AgentFarm2 农场村庄：四场景 + 槽位私有的家，40 天一年（10 天一季），种田/钓鱼/挖矿/交易/社交。',
+      `【世界观】AgentFarm2 农场村庄：四场景 + 槽位私有的家，40 天一年（10 天一季），种田/钓鱼/挖矿/交易/社交。村景地图 ${mapSizeText(app)}。`,
       calendarSection(app, state),
       termsSection(),
     ].join('\n');
@@ -171,7 +188,7 @@ export function rulesPrompt(app: App, opts: RulesPromptOptions): RulesPrompt {
   }
 
   const head = [
-    '【世界观】AgentFarm2 农场村庄：村景(场景2)+河畔/梯田/后山等四场景，家(场景1)按加入序号槽位私有；40 天一年（10 天一季），核心玩法 种田/砍伐/钓鱼/挖矿/建造/装饰/交易/委托/社交。',
+    `【世界观】AgentFarm2 农场村庄：村景(场景2)+河畔/梯田/后山等四场景，家(场景1)按加入序号槽位私有；40 天一年（10 天一季），核心玩法 种田/砍伐/钓鱼/挖矿/建造/装饰/交易/委托/社交。村景地图 ${mapSizeText(app)}（含全部地块）。`,
     calendarSection(app, state),
   ];
   const tail = [
@@ -179,23 +196,28 @@ export function rulesPrompt(app: App, opts: RulesPromptOptions): RulesPrompt {
     termsSection(),
   ];
   // 动作表 → 地标 → 价目：按此顺序逐段降配，直到进预算
+  // 预算分配（终审实测校准，tokens=ceil(chars/2)）：动作全表 ≈644 + NPC 全册 26 ≈150
+  // + 地标 5 ≈40 + 价目 12 ≈45 + 建筑 8 ≈81 + 世界/日历/任务/条款 ≈117 ≈ 1077，留 ~120 余量。
+  // 优先级理由：动作表与 NPC 名册是规格明列交付项，地标明细可由 /af/mapdoc 按需查。
   const tiers = [
-    { acts: true, lm: 24, price: PRICE_FOCUS.length, npc: 26, bld: 8 },
-    { acts: true, lm: 16, price: 8, npc: 18, bld: 8 },
-    { acts: true, lm: 10, price: 6, npc: 12, bld: 6 },
-    { acts: false, lm: 8, price: 5, npc: 8, bld: 5 },
-    { acts: false, lm: 4, price: 4, npc: 6, bld: 4 },
+    { acts: 'full', lm: 5, price: PRICE_FOCUS.length, npc: 26, tag: 5, bld: 8 },
+    { acts: 'full', lm: 4, price: 10, npc: 26, tag: 4, bld: 8 },
+    { acts: 'full', lm: 4, price: 8, npc: 20, tag: 3, bld: 6 },
+    { acts: 'terse', lm: 6, price: 6, npc: 12, tag: 3, bld: 6 },
+    { acts: 'names', lm: 4, price: 4, npc: 8, tag: 2, bld: 4 },
   ];
   for (const t of tiers) {
-    const acts = t.acts
-      ? `【动作】act 名 参数 → 返回：\n${catalogText()}`
-      : '【动作】act 名 参数 → 返回：先发 {t:"observe"} 看世界，再发 {t:"act",action:"move_to|plant|water|harvest|chop|buy|talk|letter|train|report|forecast|chat"}；目标格动作需站相邻格；move_to 返回 waypoints，用 {t:"agent_arrive",index,x,y} 确认。';
+    const acts = t.acts === 'full'
+      ? `【动作】act 名 参数 → 返回：\n${catalogTextTerse()}`
+      : t.acts === 'terse'
+        ? `【动作】高频动作：${[...ACT_CATALOG, ...DIRECT_MESSAGES].filter((e) => HIGH_FREQ_ACTS.has(e.act)).map((e) => `${e.act}${e.args}`).join('；')}`
+        : '【动作】act 名 参数 → 返回：先发 {t:"observe"} 看世界，再发 {t:"act",action:"move_to|plant|water|harvest|chop|buy|talk|letter|train|report|forecast|chat"}；目标格动作需站相邻格；move_to 返回 waypoints，用 {t:"agent_arrive",index,x,y} 确认。';
     const text = [
       ...head,
       pricesSection(app, t.price),
       landmarksSection(app, t.lm),
       buildingsSection(app, t.bld),
-      npcSection(app, t.npc),
+      npcSection(app, t.npc, t.tag),
       acts,
       ...tail,
     ].join('\n');
