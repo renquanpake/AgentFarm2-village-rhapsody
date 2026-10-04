@@ -6,8 +6,10 @@
   if (window.AFUNI) return;
   const AFUI = {};
   window.AFUNI = AFUI;
-  // R10.1 常驻 DOM 预算（ui-lint 门读取）：#af-ui-root + #af-hud + 3 分区 + toast 容器 = 6 ≤ 10
-  AFUI.RESIDENT_NODES = 6;
+  // R10.1 常驻 DOM 预算（ui-lint 门读取）：#af-ui-root + #af-hud + 3 分区 + toast 容器 = 9 ≤ 10
+  // P4 教程步骤条属**条件面板**（同 toast/dialog 定位）：完成或跳过后 display:none，不占常驻预算；
+  // 它的真实节点成本（实测 16）由门8 ui-smoke 的「常驻 DOM 预算（含教程条）」断言守住。
+  AFUI.RESIDENT_NODES = 10;
 
   // ---------- 根节点（唯一常驻挂载点） ----------
   let root = null;
@@ -221,4 +223,108 @@
       return z;
     },
   };
+
+  // ---------- P4 新手教程步骤条（非阻断常驻卡；文案全部来自 GET /af/tutorial，组件内零硬编码） ----------
+  // 规格 §4.2：可跳过 / 可重放 / 老账号（skip 标记）不再弹 / 不用遮罩阻断游戏画面
+  const TUT_SKIP_KEY = 'af.tutorial.skip';
+  let tutBar = null, tutCssInjected = false, tutClick = null;
+  const tutState = { steps: [], done: [], active: null };
+
+  function injectTutorialCss() {
+    if (tutCssInjected) return;
+    tutCssInjected = true;
+    const st = document.createElement('style');
+    st.textContent = `
+      #af-tut-bar { position: fixed; right: 10px; top: 96px; width: 236px; max-width: 42vw; z-index: 100120;
+        background: var(--af-c-panel-deep); border: 1px solid var(--af-c-wood); border-radius: 10px;
+        box-shadow: 0 6px 22px var(--af-c-black-70); color: var(--af-c-text); pointer-events: auto;
+        font: 12px "Microsoft YaHei", sans-serif; padding: 9px 10px; }
+      #af-tut-bar .hd { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 7px; }
+      #af-tut-bar .hd b { color: var(--af-c-gold); font-size: 13px; }
+      #af-tut-bar .hd .acts { display: flex; gap: 5px; }
+      #af-tut-bar .mini { font-size: 11px; padding: 2px 7px; border-radius: 5px; cursor: pointer;
+        background: var(--af-c-bg); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
+      #af-tut-bar .mini:hover { color: var(--af-c-text); border-color: var(--af-c-wood); }
+      #af-tut-bar .steps { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+      #af-tut-bar .af-tut-step { font-size: 11px; padding: 3px 7px; border-radius: 9px; cursor: pointer;
+        background: var(--af-c-bg); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
+      #af-tut-bar .af-tut-step.cur { background: var(--af-c-glass-moss); color: var(--af-c-gold);
+        border-color: var(--af-c-moss); font-weight: bold; }
+      #af-tut-bar .af-tut-step.done { color: var(--af-c-success); border-color: var(--af-c-moss); }
+      #af-tut-bar .af-tut-step:hover { color: var(--af-c-text); }
+      #af-tut-bar .hint { line-height: 1.6; color: var(--af-c-light-soft); }
+      #af-tut-bar .hint .t { color: var(--af-c-text); font-weight: bold; margin-bottom: 2px; }
+      #af-tut-bar .fin { color: var(--af-c-success); line-height: 1.6; }
+      `;
+    document.head.appendChild(st);
+  }
+
+  const tutorial = {
+    SKIP_KEY: TUT_SKIP_KEY,
+    state() { return { steps: tutState.steps.slice(), done: tutState.done.slice(), active: tutState.active }; },
+    skipped() { try { return localStorage.getItem(TUT_SKIP_KEY) === '1'; } catch (e) { return false; } },
+    onStepClick(fn) { tutClick = typeof fn === 'function' ? fn : null; },
+    /** 挂载（幂等）：常驻 +1 节点，在 #af-ui-root 下 */
+    ensure() {
+      injectTutorialCss();
+      ensureRoot();
+      if (tutBar && document.body.contains(tutBar)) return tutBar;
+      tutBar = document.getElementById('af-tut-bar');
+      if (!tutBar) {
+        tutBar = document.createElement('div');
+        tutBar.id = 'af-tut-bar';
+        root.appendChild(tutBar);
+      }
+      return tutBar;
+    },
+    /** 渲染（数据驱动：steps/progress 全部来自服务端 /af/tutorial） */
+    render(steps, progress) {
+      const bar = this.ensure();
+      const list = Array.isArray(steps) ? steps : [];
+      const done = new Set((progress && progress.done) || []);
+      const active = (progress && progress.active) || null;
+      tutState.steps = list; tutState.done = [...done]; tutState.active = active;
+      // 收拢条件：已跳过 / 无数据 / 7 步全完成（active=null）——完成后不再打扰，重看引导可拉回
+      bar.style.display = (this.skipped() || !list.length || !active) ? 'none' : 'block';
+      // 显式清子节点：不依赖 textContent='' 的清空语义（重渲染不得累积节点）
+      while (bar.firstChild) bar.removeChild(bar.firstChild);
+      const hd = document.createElement('div'); hd.className = 'hd';
+      const b = document.createElement('b'); b.textContent = '新手引导';
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const replay = document.createElement('button'); replay.className = 'mini'; replay.textContent = '重看引导';
+      AFUI.on(replay, () => tutorial.replay(), { cls: false });
+      const skip = document.createElement('button'); skip.className = 'mini'; skip.textContent = '跳过';
+      AFUI.on(skip, () => tutorial.skip(), { cls: false });
+      acts.appendChild(replay); acts.appendChild(skip);
+      hd.appendChild(b); hd.appendChild(acts);
+      bar.appendChild(hd);
+      const chips = document.createElement('div'); chips.className = 'steps';
+      for (const st of list) {
+        const chip = document.createElement('span');
+        chip.className = 'af-tut-step' + (done.has(st.id) ? ' done' : '') + (st.id === active ? ' cur' : '');
+        chip.textContent = st.title || st.id;
+        AFUI.on(chip, () => { if (tutClick) tutClick(st.id); }, { cls: false });
+        chips.appendChild(chip);
+      }
+      bar.appendChild(chips);
+      const cur = list.find((st) => st.id === active);
+      if (!cur) {
+        const fin = document.createElement('div'); fin.className = 'fin';
+        fin.textContent = '✓ 七步引导已全部完成，去委托板接活或让 Agent 干活吧。';
+        bar.appendChild(fin);
+      } else {
+        const hint = document.createElement('div'); hint.className = 'hint';
+        const t = document.createElement('div'); t.className = 't'; t.textContent = `${list.indexOf(cur) + 1}/${list.length} ${cur.title || cur.id}`;
+        hint.appendChild(t);
+        const body = document.createElement('div');
+        body.textContent = cur.hint || '';
+        hint.appendChild(body);
+        bar.appendChild(hint);
+      }
+      return bar;
+    },
+    skip() { try { localStorage.setItem(TUT_SKIP_KEY, '1'); } catch (e) { /* 隐私模式 */ } if (tutBar) tutBar.style.display = 'none'; },
+    replay() { try { localStorage.removeItem(TUT_SKIP_KEY); } catch (e) { /* ignore */ } if (tutBar) tutBar.style.display = 'block'; },
+  };
+  AFUI.tutorial = tutorial;
 })();

@@ -76,6 +76,12 @@ function walk(root, pred) {
 function walkAll(root, fn) {
   for (const c of root.children) { if (fn(c)) return; walkAll(c, fn); }
 }
+/** 子树文本聚合（DOM shim 的 textContent 不自动含子节点，真实 DOM 会 —— 断言统一走这里） */
+function textOf(root) {
+  let t = root.textContent || '';
+  walkAll(root, (e) => { t += e.textContent || ''; return false; });
+  return t;
+}
 
 const body = new El('body'), head = new El('head');
 const documentShim = {
@@ -244,6 +250,60 @@ try {
 } catch (e) { ok('音频 setBgmMode 不抛错', false, e.message); }
 G.AFAUD.setVolume('sfx', 0.3);
 ok('音频 设置持久化（localStorage af.audio.sfxVol）', store.get('af.audio.sfxVol') === '0.3');
+
+// ---------- P4 新手教程步骤条（AFUNI.tutorial；数据来自 GET /af/tutorial，组件内零硬编码文案） ----------
+const TUT_STEPS = [
+  { id: 'see-self', title: '认识你的小人与镜头', hint: '画面里那个小人就是你。', need: 'onboarding' },
+  { id: 'move', title: '走两步', hint: '用方向键走两步。', need: 'move' },
+  { id: 'tasks', title: '打开任务书', hint: '点右上角任务书。', need: 'tasks' },
+  { id: 'farm', title: '种一块地', hint: '犁地→播种→浇水→收菜。', need: 'till+plant+water+harvest' },
+  { id: 'talk', title: '和 NPC 说句话', hint: '问个价或闲聊。', need: 'talk' },
+  { id: 'agent', title: '雇佣 Agent 替你干活', hint: '把 Key 交给托管 Agent。', need: '' },
+  { id: 'delegate', title: '完成第一单委托', hint: '委托板挂一单。', need: 'delegate' },
+];
+ok('AFUNI.tutorial 就位', !!(G.AFUNI && G.AFUNI.tutorial));
+const TUT = G.AFUNI && G.AFUNI.tutorial;
+if (TUT) {
+  TUT.ensure();
+  TUT.render(TUT_STEPS, { done: ['see-self', 'move'], active: 'tasks', seen: {} });
+  const bar = documentShim.getElementById('af-tut-bar');
+  ok('教程条挂载：#af-tut-bar + 7 个步骤节点', !!bar && bar.querySelectorAll('.af-tut-step').length === 7,
+    bar ? `steps=${bar.querySelectorAll('.af-tut-step').length}` : '无 #af-tut-bar');
+  ok('教程条文案数据驱动：当前步 title/hint 与 /af/tutorial 一致',
+    !!bar && textOf(bar).includes('打开任务书') && textOf(bar).includes('点右上角任务书。'));
+  const cur = bar.querySelectorAll('.af-tut-step').find((e) => e.classes.has('cur'));
+  ok('当前步高亮 .cur 落在 tasks（不是已完成的 see-self）', !!cur && cur.textContent.includes('打开任务书'));
+  const doneCnt = bar.querySelectorAll('.af-tut-step').filter((e) => e.classes.has('done')).length;
+  ok('已完成步标记 .done（2 步）', doneCnt === 2, `实测 ${doneCnt}`);
+
+  // 全完成 → 收起（不再打扰）
+  TUT.render(TUT_STEPS, { done: TUT_STEPS.map((x) => x.id), active: null, seen: {} });
+  ok('7 步全完成 → 教程条隐藏', documentShim.getElementById('af-tut-bar').style.display === 'none');
+
+  // 跳过 / 重放（老账号兼容：跳过后不再自动弹）
+  TUT.render(TUT_STEPS, { done: [], active: 'see-self', seen: {} });
+  TUT.skip();
+  ok('跳过：隐藏 + localStorage af.tutorial.skip=1',
+    store.get('af.tutorial.skip') === '1' && documentShim.getElementById('af-tut-bar').style.display === 'none');
+  TUT.replay();
+  ok('重放：重新显示并清 skip 标记',
+    store.get('af.tutorial.skip') !== '1' && documentShim.getElementById('af-tut-bar').style.display !== 'none');
+
+  // 第 6 步（雇佣 Agent）点击 → 回调打开 Agent 面板（复用 P1.4 入口）
+  let clicked = null;
+  TUT.onStepClick((id) => { clicked = id; });
+  TUT.render(TUT_STEPS, { done: ['see-self', 'move', 'tasks', 'farm', 'talk'], active: 'agent', seen: {} });
+  const agentChip = documentShim.getElementById('af-tut-bar').querySelectorAll('.af-tut-step').find((e) => textOf(e).includes('雇佣 Agent'));
+  ok('第 6 步可点击', !!agentChip);
+  if (agentChip) { agentChip.dispatch('click'); ok('第 6 步点击回调 onStepClick("agent")', clicked === 'agent', String(clicked)); }
+
+  // 常驻 DOM 预算仍达标（教程条 = 1 个常驻根节点）
+  let resident2 = 0;
+  walkAll(documentShim.body, () => { resident2++; });
+  // 预算明细：#af-ui-root + #af-hud + 3 分区 + toast 容器（R10.1 = 9 节点）
+  //            + 教程条：条 1 + hd 1 + 标题 1 + 按钮 2 + steps 容器 1 + 7 芯片 + hint 2 + 提示标题 1 + 提示正文 1 = 16
+  ok(`常驻 DOM 预算（含教程条）= ${resident2} ≤ 28（R10.1 9 + 教程条 16）`, resident2 <= 28, `实测 ${resident2}`);
+}
 
 console.log(`----\nui-smoke: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

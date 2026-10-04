@@ -441,6 +441,8 @@ export function gameConn(app: App, ws: WebSocket): void {
         send({ t: 'agent_status', online: myAgent, nick: myAgent ? nick : null });
         for (const [k, p] of state.online) if (k !== uid) sendTo(p, { t: 'player_join', p: { uid, nick } });
         console.log(`[join] ${uid} (${nick}) 在线:${state.online.size}`);
+        // P4 教程第 1 步（认识你的小人与镜头）：玩家进入世界即视为已看引导（客户端同时会 act onboarding）
+        tutorialAct(state, uid, 'onboarding', true, tutStepsOf(app));
         break;
       }
       case 'save': {
@@ -526,6 +528,7 @@ export function gameConn(app: App, ws: WebSocket): void {
           for (const [k, o] of state.online) if (k !== uid && o.scene === p.scene) registerScenePeer(state, uid!, k, p.scene);
         }
         for (const [k, o] of state.online) if (k !== uid) sendTo(o, { t: 'move', uid, scene: p.scene, x: p.x, y: p.y });
+        if (uid) tutorialAct(state, uid, 'move', true, tutStepsOf(app)); // P4 教程第 2 步（人类玩家走动）
         break;
       }
       case 'chat': {
@@ -648,6 +651,7 @@ export function gameConn(app: App, ws: WebSocket): void {
           reward: d.reward ? `${taskRewardNameInline(app, d.reward.id)}×${d.reward.num}` : '',
         }));
         send({ t: 'task_list', tasks: out, view: taskView(state, app.tables, uid!) });
+        if (uid) tutorialAct(state, uid, 'tasks', true, tutStepsOf(app)); // P4 教程第 3 步（打开 📜 任务书）
         break;
       }
       case 'agent_msg': {

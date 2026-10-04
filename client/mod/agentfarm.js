@@ -724,9 +724,10 @@
           return;
         }
       }
-      // 欢迎语（进入世界后提示一次）
-      if (inWorld && !welcomeDone && window.__AF_CHAT_ADD__) {
+      // 欢迎语 + P4 教程步骤条（真正进入世界后才挂，避免登录页就弹引导）
+      if (inWorld && !welcomeDone) {
         welcomeDone = true;
+        startTutorial();
         const srv = (window.__AF_SERVER_SHORT__ = SERVER.replace(/^https?:\/\//, ''));
         window.__AF_CHAT_ADD__('系统', '欢迎来到村庄！房间：' + srv + '。点右下角 📮 可配置模型/托管 Agent；💬 聊天；按回车发言。');
       }
@@ -1659,6 +1660,31 @@
     }
   }
   function refreshTasks() { if (connected) ws.send(JSON.stringify({ t: 'task_list' })); }
+
+  // ---------- P4 新手教程步骤条（数据来自 GET /af/tutorial；30s 节流轮询，同 tasks 模式） ----------
+  let tutTimer = null;
+  function renderTutorial(d) {
+    if (!AFUNI || !AFUNI.tutorial || !d || !Array.isArray(d.steps) || !d.steps.length) return;
+    AFUNI.tutorial.render(d.steps, d.progress || { done: [], active: null, seen: {} });
+  }
+  async function refreshTutorial() {
+    try {
+      const r = await fetch(SERVER + '/af/tutorial?token=' + encodeURIComponent(token));
+      if (r.ok) renderTutorial(await r.json());
+    } catch (e) { /* 教程拉不到不打扰玩家：静默 */ }
+  }
+  function startTutorial() {
+    if (tutTimer || !AFUNI || !AFUNI.tutorial) return;
+    AFUNI.tutorial.ensure();
+    // 第 6 步（雇佣 Agent）点一下直接打开 Agent 面板（复用 P1.4 入口）
+    AFUNI.tutorial.onStepClick((id) => {
+      if (id !== 'agent') return;
+      const p = document.getElementById('af-agent');
+      if (p) p.style.display = 'flex';
+    });
+    refreshTutorial();
+    tutTimer = setInterval(refreshTutorial, 30000);
+  }
   // 聊天命令解析（/give 等）
   function runSocialCommand(text) {
     const parts = text.slice(1).trim().split(/\s+/);
