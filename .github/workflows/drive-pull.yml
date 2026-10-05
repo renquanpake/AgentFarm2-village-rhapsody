@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'list = 列目录 | get = 按名字下载文件'
+        description: 'list 列顶层 | ls 列文件夹 | get 按名字下载'
         required: true
         default: 'list'
       query:
@@ -32,10 +32,23 @@ jobs:
           AUTH="Authorization: Bearer $TOK"
           mkdir -p out
           if [ "$MODE" = "list" ]; then
-            curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files?pageSize=500&fields=files(name,id,mimeType,size,modifiedTime)" \
+            curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(name,id,mimeType,size,modifiedTime)" \
               | jq -r '.files[] | [.name, (.size // "DIR"), .id, .mimeType] | @tsv' > out/files.tsv
             { echo '## Drive listing'; echo '```'; cat out/files.tsv; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
             wc -l < out/files.tsv
+          elif [ "$MODE" = "ls" ]; then
+            FID=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+              --data-urlencode "q=name = '$QUERY' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" \
+              --data-urlencode "fields=files(id)" | jq -r '.files[0].id // empty')
+            test -n "$FID" || { echo "folder not found: $QUERY" > out/err.txt; }
+            if [ -n "$FID" ]; then
+              curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+                --data-urlencode "q='$FID' in parents and trashed = false" \
+                --data-urlencode "pageSize=1000" \
+                --data-urlencode "fields=files(name,id,mimeType,size)" \
+                | jq -r '.files[] | [.name, (.size // "DIR"), .id, .mimeType] | @tsv' > out/files.tsv
+            fi
+            cat out/files.tsv || true
           else
             Q="name = '$QUERY' and trashed = false"
             RESP=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
@@ -51,7 +64,12 @@ jobs:
               FNAME=$(echo "$RESP" | jq -r '.files[0].name // empty')
             fi
             if [ -z "$FID" ]; then echo "NOT FOUND: $QUERY" > out/matches.txt; cat out/matches.txt; else
-              curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$FID?alt=media" -o "out/$FNAME"
+              MT=$(echo "$RESP" | jq -r '.files[0].mimeType')
+              if [ "$MT" = "application/vnd.google-apps.document" ]; then
+                curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$FID/export?mimeType=text/plain" -o "out/$FNAME"
+              else
+                curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$FID?alt=media" -o "out/$FNAME"
+              fi
               echo "downloaded: $FNAME ($(stat -c%s "out/$FNAME") bytes) id=$FID" | tee -a "$GITHUB_STEP_SUMMARY"
             fi
           fi
