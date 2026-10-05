@@ -1,6 +1,6 @@
 {
  "note": "原版外壳哈希基线（client/ 内引擎/主包/样式/既有资源；mod 注入层与新增资源除外）。刷新：node tools/hash-manifest.mjs",
- "updatedAt": "2026-10-01T15:05:49.719Z",
+ "updatedAt": "2026-10-05T14:27:16.226Z",
  "files": {
   "client/_shots.html": "5a228f62847f830abefa2140a53cec391bd40edafd0553844b29965528bfaa4e",
   "client/assets/audio-cc0/README.md": "d83c71c27bfc06d9f51d98c650e8704d165ffacbea642af60796d0f2f7834604",
@@ -560,7 +560,6 @@
   "client/assets/resources/import/2c/2c9e50ce-4c5c-4aec-a526-5136776f0e0b.5e9a6.json": "d92c01b25631575e602dc63a30c5d64488cde617b6b79c2b68cd27b7b95ffe46",
   "client/assets/resources/import/2c/2ce49162-3014-49c0-a4eb-717558541de4.60173.json": "7ed6f502037da040df7995ad6f977bc71450f7cecedfaeb286d863196cac6ed6",
   "client/assets/resources/import/2c/2cf62685-2a26-4018-ac55-296a436cfcb7.bd768.json": "dc5c3268a5f95a678c9cebf2890063f12e0f7347368e4f779d85a1339800644d",
-  "client/assets/resources/import/2c/2cf76085-68a7-4e68-9e2d-e98eff639571.25ea3.json": "8ec9611f2acb1e282c4011a76526a5f093eec8f4523ba565529839fe8edd0083",
   "client/assets/resources/import/2d/2d0e14e6-6419-4c3e-9301-a8a68a0d7efd.b7254.json": "aa72b6a3f311e1e63d2f4711fd2ab5714ce1a7b03245376edbfdbaf6446b6d2f",
   "client/assets/resources/import/2d/2d3b4bd3-1e46-4ee9-978e-500aa2a40be3.bd62d.json": "d2505e03d5d00d96f0946e41d7878ccac651c8b5b404fa26b4f7eed480854ecd",
   "client/assets/resources/import/2d/2d52907e-1bb8-4f85-b560-6617795526a2.0021a.json": "84bcf44d52c00ee4b38432112738d9e37df2de7d09bfeec4da33a021cb4ed663",
@@ -2458,7 +2457,6 @@
   "client/assets/resources/import/eb/eb36c1d5-c442-4015-b805-45804ea186d7.07e80.json": "2c7e6038d387950d9f1e079f55b84ac3e1d9767e8480bc2404961120598e93d0",
   "client/assets/resources/import/eb/eb43cb0e-332b-4e28-a270-8460ed5b9b55.9d213.json": "744bc293cd9e212ae51edba8afc9149cdb5bd64c794604eacb63d341fedc6839",
   "client/assets/resources/import/eb/eb5abe53-b2e9-486c-b186-513acee19aa1.aa560.json": "b77ccda86cb86396021dac88ef0b6812acd77aff30b09b6f84c5eba5ea7d8457",
-  "client/assets/resources/import/eb/eb97a692-7760-4a32-b8c2-415ba9cf22e5.96519.json": "5ff667d2e78b0089bf97a91e5ccd79b5f94089530b6927d69023bd44ab46ea05",
   "client/assets/resources/import/eb/eb9adda0-4f49-49f9-b988-6a0d59edec24.07b31.json": "1df069c9adb39d7b4fb33113a023ca3a676bea417b8b85a84a117cf603278ef4",
   "client/assets/resources/import/eb/ebb6e21b-ac74-496e-8863-923e8b6aae32.b6466.json": "b8a8599dac56f0ada48625c69b05b37e724edf673523774769af651a98bcb18a",
   "client/assets/resources/import/eb/ebd37bc4-4e07-4d75-8d12-20078ba11900.290de.json": "c28e80e560dffac14d166265e320cdffabdbcebccda34535fd6e895e4b8d10cb",

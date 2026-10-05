@@ -11,6 +11,23 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const MANIFEST = path.join(ROOT, 'client', 'original-hash.json');
 
+// 项目自有生成物（SPEC-VISUAL-001 裁决方案 A）：村庄地图与作物数据由烘焙流水线
+// （expand-village-map.mjs → expand-village-ring.mjs）产出，属魔改生成物而非原版资产。
+// 显式豁免以保住门 5 的语义纯度：只读约束继续 100% 守护真正的 Cocos 引擎与外壳，
+// 这两个文件改由 tools/expand-village-*.mjs 的流水线负责，不通过「刷新基线」降级。
+const GENERATED_DATA = new Set([
+  'client/assets/resources/import/eb/eb97a692-7760-4a32-b8c2-415ba9cf22e5.96519.json',
+  'client/assets/resources/import/2c/2cf76085-68a7-4e68-9e2d-e98eff639571.25ea3.json',
+]);
+
+// 占位资源（原版缺失贴图的临时替代，真机打包时替换为真件）：
+// 与脚本头「新增 assets 文件可演进」的声明保持一致，避免将来换真图被迫刷新只读基线。
+const PLACEHOLDER_ASSETS = new Set([
+  'client/assets/resources/native/0e/0e2b73ea-4e59-45de-9c83-e1c10acaaeb7.a104c.png',
+  'client/assets/resources/native/63/6310d49a-4b39-444a-860c-6b8e6d9da830.9c7ea.png',
+  'client/assets/resources/native/aa/aa46e9f3-5f47-48a9-ad37-44cfe6afe4f0.a5f67.png',
+]);
+
 // 原版外壳（不可变）范围；mod/ 与 _shots* 明确排除（mod 是注入层，随 M1/M5 演进）
 function collectFiles(base) {
   const out = [];
@@ -26,6 +43,9 @@ function collectFiles(base) {
       if (rel === path.join('client', 'index.html')) continue;
       // 清单自身不入清单（自包含会致 --check 恒报"清单被改动"）
       if (rel === path.join('client', 'original-hash.json')) continue;
+      // 项目自有烘焙生成物 + 占位资源（见上方说明），由流水线/真机包管理而非原版只读
+      const relPosix = rel.split(path.sep).join('/');
+      if (GENERATED_DATA.has(relPosix) || PLACEHOLDER_ASSETS.has(relPosix)) continue;
       out.push(rel);
     }
   }
