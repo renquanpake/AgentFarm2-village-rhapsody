@@ -49,6 +49,26 @@ jobs:
                 | jq -r '.files[] | [.name, (.size // "DIR"), .id, .mimeType] | @tsv' > out/files.tsv
             fi
             cat out/files.tsv || true
+          elif [ "$MODE" = "folder" ]; then
+            FID=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+              --data-urlencode "q=name = '$QUERY' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" \
+              --data-urlencode "fields=files(id)" | jq -r '.files[0].id // empty')
+            test -n "$FID" || { echo "folder not found: $QUERY" > out/err.txt; exit 0; }
+            curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+              --data-urlencode "q='$FID' in parents and trashed = false" \
+              --data-urlencode "pageSize=1000" \
+              --data-urlencode "fields=files(name,id,mimeType)" > out/items.json
+            mkdir -p "out/$QUERY"
+            jq -c '.files[]' out/items.json | while read -r it; do
+              n=$(echo "$it" | jq -r .name); id=$(echo "$it" | jq -r .id); mt=$(echo "$it" | jq -r .mimeType)
+              case "$mt" in
+                application/vnd.google-apps.folder) echo "skip dir: $n";;
+                application/vnd.google-apps.document) curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$id/export?mimeType=text/plain" -o "out/$QUERY/$n";;
+                application/vnd.google-apps.spreadsheet) curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$id/export?mimeType=text/csv" -o "out/$QUERY/$n.csv";;
+                *) curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$id?alt=media" -o "out/$QUERY/$n";;
+              esac
+              echo "pulled: $n"
+            done
           else
             Q="name = '$QUERY' and trashed = false"
             RESP=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
