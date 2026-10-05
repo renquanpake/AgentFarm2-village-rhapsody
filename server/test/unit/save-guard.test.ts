@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { bucketOf } from '../../src/persistence/state.ts';
 import {
-  guardSaveKey, saveGuardStats, resetSaveGuardStats,
+  guardSaveKey, guardTeleport, saveGuardStats, resetSaveGuardStats, resetPosCache,
   SERVER_OWNED_WORLD_KEYS, SERVER_OWNED_PLAYER_KEYS, CLIENT_OWNED_PLAYER_KEYS, DEFAULT_LIMITS,
 } from '../../src/world/save-guard.ts';
 
@@ -129,5 +129,67 @@ describe('字段白名单与观测', () => {
     const src = readFileSync(new URL('../../src/gateway/ws.ts', import.meta.url), 'utf8');
     expect(src).toContain('guardSaveKey(');
     expect(src).toContain('app.log.append(\'save.guarded\'');
+  });
+});
+// ---------- D17 瞬移检测（纯内存会话样本，不落盘） ----------
+describe('guardTeleport 瞬移检测', () => {
+  beforeEach(() => { resetSaveGuardStats(); resetPosCache(); });
+  const pd = (x: number, y: number, scene = 2) => ({ playerPos: { x, y }, sceneType: scene });
+
+  it('首个样本只记录不判定（冷启动放行）', () => {
+    expect(guardTeleport('u1', pd(100, 100)).allow).toBe(true);
+  });
+
+  it('同场景小步位移放行', () => {
+    guardTeleport('u1', pd(100, 100), 1000);
+    expect(guardTeleport('u1', pd(200, 200), 2000).allow).toBe(true);
+  });
+
+  it('同场景超阈值位移被拦且回落上一次权威坐标', () => {
+    guardTeleport('u1', pd(100, 100), 1000);
+    const v = guardTeleport('u1', pd(9000, 100), 1500);
+    expect(v.allow).toBe(false);
+    expect(v.reason).toBe('teleport');
+    expect((v.value as { playerPos: { x: number } }).playerPos.x).toBe(100);
+  });
+
+  it('跨场景不判瞬移（门户切换豁免）', () => {
+    guardTeleport('u1', pd(100, 100, 2), 1000);
+    expect(guardTeleport('u1', pd(9000, 100, 3), 1500).allow).toBe(true);
+  });
+
+  it('时间归一化：间隔越久预算越宽，高频分片不误伤', () => {
+    guardTeleport('u1', pd(0, 0), 0);
+    // 间隔 10s，预算 3000 + 9*200 = 4800px；位移 4000px 属正常移动
+    expect(guardTeleport('u1', pd(4000, 0), 10000).allow).toBe(true);
+    // 同一时刻跑第二次：已把坐标更新为 4000，再跳 4000 属瞬移
+    expect(guardTeleport('u1', pd(8000, 0), 10500).allow).toBe(false);
+  });
+
+  it('负数与非法坐标原样放行（不吞脏数据）', () => {
+    guardTeleport('u1', pd(0, 0), 1000);
+    expect(guardTeleport('u1', pd(-50, -50), 2000).allow).toBe(true);
+    expect(guardTeleport('u1', { playerPos: { x: 'abc', y: null }, sceneType: 2 }, 2000).allow).toBe(true);
+  });
+
+  it('缺 playerPos 或非对象放行', () => {
+    expect(guardTeleport('u1', { sceneType: 2 }, 1000).allow).toBe(true);
+    expect(guardTeleport('u1', null, 1000).allow).toBe(true);
+  });
+
+  it('AF_TRUST_CLIENT_SAVE=1 逃生阀放行瞬移', () => {
+    guardTeleport('u1', pd(0, 0), 1000);
+    expect(guardTeleport('u1', pd(99999, 0), 1100, { AF_TRUST_CLIENT_SAVE: '1' }).allow).toBe(true);
+  });
+
+  it('计入 stats.byReason.teleport 供观测', () => {
+    guardTeleport('u1', pd(0, 0), 1000);
+    guardTeleport('u1', pd(99999, 0), 1100);
+    expect(saveGuardStats().byReason.teleport).toBe(1);
+  });
+
+  it('ws.ts save 分支确实走瞬移护栏（源码级锁定，防旁路）', () => {
+    const src = readFileSync(new URL('../../src/gateway/ws.ts', import.meta.url), 'utf8');
+    expect(src).toContain('guardTeleport(uid, val)');
   });
 });

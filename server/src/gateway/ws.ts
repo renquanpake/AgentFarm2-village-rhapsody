@@ -26,7 +26,7 @@ function homeSlots(dataDir: string): HomeSlotDoc | null {
 import { onboardingCount, onboardingView } from '../world/onboarding.ts';
 import { seasonEventsView } from '../world/season-events.ts';
 import { metricsAction, metricsSessionStart, metricsSessionEnd } from '../world/metrics.ts';
-import { guardSaveKey } from '../world/save-guard.ts';
+import { guardSaveKey, guardTeleport } from '../world/save-guard.ts';
 import { recordAgentOp, recapView, opsOf } from '../world/agent-log.ts';
 import { pushAgentMail, agentMailOf, pushAsk, asksOf, ASK_KEY } from '../world/agent-mail.ts';
 
@@ -519,6 +519,15 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
             continue;
           }
           val = verdict.value;
+          // D17 瞬移检测（纯内存会话样本，不落盘）：同场景相邻两次 save 位移超阈值即回落上一次权威坐标
+          if (b && b[0] === 'player' && name === 'playerData') {
+            const tp = guardTeleport(uid, val);
+            if (!tp.allow) {
+              guarded++;
+              console.warn(`[save] 瞬移拦截 ${key}（${tp.detail}）`);
+              val = tp.value;
+            }
+          }
           if (b && b[0] === 'world') {
             // socialData 是服务器权威键（玩家间好感/关系），客户端回推的旧快照会覆盖实时数据，必须忽略
             if (name !== 'socialData') { state.world.set(name, val); if (WORLD_KEYS.has(name)) touchedWorld = true; }

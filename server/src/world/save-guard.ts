@@ -41,7 +41,25 @@ export const CLIENT_OWNED_PLAYER_KEYS = new Set(['playerData', 'taskData', 'knap
 
 export type SaveRejectReason =
   | 'server-owned-world' | 'server-owned-player' | 'unknown-key'
-  | 'oversized' | 'gold-step' | 'item-step' | 'trusted-mode';
+  | 'oversized' | 'gold-step' | 'item-step' | 'teleport' | 'trusted-mode';
+
+/** 瞬移判定阈值（像素）：同场景相邻两次 save 位移超过此值视为改版客户端瞬移 */
+export const MAX_TELEPORT_DISTANCE_PX = 3000;
+
+/** 瞬移检测所需的会话坐标（**纯内存**，不落盘：见 playerPosCache 注释） */
+interface PosSample { x: number; y: number; scene: number; ts: number }
+
+/**
+ * uid -> 上一次 save 的坐标/时间戳。
+ * 纯内存态（不写 state.ts、不入 SQLite）：重启后重建首个样本即可，防瞬移只需
+ * 会话内相邻两次上报的位移连续性判断，无需持久化。
+ */
+const playerPosCache = new Map<string, PosSample>();
+
+/** 清空瞬移样本（单测/压测隔离用） */
+export function resetPosCache(): void {
+  playerPosCache.clear();
+}
 
 export interface SaveGuardVerdict {
   /** 是否允许写入（false = 保持服务端现值） */
@@ -156,4 +174,45 @@ export function guardSaveKey(
 /** 便捷：取玩家桶某键现值 */
 export function currentPlayerValue(state: WorldState, uid: string, name: string): unknown {
   return state.playersDb.get(uid)?.get(name);
+}
+
+/** playerData 里位置的最小形态（其余字段原样透传） */
+type PlayerDataLike = { playerPos?: { x?: unknown; y?: unknown }; sceneType?: unknown };
+
+/**
+ * D17 瞬移检测：同场景相邻两次 save 的位移不得超过 MAX_TELEPORT_DISTANCE_PX。
+ * 命中即回落到上一次权威坐标（与 gold/item-step 同语义：保持服务端值），并计入 stats.byReason.teleport。
+ * 跨场景、首个样本、坐标非法、trusted-mode 一律放行。
+ */
+export function guardTeleport(
+  uid: string,
+  incoming: unknown,
+  now = Date.now(),
+  env: Record<string, string | undefined> = process.env,
+): SaveGuardVerdict {
+  const allow: SaveGuardVerdict = { allow: true, value: incoming };
+  if (env.AF_TRUST_CLIENT_SAVE === '1' || env.AF_TRUST_CLIENT_SAVE === 'true') return allow;
+  const pd = incoming as PlayerDataLike | null;
+  if (!pd || typeof pd !== 'object' || !pd.playerPos) return allow;
+  const x = Number(pd.playerPos.x), y = Number(pd.playerPos.y), scene = Number(pd.sceneType ?? 0);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return allow;
+
+  const prev = playerPosCache.get(uid);
+  playerPosCache.set(uid, { x, y, scene, ts: now });
+  if (!prev || prev.scene !== scene) return allow; // 首个样本 / 跨场景（门户切换不判瞬移）
+
+  const dist = Math.hypot(x - prev.x, y - prev.y);
+  const elapsedSec = Math.max(0.2, (now - prev.ts) / 1000);
+  // 时间归一化：正常移动速度随上报间隔线性放宽，防止高频自动分片误伤
+  const budget = MAX_TELEPORT_DISTANCE_PX + Math.max(0, elapsedSec - 1) * 200;
+  if (dist <= budget) return allow;
+
+  stats.rejected++;
+  stats.byReason.teleport = (stats.byReason.teleport || 0) + 1;
+  return {
+    allow: false,
+    value: { ...pd, playerPos: { x: prev.x, y: prev.y } },
+    reason: 'teleport',
+    detail: `同场景位移 ${Math.round(dist)}px / ${elapsedSec.toFixed(1)}s（阈值 ${Math.round(budget)}px）`,
+  };
 }
