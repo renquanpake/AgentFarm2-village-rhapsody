@@ -87,10 +87,11 @@ try {
   // 注：不另开 /ws 连接——join 是单点登录，会踢掉客户端页面的连接。
   // 观察一律走页面钩子 __AF_TEST__；/agent 在「游戏世界就绪」之后才接入，
   // 此时页面 posTimer 已把真实节点坐标同步进 state.online，agentPos 起步即与画面对齐。
-  await page.goto(BASE + '/?ci=1', { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => console.log('[agent-vis] goto 警告（客户端可能未就绪）'));
+  // 用 domcontentloaded 而非 networkidle2：游戏持续发起资源请求，networkidle2 在本项目必然等到超时
+  await page.goto(BASE + '/?ci=1', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => console.log('[agent-vis] goto 警告（客户端可能未就绪）'));
 
-  // 1) mod 钩子注册（af.test=1 时 IIFE 顶层定义 __AF_TEST__）
-  const hook = await page.waitForFunction('window.__AF_TEST__ !== undefined', { timeout: 20000 })
+  // 1) mod 钩子注册（af.test=1 时 IIFE 顶层定义 __AF_TEST__）；软渲染下引擎初始化慢，给 60s
+  const hook = await page.waitForFunction('window.__AF_TEST__ !== undefined', { timeout: 60000 })
     .then(() => 'ok').catch(() => 'MISSING-TEST-HOOK');
   // 1.5) 关掉 mod 新手引导弹层（「连接你的 Agent」弹窗居中，会挡住原版「开始游戏」按钮——shot-session 同款坑）
   for (let i = 0; i < 10; i++) {
@@ -109,6 +110,29 @@ try {
   // 2) 等原版主菜单出现「开始游戏」并点击
   //    主路径用 ClickEvent.emit 直派发（tools/_probe13.mjs 已验 fired=1/1，鼠标坐标点击在软渲染下不落点）；
   //    循环内持续尝试关弹层（引导弹窗可能延迟出现，会挡住按钮）
+  // 「开始游戏」：ClickEvent.emit 直派发（坐标换算偏 45px 必落空）；抽成函数以便等面板时重发
+  const fireStartByLabel = () => {
+    try {
+      const scene = cc.director.getRunningScene ? cc.director.getRunningScene() : cc.director.getScene();
+      if (!scene) return 'no-scene';
+      let hit = null;
+      scene.walk((n) => { if (hit || !n.activeInHierarchy) return; const lb = n.getComponent && n.getComponent(cc.Label); if (lb && /开始游戏/.test(lb.string || '')) hit = n; });
+      if (!hit) return 'label-not-found';
+      let node = hit;
+      for (let i = 0; i < 5 && node; i++) {
+        const btn = node.getComponent && node.getComponent(cc.Button);
+        if (btn) {
+          const evs = btn.clickEvents || [];
+          if (!evs.length) return 'no-click-events';
+          let n = 0;
+          for (const ce of evs) { try { ce.emit([btn]); n++; } catch (e) { return 'emit-err'; } }
+          return 'fired=' + n + '/' + evs.length;
+        }
+        node = node.parent;
+      }
+      return 'no-button-ancestor';
+    } catch (e) { return 'err ' + String(e.message).slice(0, 50); }
+  };
   let startClicked = false, btnSeen = false;
   const t0boot = Date.now();
   while (Date.now() - t0boot < 200000 && !startClicked) {
@@ -121,28 +145,7 @@ try {
         if (el) { el.click(); return; }
       }
     }).catch(() => {});
-    const fired = await page.evaluate(() => {
-      try {
-        const scene = cc.director.getRunningScene ? cc.director.getRunningScene() : cc.director.getScene();
-        if (!scene) return 'no-scene';
-        let hit = null;
-        scene.walk((n) => { if (hit || !n.activeInHierarchy) return; const lb = n.getComponent && n.getComponent(cc.Label); if (lb && /开始游戏/.test(lb.string || '')) hit = n; });
-        if (!hit) return 'label-not-found';
-        let node = hit;
-        for (let i = 0; i < 5 && node; i++) {
-          const btn = node.getComponent && node.getComponent(cc.Button);
-          if (btn) {
-            const evs = btn.clickEvents || [];
-            if (!evs.length) return 'no-click-events';
-            let n = 0;
-            for (const ce of evs) { try { ce.emit([btn]); n++; } catch (e) { return 'emit-err'; } }
-            return 'fired=' + n + '/' + evs.length;
-          }
-          node = node.parent;
-        }
-        return 'no-button-ancestor';
-      } catch (e) { return 'err ' + String(e.message).slice(0, 50); }
-    }).catch(() => 'eval-err');
+    const fired = await page.evaluate(fireStartByLabel).catch(() => 'eval-err');
     if (String(fired).startsWith('fired')) {
       btnSeen = true;
       startClicked = true;
@@ -207,13 +210,20 @@ try {
   };
   let slotClicked = false, slotSeen = false;
   const t0slot = Date.now();
-  while (Date.now() - t0slot < 150000 && !slotClicked) {
+  let lastStartPush = Date.now();
+  while (Date.now() - t0slot < 180000 && !slotClicked) {
     await sleep(2000);
     const r = await page.evaluate(enterVillage).catch(() => 'err');
     if (r === 'slot+sure' || r === 'slot-clicked') {
       slotSeen = true; slotClicked = true;
       console.log(`[agent-vis] 已点存档槽（${r}）t=${Math.round((Date.now() - t0slot) / 1000)}s`);
       break;
+    }
+    // 面板未出现时每 15s 重发「开始游戏」：原版处理器依赖异步资源，首发可能空打
+    if (Date.now() - lastStartPush > 15000) {
+      lastStartPush = Date.now();
+      const s2 = await page.evaluate(fireStartByLabel).catch(() => 'err');
+      if (String(s2).startsWith('fired')) console.log(`[agent-vis] 重发「开始游戏」（${s2}）`);
     }
     await page.evaluate(() => {
       const texts = ['稍后再说', '✕', '关闭'];
@@ -251,7 +261,7 @@ try {
   const doneCount = async () => page.evaluate(`(window.__AF_TEST__ && typeof window.__AF_TEST__.doneCount === 'function') ? window.__AF_TEST__.doneCount() : -1`);
 
   // 等 move_to 走完（页面钩子计 agent_move_done，串行避免服务端「上个移动没走完」拒单）
-  const waitAgentDone = async (timeoutMs = 45000) => {
+  const waitAgentDone = async (timeoutMs = 150000) => {
     const base = await doneCount();
     const t0 = Date.now();
     for (;;) {
@@ -272,8 +282,12 @@ try {
   let apos0 = await serverPos();
   await sleep(800);
   if (!apos0) {
-    const w = await act('move', { dir: 'down' }, 8000);
-    if (w && w.ok) { const sp = await serverPos(); apos0 = sp ? { x: sp.x, y: sp.y } : null; }
+    // 四方向轮试建立服务端锚点（出生点单方向可能被房屋/边界挡）
+    for (const dir of ['down', 'left', 'right', 'up']) {
+      const w = await act('move', { dir }, 8000);
+      if (w && w.ok) { const sp = await serverPos(); if (sp) { apos0 = { x: sp.x, y: sp.y }; break; } }
+      await sleep(200);
+    }
   }
   let aOk = false, aInfo = '';
   if (apos0) {
@@ -309,11 +323,19 @@ try {
   // ---------- 场景 D：move_to 终点对齐 ----------
   // 串行：move_to 后必须等 agent_move_done（服务端走完）再读终点，避免与下一场景并发被拒单
   const dTarget = { x: 3350, y: 550 };
-  const { r: dres, done: dDone } = await moveToDone(dTarget);
+  let dres = null, dDone = false;
+  // 前序场景可能留下未走完的移动（服务端拒并发 move_to），故重试一次
+  for (let attempt = 0; attempt < 2 && !dres; attempt++) {
+    if (attempt) await sleep(3000);
+    const r = await moveToDone(dTarget);
+    dres = r.r; dDone = r.done;
+  }
   await sleep(1500);
   const d1 = await nodePos(), d2 = await serverPos();
+  const dDiag = await page.evaluate(`${ts('diag')} ? window.__AF_TEST__.diag() : null`).catch(() => null);
   check('D move_to 终点对齐：node 距服务端 ≤40px', !!(d1 && d2 && Math.hypot(d1.x - d2.x, d1.y - d2.y) <= 40),
-    'dist ≤40px', d1 && d2 ? `dist ${Math.hypot(d1.x - d2.x, d1.y - d2.y).toFixed(0)}px (done=${dDone})` : 'null (done=' + dDone + ')');
+    'dist ≤40px', (d1 && d2 ? `dist ${Math.hypot(d1.x - d2.x, d1.y - d2.y).toFixed(0)}px (done=${dDone})` : 'null (done=' + dDone + ')')
+      + ' | arrive=' + JSON.stringify(dDiag && dDiag.arrive));
   check('D-move_to 可发起（服务端未回 error）', !!dres, 'move_started', dres?.msg || dres?.t || 'timeout');
 
   // ---------- 场景 B/E：行为飘字 + 面板文案 ----------

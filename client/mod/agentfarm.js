@@ -551,6 +551,8 @@
       let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
       switch (msg.t) {
         case 'welcome': {
+          // 服务端权威的自身坐标（P1 断言基线：agent_move 到达前 serverPos() 也必须有值）
+          (msg.players || []).forEach(p => { if (p.uid === uid) lastServerPos = { x: p.x, y: p.y, scene: p.scene }; });
           // 其他在线玩家
           (msg.players || []).forEach(p => { if (p.uid !== uid) onPlayerJoin(p); });
           break;
@@ -637,7 +639,7 @@
   let hostedAgentOnline = false, agentStopTimer = null;
   let agentPending = null, agentPendingDone = null;
   let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
-  let lastAgentMovePayload = null, agentMoveDoneCount = 0;
+  let lastAgentMovePayload = null, agentMoveDoneCount = 0, lastServerPos = null;
 
   // P1.1 节点冗余获取链：Application.getIns().playerNode → PlayerMoudle._gPlayer.node → 场景 walk 节点
   function resolvePlayerNode() {
@@ -669,7 +671,15 @@
   function getPlayerItem(node) {
     const mods = window.__AF_MODS__;
     const PlayerItem = mods && mods['PlayerItem'] && mods['PlayerItem'].exports;
-    return (PlayerItem && node.getComponent(PlayerItem.default || PlayerItem)) || node.getComponent('PlayerItem');
+    const byName = (PlayerItem && node.getComponent(PlayerItem.default || PlayerItem)) || (node.getComponent && node.getComponent('PlayerItem'));
+    if (byName) return byName;
+    // 兜底：按能力找——原版玩家角色组件是节点上唯一带 changeDir 的自定义组件。
+    // 模块名随原版构建变化（实测取不到），靠名字匹配会让 agent_move 全程卡在 pending。
+    try {
+      const comps = node.getComponents(cc.Component) || [];
+      for (const c of comps) { if (c && typeof c.changeDir === 'function') return c; }
+    } catch (e) { /* ignore */ }
+    return null;
   }
 
   // P1.3 行为飘字：玩家头顶 cc.Label，1600ms 淡出销毁；同帧同文去重
@@ -741,7 +751,11 @@
       // D1 执行确认闭环：托管期间到达航点即回报实际落点（服务端校验/重规划）
       if (pos && connected && hostedAgentOnline && agentMoveTarget && !agentArriveSent) {
         const dx = Math.abs(pos.x - agentMoveTarget.x), dy = Math.abs(pos.y - agentMoveTarget.y);
-        if (agentMoveTarget.scene === undefined || pos.scene === agentMoveTarget.scene) {
+        // 场景判等放行未初始化态（getSceneType() 在快速进村路径下可能仍为 0）：
+        // 判等过严会让 arrive 永不回报，服务端只能按 8s/航点盲推超时兜底（实测 done 永假）。
+        const tgScene = agentMoveTarget.scene;
+        const sceneOk = tgScene === undefined || pos.scene === undefined || pos.scene === 0 || pos.scene === tgScene;
+        if (sceneOk) {
           if (dx <= 80 && dy <= 80) {
             agentArriveSent = true;
             try { ws.send(JSON.stringify({ t: 'agent_arrive', index: agentArriveIndex, x: pos.x, y: pos.y, scene: pos.scene })); } catch (e) {}
@@ -1006,7 +1020,10 @@
     const startPos = { x: p.x, y: p.y };
     // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。走路状态机负责动画、碰撞和镜头。
     const dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 5 : 2) : (dy >= 0 ? 10 : 11);
-    item.changeDir(dir, false);
+    // 走路状态机必须在 try 内调用：新手教程等状态下 changeDir 内部 stateClass[state]
+    // 取不到会抛 checkEnableState，一旦冒泡，本函数后面的位置收敛全部不执行——
+    // 表现为「服务端在动、画面纹丝不动」（实测 node 位移恒为 0）。抛错时退化为纯位置收敛。
+    try { item.changeDir(dir, false); } catch (e) { /* ignore */ }
     agentMoveTarget = { x: msg.x, y: msg.y, scene: msg.scene };
     agentArriveIndex = (typeof msg.seg === 'number') ? msg.seg : null;
     agentArriveSent = false;
@@ -1109,6 +1126,7 @@
   function onAgentMoveDone(msg) {
     if (!msg) return;
     agentMoveDoneCount++;
+    if (typeof msg.x === 'number' && typeof msg.y === 'number') lastServerPos = { x: msg.x, y: msg.y, scene: msg.scene };
     // P1.1 节点冗余链获取
     const node = resolvePlayerNode();
     const item = node ? getPlayerItem(node) : null;
@@ -3493,8 +3511,8 @@
           return { x: Math.round(p.x), y: Math.round(p.y), scene };
         },
         serverPos() {
-          if (!lastAgentMovePayload) return null;
-          return { x: lastAgentMovePayload.x, y: lastAgentMovePayload.y, scene: lastAgentMovePayload.scene };
+          if (lastAgentMovePayload) return { x: lastAgentMovePayload.x, y: lastAgentMovePayload.y, scene: lastAgentMovePayload.scene };
+          return lastServerPos ? { x: lastServerPos.x, y: lastServerPos.y, scene: lastServerPos.scene } : null;
         },
         blackhole(n) {
           blackholeCount = Number(n) | 0;
@@ -3504,6 +3522,24 @@
         },
         doneCount() {
           return agentMoveDoneCount;
+        },
+        diag() {
+          const n = resolvePlayerNode();
+          const item = n ? getPlayerItem(n) : null;
+          return {
+            node: !!n,
+            item: !!item,
+            itemMethods: item ? Object.getOwnPropertyNames(Object.getPrototypeOf(item) || {}).filter((k) => typeof item[k] === 'function').slice(0, 8) : null,
+            lastMove: lastAgentMovePayload,
+            pending: !!agentPending,
+            pendingAgeMs: agentPending ? Date.now() - agentPending.at : null,
+            nodePos: n ? { x: Math.round(n.getPosition().x), y: Math.round(n.getPosition().y) } : null,
+            tweens: agentMoveTweens.length,
+            arrive: {
+              target: agentMoveTarget, index: agentArriveIndex, sent: agentArriveSent,
+              hosted: hostedAgentOnline, pos: readPlayerPos(), connected,
+            },
+          };
         },
       };
       console.log('[AF] __AF_TEST__ 测试钩子已注册（af.test=1）');

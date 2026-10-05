@@ -40,40 +40,45 @@
     }
   }
 
-  var patched = false;
-  function patchCc(cc) {
-    if (patched || !cc) return;
-    // 空白图必然小于原图 rect，_checkRect 置空以消 3300/3400 报错刷屏
-    try {
-      if (cc.SpriteFrame && cc.SpriteFrame.prototype && cc.SpriteFrame.prototype._checkRect) {
-        cc.SpriteFrame.prototype._checkRect = function () {};
-        patched = true;
+  // cc 由 main.js 才挂上 window，且引擎可能用 defineProperty 覆盖 window 属性（陷阱不可靠），
+  // 故改为轮询补补丁：命中即停，最多 120s。
+  var doneRect = false, doneErr = false, tries = 0;
+  var timer = setInterval(function () {
+    var c = window.cc;
+    tries++;
+    if (c) {
+      if (!doneRect) {
+        try {
+          if (c.SpriteFrame && c.SpriteFrame.prototype && c.SpriteFrame.prototype._checkRect) {
+            c.SpriteFrame.prototype._checkRect = function () {};
+            doneRect = true;
+          }
+        } catch (e) { /* ignore */ }
       }
-    } catch (e) { /* ignore */ }
-    try {
-      if (typeof cc.errorID === 'function') {
-        var raw = cc.errorID;
-        cc.errorID = function (id) {
-          if (id === 3300 || id === 3400) return;
-          return raw.apply(this, arguments);
-        };
+      if (!doneErr && typeof c.errorID === 'function' && !c.errorID.__afPatched) {
+        try {
+          var raw = c.errorID;
+          var wrapped = function (id) { if (id === 3300 || id === 3400) return; return raw.apply(this, arguments); };
+          wrapped.__afPatched = true;
+          c.errorID = wrapped;
+          doneErr = true;
+        } catch (e) {
+          try {
+            var raw2 = c.errorID;
+            Object.defineProperty(c, 'errorID', {
+              configurable: true, writable: true,
+              value: function (id) { if (id === 3300 || id === 3400) return; return raw2.apply(this, arguments); },
+            });
+            doneErr = true;
+          } catch (e2) { /* ignore */ }
+        }
       }
-    } catch (e) { /* ignore */ }
-  }
-
-  var heldCc = window.cc;
-  if (heldCc) {
-    patchCc(heldCc);
-  } else {
-    // cc 定义瞬间补上（引擎在 main.js 里才挂 window.cc）
-    try {
-      Object.defineProperty(window, 'cc', {
-        configurable: true,
-        get: function () { return heldCc; },
-        set: function (v) { heldCc = v; patchCc(v); },
-      });
-    } catch (e) { /* ignore */ }
-  }
+    }
+    if ((doneRect && doneErr) || tries > 600) {
+      clearInterval(timer);
+      console.log('[AF] ci-headless 引擎补丁：_checkRect=' + doneRect + ' errorID=' + doneErr + '（尝试 ' + tries + ' 次）');
+    }
+  }, 200);
 
   console.log('[AF] ci-headless 生效：贴图全 stub（__AF_CI__=1）');
 })();
