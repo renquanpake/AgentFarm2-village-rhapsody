@@ -12,7 +12,7 @@
 //
 // 用法：node tools/agent-vis-assert.mjs --base http://127.0.0.1:8097 [--out /tmp/af-vis] [--user v --pass p]
 //   exit 1 于任何 FAIL；report.json 每场景 pass/expected/actual
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import WebSocket from 'ws';

@@ -25,3 +25,6 @@ server/node_modules/
 .env.local
 .env.*.local
 /data/backups/
+
+# 本地凭据（PAT 等，禁止入库）
+.monkeycode/local/

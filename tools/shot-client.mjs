@@ -15,7 +15,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 const CHROME = process.env.AF_CHROME
   || '/root/.cache/puppeteer/chrome/linux-154.0.8037.57/chrome-linux64/chrome';

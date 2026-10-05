@@ -7,7 +7,7 @@
 //   4) A dm_send -> 5) 截 B 的气泡 + 私聊面板 + A 的私聊面板（命令侧）
 //
 // 用法：node tools/shot-dm.mjs --base http://127.0.0.1:8080 --out-dir /tmp/shots/dm
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import WebSocket from 'ws';
 import fs from 'node:fs';
 

@@ -9,7 +9,7 @@
 //   node tools/shot-session.mjs --base http://127.0.0.1:8197 --out-dir /tmp/shots/run1 \
 //        --user visual --pass visual_pw_1 [--wait 8000] [--only village,panel]
 // 输出：每步一张 PNG + run-report.json（含每步的控制台错误、页面内可见文本要点）
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 

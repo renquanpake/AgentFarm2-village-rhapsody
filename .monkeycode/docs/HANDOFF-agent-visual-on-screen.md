@@ -5,6 +5,7 @@
 - 台账：`.superpowers/sdd/2026-10-03-agent-visual-on-screen/progress.md`（gitignore 内，本地跟踪，**不在仓库里**）
 - 计划稿：`docs/superpowers/plans/2026-10-03-agent-visual-on-screen.md`（唯一在册的未完成批次计划稿）
 - 铁律：回复用简中；不碰 `client/assets/**` 原版文件；`__AF_TEST__` 仅当 `localStorage.af.test==='1'` 注册；壳哈希 5140 不变；每 commit 前 security-check；测试实例用 background terminal timeout 0
+- **接手第一步**：`node tools/dev-env-check.mjs` 自检环境，再读 `docs/接手与验证指南.md`（凭据 / 克隆 / 起实例 / 门禁）
 
 ## 一、一句话现状
 
@@ -111,7 +112,7 @@ cd server && AF_SLOT=99 AF_DATA_DIR=/tmp/opencode/afdata-vis AF_NO_TUNNEL=1 AF_N
   AF_DEV_ENDPOINTS=0 AF_ADMIN_TOKEN=vislocal123 PORT=8097 node src/index.ts
 ```
 
-断言工具需要 `NODE_PATH` 之外的两个前提：全局 `puppeteer` 必须在 `tools/node_modules/` 下可见（ESM 不认 `NODE_PATH`，已建软链）、`AF_CHROME` 要指向本机实际存在的版本（本机是 `linux-153.0.8010.36`，工具默认值写的 154 不存在）。
+浏览器类工具（`agent-vis-assert.mjs` / `shot-client.mjs` / `shot-dm.mjs` / `shot-session.mjs`）已统一改用 `puppeteer-core` + 显式 `executablePath`，与 `tools/package.json` 的声明一致，不再需要给全局 puppeteer 建软链（ESM 不认 `NODE_PATH`，那是本次之前的临时绕过）。`AF_CHROME` 必须用 `node tools/dev-env-check.mjs` 输出的本机实际路径——工具默认值硬编码的 chrome-154 在本机不存在。
 
 ## 八、文档归档约定（本次新增）
 
