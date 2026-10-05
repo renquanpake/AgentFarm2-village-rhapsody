@@ -7,7 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    # master + 在研主干分支 260103-*：分支上的每一次推送都要过十二道门，
+    # 避免「分支干活、master 集成时才炸」的积压（2026-10-02 起 master 长期红灯即此成因）
+    branches: [master, '260103-*']
   pull_request:
 
 jobs:
