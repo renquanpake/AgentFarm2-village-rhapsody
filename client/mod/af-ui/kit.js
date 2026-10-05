@@ -15,10 +15,14 @@
   let root = null;
   function ensureRoot() {
     if (root && document.body.contains(root)) return root;
-    root = document.getElementById('af-ui-root');
-    if (!root) {
+root = document.getElementById('af-ui-root');
+if (!root) {
       root = document.createElement('div');
       root.id = 'af-ui-root';
+      // 绝对置顶 + 事件穿透：Cocos canvas 为全屏接管容器，根节点必须 fixed/最高层，
+      // 但自身不吃点击（交互由子级 .af-hud-zone 与 .af-btn 各自开洞），
+      // 否则会遮挡原版底层点击（SPEC-VISUAL-001 §3 方案3）
+      root.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:999999;pointer-events:none;';
       document.body.appendChild(root);
     }
     return root;
@@ -167,7 +171,7 @@
       const r = ensureRoot();
       hudRoot = document.createElement('div');
       hudRoot.id = 'af-hud';
-      hudRoot.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99980;';
+      hudRoot.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999999;';
       const zone = (css) => { const z = document.createElement('div'); z.className = 'af-hud-zone'; z.style.cssText = css + ';pointer-events:auto;'; return z; };
       const tl = zone('position:absolute;top:8px;left:8px;');
       tl.className = 'af-hud-zone af-hud-tl';
@@ -188,11 +192,20 @@
       trChip.className = 'af-panel';
       trChip.id = 'af-hud-clock';
       trChip.style.cssText = 'padding:6px 10px;color:var(--af-c-ink);font-size:var(--af-font-size-xs);';
-      trChip.textContent = '…';
-      tr.appendChild(trChip);
-      const br = zone('position:absolute;bottom:50px;right:8px;');
-      br.className = 'af-hud-zone af-hud-br';
-      hudRoot.appendChild(tl); hudRoot.appendChild(tr); hudRoot.appendChild(br);
+// 零延迟占位：接口未返回前也渲染完整文案，避免截图断言呈现「空白 / 单点省略号」
+// （SPEC-VISUAL-001 §3 方案3）。setClock 到位后由其接管滚动更新。
+trChip.textContent = '📅 第1日 · 春 · 晴';
+tr.appendChild(trChip);
+const br = zone('position:absolute;bottom:50px;right:8px;');
+br.className = 'af-hud-zone af-hud-br';
+// 右下角托管状态胶囊：零延迟占位「🤖 Agent 未连接」，setAgent 到位后接管
+const agChip = document.createElement('div');
+agChip.className = 'af-panel';
+agChip.id = 'af-hud-agent';
+agChip.style.cssText = 'padding:6px 10px;color:var(--af-c-ink);font-size:var(--af-font-size-xs);';
+agChip.textContent = '🤖 Agent 未连接';
+br.appendChild(agChip);
+hudRoot.appendChild(tl); hudRoot.appendChild(tr); hudRoot.appendChild(br);
       r.appendChild(hudRoot);
       hudCoinsEl = coinNum;
       hudCoinsApi = AFUI.bindNumber(coinNum, 0);
@@ -202,6 +215,16 @@
     setCoins(v) { if (hudCoinsApi) hudCoinsApi.set(v); },
     setClock(text) {
       const el = hudRoot && document.getElementById('af-hud-clock');
+      if (el && text !== undefined && el.textContent !== String(text)) {
+        el.textContent = String(text);
+        el.classList.remove('af-num');
+        void el.offsetWidth;
+        el.style.animation = 'af-num-pop var(--af-d-mid) var(--af-m-bounce)';
+        setTimeout(() => { el.style.animation = ''; }, 650);
+      }
+    },
+    setAgent(text) {
+      const el = hudRoot && document.getElementById('af-hud-agent');
       if (el && text !== undefined && el.textContent !== String(text)) {
         el.textContent = String(text);
         el.classList.remove('af-num');
