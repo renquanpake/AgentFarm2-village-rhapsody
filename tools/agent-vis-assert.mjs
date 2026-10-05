@@ -28,6 +28,9 @@ const OUT = arg('out', '/tmp/af-vis');
 const USER = arg('user', 'vis_' + Date.now() % 1e6);
 const PASS = arg('pass', 'vis_pass_1');
 const WAIT = Number(arg('wait', 15000)); // move_to 长路程的宽限
+// 长路线窗口：服务端每航点 arrive 预算 8s（NAV_ARRIVE_TIMEOUT_MS），38+ 航点的主干道
+// 即使逐点即时确认也可能超 45s。断言语义不变（终点对齐 ≤40px + done），仅给足服务端预算。
+const LONG = Number(arg('long', 120000));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(OUT, { recursive: true });
 
@@ -68,7 +71,11 @@ try {
     if (/Failed to load resource/i.test(t)) { resource404s.push(t.slice(0, 120)); return; }
     consoleErrors.push(t.slice(0, 200));
   });
-  page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + String(e.message).slice(0, 200)));
+  const errStacks = [];
+  page.on('pageerror', (e) => {
+    consoleErrors.push('pageerror: ' + String(e.message).slice(0, 200));
+    errStacks.push(String(e && e.stack || '').slice(0, 1200));
+  });
 
   // 身份 + 测试钩子旗标在页面脚本执行前注入（免登录直达；af.test=1 才注册 __AF_TEST__）
   await page.evaluateOnNewDocument((c) => {
@@ -235,7 +242,7 @@ try {
   }
   // 3) 等 Cocos 玩家节点挂载（Application.playerNode 挂上即世界就绪；轻量直读避免 scene.walk 反复开销；软件 WebGL 下村景贴图慢，给 240s）
   const boot = hook !== 'ok' ? hook
-    : await page.waitForFunction(`(() => { try { const m=window.__AF_MODS__; const A=m&&m['Application']&&m['Application'].exports; const i=A&&A.default&&A.default.getIns&&A.default.getIns(); return !!(i&&i.playerNode&&i.playerNode.isValid); } catch (e) { return false; } })()`, { timeout: 240000, polling: 1500 })
+    : await page.waitForFunction(`(() => { try { return !!(window.__AF_TEST__ && window.__AF_TEST__.node()); } catch (e) { return false; } })()`, { timeout: 240000, polling: 1500 })
       .then(() => 'ok').catch(() => 'GAME-NOT-READY');
   check('boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪', boot === 'ok', '__AF_TEST__ + node() 非 null',
     `${boot}${btnSeen ? '' : ' | 未见开始游戏按钮'}${slotSeen ? '' : ' | 未点存档槽'}${resource404s.length ? ' | 资源404 x' + resource404s.length : ''}`);
@@ -276,6 +283,10 @@ try {
   const serverPos = async () => page.evaluate(`${ts('serverPos()')} ? JSON.parse(JSON.stringify(window.__AF_TEST__.serverPos())) : null`);
   const floatCount = async () => page.evaluate(`(window.__AF_TEST__ && typeof window.__AF_TEST__.floatCount === 'function') ? window.__AF_TEST__.floatCount() : -1`);
   const setBlackhole = async (n) => page.evaluate(`${ts('blackhole')} ? window.__AF_TEST__.blackhole(${n}) : 0`);
+  const nodesDiag = async () => {
+    const v = await page.evaluate(`window.__AF_TEST__ && window.__AF_TEST__.nodes ? window.__AF_TEST__.nodes() : null`).catch(() => null);
+    return v ? JSON.stringify(v).slice(0, 900) : 'null';
+  };
   const doneCount = async () => page.evaluate(`(window.__AF_TEST__ && typeof window.__AF_TEST__.doneCount === 'function') ? window.__AF_TEST__.doneCount() : -1`);
 
   // 等 move_to 走完（页面钩子计 agent_move_done，串行避免服务端「上个移动没走完」拒单）
@@ -289,7 +300,7 @@ try {
       await sleep(400);
     }
   };
-  const moveToDone = async (target, ms = 45000) => {
+  const moveToDone = async (target, ms = LONG) => {
     const r = await act('move_to', target, ms);
     const done = await waitAgentDone(ms);
     return { r, done };
@@ -309,17 +320,21 @@ try {
   }
   let aOk = false, aInfo = '';
   if (apos0) {
-    for (const dir of ['down', 'down', 'down', 'down', 'down']) {
-      await act('move', { dir }, 8000);
-      await sleep(250);
+    // 固定方向会被出生点下方房屋/边界挡住（服务端拒单但断言盲等位移）——
+    // 逐步 ok 计数：拒单的方向不计入步数预算
+    const dirs = ['down', 'right', 'down', 'up', 'left', 'down'];
+    let movedSteps = 0;
+    for (const dir of dirs) {
+      const w = await act('move', { dir }, 8000);
+      if (w && w.ok) { movedSteps++; await sleep(250); }
     }
     const a1 = await nodePos();
     const a2 = await serverPos();
     if (a1 && a2) {
       const dn = Math.hypot(a1.x - apos0.x, a1.y - apos0.y);
       const ds = Math.hypot(a2.x - apos0.x, a2.y - apos0.y);
-      aOk = Math.abs(dn - ds) <= 40 * 6 && Math.hypot(a1.x - a2.x, a1.y - a2.y) <= 440;
-      aInfo = `node 位移 ${dn.toFixed(0)} vs 服务端 ${ds.toFixed(0)}; 终距 ${Math.hypot(a1.x - a2.x, a1.y - a2.y).toFixed(0)}px`;
+      aOk = movedSteps > 0 && Math.abs(dn - ds) <= 40 * movedSteps && Math.hypot(a1.x - a2.x, a1.y - a2.y) <= 40 * movedSteps + 80;
+      aInfo = `有效步 ${movedSteps}/${dirs.length}; node 位移 ${dn.toFixed(0)} vs 服务端 ${ds.toFixed(0)}; 终距 ${Math.hypot(a1.x - a2.x, a1.y - a2.y).toFixed(0)}px | nodes=${await nodesDiag()}`;
     } else aInfo = 'node/serverPos 不可用';
   } else aInfo = '初始 serverPos 为 null';
   check('A dir 步随：node 位移≈服务端且终漂移 ≤440px', aOk, '|Δnode-Δserver| ≤240 且 dist ≤440', aInfo);
@@ -335,7 +350,7 @@ try {
   await sleep(2500);
   const c1 = await nodePos(), c2 = await serverPos();
   check('C 黑洞重放：解除后 2.5s 内 node 对齐服务端', !!(c1 && c2 && Math.hypot(c1.x - c2.x, c1.y - c2.y) <= 40),
-    'dist ≤40px', c1 && c2 ? `dist ${Math.hypot(c1.x - c2.x, c1.y - c2.y).toFixed(0)}px` : 'node/serverPos null');
+    'dist ≤40px', c1 && c2 ? `dist ${Math.hypot(c1.x - c2.x, c1.y - c2.y).toFixed(0)}px | nodes=${await nodesDiag()}` : 'node/serverPos null');
   check('C-blackhole 钩子可用（RED 信号）', boot === 'ok', 'blackhole() 存在', boot);
 
   // ---------- 场景 D：move_to 终点对齐 ----------
@@ -349,38 +364,96 @@ try {
     dres = r.r; dDone = r.done;
   }
   await sleep(1500);
+  // done 后收敛等待：末段若含跨场景传送（1s 延迟 + 场景加载），tween 可能仍未走完，
+  // 读过早会残留 <120px 的行进尾差。轮询至对齐或 12s 超时——阈值语义不变（≤40px 判绿），
+  // 只是等「事件后的稳定时刻」再读（condition-based-waiting）。
+  for (let conv = 0; conv < 24; conv++) {
+    const cc1 = await nodePos(), cc2 = await serverPos();
+    if (cc1 && cc2 && Math.hypot(cc1.x - cc2.x, cc1.y - cc2.y) <= 40) break;
+    await sleep(500);
+  }
   const d1 = await nodePos(), d2 = await serverPos();
   const dDiag = await page.evaluate(`${ts('diag')} ? window.__AF_TEST__.diag() : null`).catch(() => null);
   check('D move_to 终点对齐：node 距服务端 ≤40px', !!(d1 && d2 && Math.hypot(d1.x - d2.x, d1.y - d2.y) <= 40),
     'dist ≤40px', (d1 && d2 ? `dist ${Math.hypot(d1.x - d2.x, d1.y - d2.y).toFixed(0)}px (done=${dDone})` : 'null (done=' + dDone + ')')
-      + ' | arrive=' + JSON.stringify(dDiag && dDiag.arrive));
+      + ' | arrive=' + JSON.stringify(dDiag && dDiag.arrive)
+      + ' | nodes=' + await nodesDiag());
   check('D-move_to 可发起（服务端未回 error）', !!dres, 'move_started', dres?.msg || dres?.t || 'timeout');
 
   // ---------- 场景 B/E：行为飘字 + 面板文案 ----------
-  // D 走后在当前位置附近找树丛（observe.regions 格坐标），move_to 到树丛边缘再 chop
-  let chopRes = null, chopped = false;
-  const obs = await act('observe', {}, 8000);
-  const regions = (obs && obs.obstacles && Array.isArray(obs.obstacles.regions)) ? obs.obstacles.regions : [];
-  const treeR = regions.find(r => String(r.name).includes('树'));
-  let chopTarget = null;
-  if (treeR) {
-    const cx = Math.round((treeR.x1 + treeR.x2) / 2), cy = Math.round((treeR.y1 + treeR.y2) / 2);
-    chopTarget = { x: cx * 100 + 50, y: cy * 100 + 50 };
-    await moveToDone({ x: treeR.x1 * 100 + 50, y: treeR.y1 * 100 + 50 }, 45000); // 到树丛边缘
-    chopRes = await act('chop', chopTarget, 15000);
-    chopped = !!(chopRes && (chopRes.ok || /砍/.test(String(chopRes.msg || ''))));
+  // observe 是顶层消息（回包 t==='state'）。bbox 角/缘格在异形丛里未必真有树，
+  // arrive 容差 120px 又允许落地偏 1 格，因此砍树目标一律取自 treesNear（服务端给的真实树格）。
+  const TBE0 = Date.now();
+  let chopRes = null, chopped = false, nearTreesOnce = false;
+  let lastObs = null;
+  const observeState = () => new Promise((resolve) => {
+    const onMsg = (d) => { const m = JSON.parse(d.toString()); if (m.t === 'state') { aws.off('message', onMsg); resolve(m); } };
+    aws.on('message', onMsg);
+    aws.send(JSON.stringify({ t: 'observe' }));
+    setTimeout(() => { aws.off('message', onMsg); resolve({ _timeout: true }); }, 8000);
+  });
+  const cellOf = (o) => ({ x: Math.floor((o && o.pos && o.pos.x) / 100), y: Math.floor((o && o.pos && o.pos.y) / 100) });
+  const nearTrees = (o, pc) => ((o && o.treesNear) || [])
+    .slice().sort((a, b) => (Math.abs(a.gx - pc.x) + Math.abs(a.gy - pc.y)) - (Math.abs(b.gx - pc.x) + Math.abs(b.gy - pc.y)));
+  let obs = await observeState();
+  lastObs = obs;
+  const treeRs = ((obs.obstacles && obs.obstacles.regions) || []).filter(r => String(r.name).includes('树'));
+  if (!treeRs.length) {
+    console.log('[agent-vis] observe 未见树区 obstacles=' + JSON.stringify(obs.obstacles || null).slice(0, 150));
+  }
+  // 站到树丛 bbox 各缘格外一格，直到 treesNear 出现真实树格为止
+  for (const treeR of treeRs.slice(0, 2)) {
+    if (Date.now() - TBE0 > 150000) break;
+    const cxT = Math.round((treeR.x1 + treeR.x2) / 2), cyT = Math.round((treeR.y1 + treeR.y2) / 2);
+    const stands = [
+      { x: (treeR.x1 - 1) * 100 + 50, y: cyT * 100 + 50 },
+      { x: cxT * 100 + 50, y: (treeR.y1 - 1) * 100 + 50 },
+      { x: (treeR.x2 + 1) * 100 + 50, y: cyT * 100 + 50 },
+    ];
+    for (const s of stands) {
+      await moveToDone(s);
+      obs = await observeState(); lastObs = obs;
+      if (nearTrees(obs, cellOf(obs)).length) { nearTreesOnce = true; break; }
+    }
+    if (nearTreesOnce) break;
+  }
+  // 砍树：站在真实树格相邻格。首次砍不到就校正站位到「树与玩家之间那一格」（服务端必然相邻）。
+  // 服务端只有 hp<=0 才 publish('正在砍树')，初始 hp=30、每斧 -20，故需连砍 2 斧才触发 E 文案。
+  let felled = false;
+  for (let round = 0; round < 4 && Date.now() - TBE0 < 240000; round++) {
+    if (!lastObs) lastObs = await observeState();
+    const pc = cellOf(lastObs);
+    const ts = nearTrees(lastObs, pc);
+    if (!ts.length) break;
+    const t = ts[0];
+    chopRes = await act('chop', { x: t.px, y: t.py }, LONG);
+    const cm = String((chopRes && chopRes.msg) || '');
+    if (chopRes && (chopRes.ok || /砍|斧/.test(cm))) {
+      chopped = true;
+      if (/砍倒/.test(cm)) { felled = true; break; }
+      continue; // 还没倒下：同一棵树原地连砍，不换目标不换站位
+    }
+    if (Math.abs(t.gx - pc.x) + Math.abs(t.gy - pc.y) <= 1) break; // 已相邻还失败（被认领/无树等），换树无意义
+    await moveToDone({ x: (t.gx + (pc.x > t.gx ? -1 : 1)) * 100 + 50, y: (t.gy + (pc.y > t.gy ? -1 : 1)) * 100 + 50 });
+    lastObs = await observeState();
   }
   await sleep(1200);
   const fc = await floatCount();
-  check('B 行为飘字：chop 后 floatCount ≥1', fc >= 1, '≥1', `fc=${fc} chopped=${chopped} msg=${(chopRes && chopRes.msg) || 'n/a'}`);
-  const liveT = await page.evaluate(() => (document.getElementById('af-agent-live-t') || { textContent: '' }).textContent);
-  const hudT = await page.evaluate(() => (document.getElementById('af-hud-agent') || { textContent: '' }).textContent);
+  check('B 行为飘字：chop 后 floatCount ≥1', fc >= 1, '≥1', `fc=${fc} chopped=${chopped} felled=${felled} 站位=${JSON.stringify(cellOf(lastObs))} 近树=${(lastObs && lastObs.treesNear ? lastObs.treesNear.length : -1)} msg=${(chopRes && chopRes.msg) || 'n/a'}`);
+  // 面板文案轮询：chop 受理后服务端还可能穿插走位/起手 activity，固定 1.2s 读会拿到过渡文案。
+  let liveT = '', hudT = '';
+  for (let ep = 0; ep < 30; ep++) {
+    liveT = await page.evaluate(() => (document.getElementById('af-agent-live-t') || { textContent: '' }).textContent);
+    hudT = await page.evaluate(() => (document.getElementById('af-hud-agent') || { textContent: '' }).textContent);
+    if (/砍|正在/.test(String(liveT) + ' ' + String(hudT))) break;
+    await sleep(1000);
+  }
   check('E 面板文案：chop 后含「砍|正在」', /砍|正在/.test(String(liveT) + ' ' + String(hudT)),
-    '/砍|正在/', (liveT + '|' + hudT).slice(0, 60));
+    '/砍|正在/', (liveT + '|' + hudT).slice(0, 60) + ` felled=${felled} chopped=${chopped}`);
 
   check('页面 console error = 0（P0 无野错）', consoleErrors.length === 0, '0', consoleErrors[0] || '0');
 
-  writeFileSync(resolve(OUT, 'report.json'), JSON.stringify({ base: BASE, user: USER, results, pass: results.filter((r) => r.pass).length, total: results.length, consoleErrors }, null, 2));
+  writeFileSync(resolve(OUT, 'report.json'), JSON.stringify({ base: BASE, user: USER, results, pass: results.filter((r) => r.pass).length, total: results.length, consoleErrors, errStacks }, null, 2));
   const passN = results.filter((r) => r.pass).length;
   console.log(`----\n[agent-vis] ${passN}/${results.length} 通过 | report: ${OUT}/report.json`);
   process.exit(results.every((r) => r.pass) ? 0 : 1);

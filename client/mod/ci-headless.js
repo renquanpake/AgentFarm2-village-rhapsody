@@ -42,11 +42,32 @@
 
   // cc 由 main.js 才挂上 window，且引擎可能用 defineProperty 覆盖 window 属性（陷阱不可靠），
   // 故改为轮询补补丁：命中即停，最多 120s。
-  var doneRect = false, doneErr = false, tries = 0;
+  var doneRect = false, doneErr = false, doneTex = false, tries = 0;
   var timer = setInterval(function () {
     var c = window.cc;
     tries++;
     if (c) {
+      if (!doneTex) {
+        // 贴图 stub 副作用：postLoadNative 回调在 native=undefined 时仍赋值 _nativeAsset，
+        // Texture2D setter 读 t._compressed 炸野错。这里跳过 null 赋值并记录 uuid 供取证。
+        try {
+          var d2 = c.Texture2D && c.Texture2D.prototype &&
+            Object.getOwnPropertyDescriptor(c.Texture2D.prototype, '_nativeAsset');
+          if (d2 && d2.set) {
+            Object.defineProperty(c.Texture2D.prototype, '_nativeAsset', {
+              configurable: true, enumerable: d2.enumerable, get: d2.get,
+              set: function (t) {
+                if (t == null) {
+                  (window.__AF_CI_ERR__ = window.__AF_CI_ERR__ || []).push(String(this._uuid || '?'));
+                  return;
+                }
+                d2.set.call(this, t);
+              },
+            });
+            doneTex = true;
+          }
+        } catch (e) { /* ignore */ }
+      }
       if (!doneRect) {
         try {
           if (c.SpriteFrame && c.SpriteFrame.prototype && c.SpriteFrame.prototype._checkRect) {
@@ -74,9 +95,9 @@
         }
       }
     }
-    if ((doneRect && doneErr) || tries > 600) {
+    if ((doneRect && doneErr && doneTex) || tries > 600) {
       clearInterval(timer);
-      console.log('[AF] ci-headless 引擎补丁：_checkRect=' + doneRect + ' errorID=' + doneErr + '（尝试 ' + tries + ' 次）');
+      console.log('[AF] ci-headless 引擎补丁：_checkRect=' + doneRect + ' errorID=' + doneErr + ' _nativeAsset=' + doneTex + '（尝试 ' + tries + ' 次）');
     }
   }, 200);
 

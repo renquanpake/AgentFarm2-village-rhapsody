@@ -388,9 +388,8 @@
       const cur = L ? L.string : '';
       // 缓存原版第一次写出的标签（恢复用）
       if (!window.__AF_AREA_ORIG__ && !/村外/.test(cur)) window.__AF_AREA_ORIG__ = cur;
-      const App = mods['Application'] && mods['Application'].exports;
-      const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
-      if (!node || !node.isValid) return;
+      const node = resolvePlayerNode();
+      if (!node) return;
       const p = node.getPosition();
       const tmNode = getTiledMapNode();
       if (!tmNode) return;
@@ -590,8 +589,7 @@
         case 'social_result': onSocialResult(msg); break;
         case 'social_tp_apply': {
           try {
-            const App = window.__AF_MODS__ && window.__AF_MODS__['Application'] && window.__AF_MODS__['Application'].exports;
-            const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
+            const node = resolvePlayerNode();
             if (node && node.isValid) node.setPosition(msg.x, msg.y, 0);
           } catch (e) {}
           break;
@@ -638,34 +636,70 @@
   let posTimer = null, lastScene = null, sceneWatchTimer = null;
   let hostedAgentOnline = false, agentStopTimer = null;
   let agentPending = null, agentPendingDone = null;
+  // 最近一次已应用（或已由 done 吸附）的权威坐标时间戳。
+  // 黑洞解开的 pending 若比它更早，就是过期重放：done 已把节点吸附到更新的位置，
+  // 再 tween 回旧目标会让画面往回退（黑洞重放断言表现为 node 停在中间格）。
+  let lastAuthAt = 0;
   let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
   let lastAgentMovePayload = null, agentMoveDoneCount = 0, lastServerPos = null;
 
-  // P1.1 节点冗余获取链：Application.getIns().playerNode → PlayerMoudle._gPlayer.node → 场景 walk 节点
+  // P1.1 节点获取链（实测修正）：Application.playerNode 可能指向已脱离场景树的孤儿 PlayerItem
+  //（isValid=true 但 getScene()=null，位移全打在假节点上）；原版混淆构建里 PlayerMoudle._gPlayer 取不到。
+  // 判据升级：必须挂在当前场景树上；再退而求其次用「唯一带 changeDir 能力」的自定义组件锁定真角色。
+  let playerNodeCache = null, playerNodeCacheAt = 0;
+  function nodeInScene(n) {
+    // getScene() 在进村链路下 _scene 传播可能中断（实测真角色可被 scene.walk 命中却返回 null），
+    // 改用祖先链上溯：根节点等于 director 当前场景即认定在树内。
+    try {
+      if (!n || !n.isValid) return false;
+      let r = n;
+      for (let i = 0; i < 32 && r.parent; i++) r = r.parent;
+      const sc = (typeof cc !== 'undefined' && cc.director && cc.director.getScene()) || null;
+      return !!(sc && r === sc);
+    } catch (e) { return false; }
+  }
+  function hasWalkAbility(n) {
+    try {
+      const cs = n.getComponents(cc.Component) || [];
+      for (const c of cs) { if (c && typeof c.changeDir === 'function') return true; }
+    } catch (e) { /* ignore */ }
+    return false;
+  }
   function resolvePlayerNode() {
+    if (playerNodeCache && nodeInScene(playerNodeCache) && Date.now() - playerNodeCacheAt < 1500) return playerNodeCache;
+    playerNodeCache = null;
     const mods = window.__AF_MODS__;
     if (!mods) return null;
     const App = mods['Application'] && mods['Application'].exports;
     let node = null;
     if (App && App.default && App.default.getIns) {
-      try { node = App.default.getIns().playerNode; } catch (e) {}
+      try { const a = App.default.getIns().playerNode; if (nodeInScene(a)) node = a; } catch (e) {}
     }
     if (!node) {
       const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
       const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
-      if (p && p.node) node = p.node;
+      if (p && p.node && nodeInScene(p.node)) node = p.node;
     }
-    if (!node) {
+    if (!node && typeof cc !== 'undefined' && cc.director) {
       try {
         const scene = cc.director.getScene();
         if (scene && scene.walk) {
+          const remoteSet = new Set([...remotes.values()]);
           scene.walk((n) => {
-            if (!node && n.name && n.name.indexOf('Player') >= 0 && n.isValid) node = n;
+            if (node || !n || !n.isValid || remoteSet.has(n)) return;
+            if (n.name && n.name.indexOf('Player') >= 0 && nodeInScene(n) && hasWalkAbility(n)) node = n;
           });
+          if (!node) {
+            scene.walk((n) => {
+              if (node || !n || !n.isValid || remoteSet.has(n)) return;
+              if (nodeInScene(n) && hasWalkAbility(n)) node = n;
+            });
+          }
         }
-      } catch (e) {}
+      } catch (e) { /* ignore */ }
     }
-    return (node && node.isValid) ? node : null;
+    if (node) { playerNodeCache = node; playerNodeCacheAt = Date.now(); }
+    return node;
   }
 
   function getPlayerItem(node) {
@@ -722,13 +756,34 @@
     const mods = window.__AF_MODS__; if (!mods) return null;
     try {
       const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
-      const App = mods['Application'] && mods['Application'].exports;
       const player = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
-      const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
-      if (!player || !node) return null;
+      const node = resolvePlayerNode();
+      if (!node) return null;
       const p = node.getPosition();
-      return { scene: player.getSceneType(), x: Math.round(p.x), y: Math.round(p.y) };
+      const scene = player && typeof player.getSceneType === 'function' ? player.getSceneType() : undefined;
+      return { scene, x: Math.round(p.x), y: Math.round(p.y) };
     } catch (e) { return null; }
+  }
+
+  // D1 执行确认闭环：托管期间到达航点即回报实际落点（服务端校验/重规划）。
+  // tween 完成时直接调用一次，不等 posTimer 200ms tick——长路线 38+ 航点时，
+  // 每航点省下的轮询延迟是整条路线能否在服务端预算内走完的关键。
+  function trySendArrive() {
+    try {
+      const pos = readPlayerPos();
+      if (!pos || !connected || !hostedAgentOnline || !agentMoveTarget || agentArriveSent) return;
+      const dx = Math.abs(pos.x - agentMoveTarget.x), dy = Math.abs(pos.y - agentMoveTarget.y);
+      // 场景判等放行未初始化态（getSceneType() 在快速进村路径下可能仍为 0）：
+      // 判等过严会让 arrive 永不回报，服务端只能按 8s/航点盲推超时兜底（实测 done 永假）。
+      const tgScene = agentMoveTarget.scene;
+      const sceneOk = tgScene === undefined || pos.scene === undefined || pos.scene === 0 || pos.scene === tgScene;
+      // 阈值与服务端 checkArrive(wp, actual, 120) 容差对齐：客户端报早 100ms，
+      // 服务端仍判 ok；若坚持等 ≤80 则末段 arrive 易被下一段/done 覆盖丢回报。
+      if (sceneOk && dx <= 120 && dy <= 120) {
+        agentArriveSent = true;
+        ws.send(JSON.stringify({ t: 'agent_arrive', index: agentArriveIndex, x: pos.x, y: pos.y, scene: pos.scene }));
+      }
+    } catch (e) { /* ignore */ }
   }
 
   function startPosSync() {
@@ -748,20 +803,8 @@
           if (it) { clearAgentMoveState(it); agentPendingDone = null; }
         }
       }
-      // D1 执行确认闭环：托管期间到达航点即回报实际落点（服务端校验/重规划）
-      if (pos && connected && hostedAgentOnline && agentMoveTarget && !agentArriveSent) {
-        const dx = Math.abs(pos.x - agentMoveTarget.x), dy = Math.abs(pos.y - agentMoveTarget.y);
-        // 场景判等放行未初始化态（getSceneType() 在快速进村路径下可能仍为 0）：
-        // 判等过严会让 arrive 永不回报，服务端只能按 8s/航点盲推超时兜底（实测 done 永假）。
-        const tgScene = agentMoveTarget.scene;
-        const sceneOk = tgScene === undefined || pos.scene === undefined || pos.scene === 0 || pos.scene === tgScene;
-        if (sceneOk) {
-          if (dx <= 80 && dy <= 80) {
-            agentArriveSent = true;
-            try { ws.send(JSON.stringify({ t: 'agent_arrive', index: agentArriveIndex, x: pos.x, y: pos.y, scene: pos.scene })); } catch (e) {}
-          }
-        }
-      }
+      // D1 执行确认闭环
+      trySendArrive();
     }, 200);
     sceneWatchTimer = setInterval(() => {
       // 场景切换后远程节点可能被清理，重建
@@ -793,9 +836,8 @@
   function autoClosePopups() {
     try {
       const mods = window.__AF_MODS__; if (!mods) return;
-      const App = mods['Application'] && mods['Application'].exports;
-      const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
-      if (!node || !node.isValid) { worldAt = 0; return; }
+      const node = resolvePlayerNode();
+      if (!node) { worldAt = 0; return; }
       if (!worldAt) { worldAt = Date.now(); }
       const scene = cc.director && cc.director.getScene();
       if (!scene) return;
@@ -885,9 +927,8 @@
   function fixSpawnAfterReturn() {
     try {
       const mods = window.__AF_MODS__; if (!mods) return;
-      const App = mods['Application'] && mods['Application'].exports;
-      const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
-      if (!node || !node.isValid) return;
+      const node = resolvePlayerNode();
+      if (!node) return;
       const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
       const player = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
       if (!player) return;
@@ -994,7 +1035,7 @@
     const mods = window.__AF_MODS__;
     const node = item.node || null;
     if (!node || !node.isValid) return;
-    // D6 跨场景段：目标场景与当前不同 -> 走原版场景传送（changeSceneEasy + 门户 passage 名）
+    // D6 跨场景段：目标场景与当前不同 -> 走原版场景传送
     const myScene = (() => {
       try {
         const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
@@ -1002,28 +1043,29 @@
         return p ? p.getSceneType() : null;
       } catch (e) { return null; }
     })();
-    if (msg.scene !== undefined && myScene !== null && msg.scene !== myScene) {
+    const isCrossScene = (msg.scene !== undefined && myScene !== null && msg.scene !== myScene);
+    if (isCrossScene) {
       try {
         const GD = mods && mods['GameDefine'] && mods['GameDefine'].exports;
         const GM = mods && mods['GameManager'] && mods['GameManager'].exports;
         const GMClass = GM && (GM.default || GM);
-        if (GD && GMClass && typeof GMClass.getIns().changeSceneEasy === 'function') {
+        if (GMClass && typeof GMClass.getIns().changeSceneEasy === 'function') {
           const passageType = msg.passage && GD.ScenePassageType ? GD.ScenePassageType[msg.passage] : undefined;
-          if (typeof passageType === 'number') {
-            console.log('[AF] 跨场景传送:', myScene, '->', msg.scene, msg.passage);
-            GMClass.getIns().changeSceneEasy(msg.scene, passageType);
-          }
+          console.log('[AF] 跨场景传送:', myScene, '->', msg.scene, 'passage=' + msg.passage + ' type=' + passageType);
+          GMClass.getIns().changeSceneEasy(msg.scene, passageType);
         }
       } catch (e) { console.warn('[AF] 跨场景传送失败:', e.message); }
     }
     const p = node.getPosition(), dx = msg.x - p.x, dy = msg.y - p.y;
-    const startPos = { x: p.x, y: p.y };
-    // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。走路状态机负责动画、碰撞和镜头。
+    const dist = Math.hypot(dx, dy);
+    // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。
     const dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 5 : 2) : (dy >= 0 ? 10 : 11);
     // 走路状态机必须在 try 内调用：新手教程等状态下 changeDir 内部 stateClass[state]
     // 取不到会抛 checkEnableState，一旦冒泡，本函数后面的位置收敛全部不执行——
-    // 表现为「服务端在动、画面纹丝不动」（实测 node 位移恒为 0）。抛错时退化为纯位置收敛。
+    // 表现为「服务端在动、画面纹丝不动」。抛错时退化为纯位置收敛。
     try { item.changeDir(dir, false); } catch (e) { /* ignore */ }
+    // 立即停止走路状态机的位置更新，避免与 tween 竞争（方向动画仅播一帧）
+    try { item.changeDir(0, false); } catch (e) { /* ignore */ }
     agentMoveTarget = { x: msg.x, y: msg.y, scene: msg.scene };
     agentArriveIndex = (typeof msg.seg === 'number') ? msg.seg : null;
     agentArriveSent = false;
@@ -1031,26 +1073,27 @@
     hostedAgentOnline = true;
     if (agentStopTimer) clearTimeout(agentStopTimer);
     // 兜底：完成事件丢失则恢复本地同步（跨场景段含传送+加载，给更宽窗口）
-    agentStopTimer = setTimeout(() => { clearAgentMoveState(item); }, (msg.scene !== undefined && msg.scene !== myScene) ? 20000 : 12000);
-    // P1.2 插值兜底：apply 后 350ms 采样，相对 apply 时刻位移 <2px 判定走路状态机接管失败 → tween 强制收敛到 msg 坐标（同场景才插值）
-    setTimeout(() => {
-      const n2 = resolvePlayerNode();
-      if (!n2 || !n2.isValid) return;
-      const p2 = n2.getPosition();
-      const moved = Math.hypot(p2.x - startPos.x, p2.y - startPos.y);
-      if (moved < 2) {
-        const myScene2 = (() => {
-          try {
-            const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
-            const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
-            return p ? p.getSceneType() : null;
-          } catch (e) { return null; }
-        })();
-        if (myScene2 !== null && msg.scene !== undefined && msg.scene !== myScene2) return;
-        const tween = cc.tween(n2).to(0.15, { position: new cc.Vec2(msg.x, msg.y) }).start();
+    agentStopTimer = setTimeout(() => { clearAgentMoveState(item); }, isCrossScene ? 20000 : 12000);
+    // 始终 tween 到目标位置：走路状态机只负责转向，不保证精确到达。
+    // 跨场景段延迟 1s 等场景切换完成后再重新解析节点并 tween。
+    if (dist > 1) {
+      const walkSpeed = 500;
+      const duration = Math.max(0.2, Math.min(dist / walkSpeed, 2.0));
+      const delay = isCrossScene ? 1000 : 0;
+      setTimeout(() => {
+        const n2 = resolvePlayerNode();
+        if (!n2 || !n2.isValid) return;
+        const item2 = getPlayerItem(n2);
+        const tween = cc.tween(n2)
+          .to(duration, { position: new cc.Vec2(msg.x, msg.y) })
+          .call(() => {
+            try { if (item2 && item2.isValid) item2.changeDir(0, false); } catch (e) { /* ignore */ }
+            trySendArrive();
+          })
+          .start();
         agentMoveTweens.push(tween);
-      }
-    }, 350);
+      }, delay);
+    }
   }
 
   function onAgentMove(msg) {
@@ -1087,14 +1130,15 @@
       return;
     }
     applyAgentMoveMsg(item, msg);
+    lastAuthAt = Date.now();
   }
 
   // P1.1 posTimer tick 的 pending 重放 flush：节点有效 + 同场景才应用
   function flushAgentPending() {
     if (!agentPending) return;
     const age = Date.now() - agentPending.at;
-    if (age > 20000) {
-      console.warn('[af-visual] dropped agent_move pending', agentPending.msg.x, agentPending.msg.y, agentPending.msg.scene);
+    if (age > 20000 || lastAuthAt > agentPending.at) {
+      if (age > 20000) console.warn('[af-visual] dropped agent_move pending', agentPending.msg.x, agentPending.msg.y, agentPending.msg.scene);
       agentPending = null;
       return;
     }
@@ -1115,6 +1159,7 @@
     if (!item) return;
     agentPending = null;
     applyAgentMoveMsg(item, msg); // 内部含 P1.2 350ms 插值兜底
+    lastAuthAt = Date.now();
   }
 
   // P1.2 新 agent_move 到达时中止旧 tween（Review Focus 第 3 条）
@@ -1126,7 +1171,13 @@
   function onAgentMoveDone(msg) {
     if (!msg) return;
     agentMoveDoneCount++;
-    if (typeof msg.x === 'number' && typeof msg.y === 'number') lastServerPos = { x: msg.x, y: msg.y, scene: msg.scene };
+    // done 携带服务端权威实际落点：此后 serverPos() 应回落到 done 坐标
+    //（末段广播目标只是行进中的 next-target，与路线终点的服务端实落位可差 <120px，
+    // 混用会让「终点对齐」断言比错基准）
+    if (typeof msg.x === 'number' && typeof msg.y === 'number') {
+      lastServerPos = { x: msg.x, y: msg.y, scene: msg.scene };
+      lastAgentMovePayload = null;
+    }
     // P1.1 节点冗余链获取
     const node = resolvePlayerNode();
     const item = node ? getPlayerItem(node) : null;
@@ -1136,6 +1187,7 @@
         stopAgentTweens();
         const tween = cc.tween(node).to(0.15, { position: new cc.Vec2(msg.x, msg.y) }).start();
         agentMoveTweens.push(tween);
+        lastAuthAt = Date.now();
       }
       clearAgentMoveState(item);
     } else {
@@ -1390,9 +1442,8 @@
         const boxes = window.__AF_BLOCK_BOXES__;
         const mods = window.__AF_MODS__;
         if (!boxes || !mods) return;
-        const App = mods['Application'] && mods['Application'].exports;
-        const node = App && App.default && App.default.getIns && App.default.getIns().playerNode;
-        if (!node || !node.isValid) return;
+        const node = resolvePlayerNode();
+        if (!node) return;
         // 仅村场景（宅基地所在场景）生效
         const PM = mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
         const player = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
@@ -3516,6 +3567,40 @@
         },
         blackhole(n) {
           blackholeCount = Number(n) | 0;
+        },
+        // 诊断：Application.playerNode 与 PlayerMoudle._gPlayer.node 可能不是同一节点
+        //（场景重载后一方变陈旧引用，position 语义随之失真）。两套都报出来供比对。
+        nodes() {
+          const out = {};
+          const mods = window.__AF_MODS__;
+          try {
+            const App = mods && mods['Application'] && mods['Application'].exports;
+            const a = App && App.default && App.default.getIns && App.default.getIns().playerNode;
+            out.app = a ? { name: a.name, x: Math.round(a.getPosition().x), y: Math.round(a.getPosition().y), parent: a.parent ? a.parent.name : null, inScene: nodeInScene(a), valid: !!a.isValid } : null;
+          } catch (e) { out.app = 'err ' + e.message; }
+          try {
+            const PM = mods && mods['PlayerMoudle'] && mods['PlayerMoudle'].exports;
+            const p = PM && (PM._gPlayer || (PM.default && PM.default._gPlayer));
+            const n = p && p.node;
+            out.gp = n ? { name: n.name, x: Math.round(n.getPosition().x), y: Math.round(n.getPosition().y), parent: n.parent ? n.parent.name : null, inScene: nodeInScene(n), valid: !!n.isValid } : null;
+          } catch (e) { out.gp = 'err ' + e.message; }
+          try { out.same = !!(out.app && out.gp && typeof out.app !== 'string' && typeof out.gp !== 'string' && out.app.name === out.gp.name && out.app.x === out.gp.x && out.app.y === out.gp.y); } catch (e) { out.same = null; }
+          out.resolved = (() => { const n = resolvePlayerNode(); if (!n) return null; const p = n.getPosition(); return { name: n.name, x: Math.round(p.x), y: Math.round(p.y) }; })();
+          out.mods = Object.keys(mods || {}).filter((k) => /player|app|game|scene/i.test(k)).slice(0, 14);
+          out.cands = [];
+          try {
+            const scene = cc.director && cc.director.getScene();
+            if (scene && scene.walk) scene.walk((n) => {
+              if (out.cands.length >= 8 || !n || !n.isValid) return;
+              const isP = n.name && /player/i.test(n.name);
+              const wk = hasWalkAbility(n);
+              if (!isP && !wk) return;
+              out.cands.push({ name: n.name, walk: wk, parent: n.parent ? n.parent.name : null, x: Math.round(n.getPosition().x), y: Math.round(n.getPosition().y) });
+            });
+          } catch (e) { out.cands = 'err ' + e.message; }
+          out.ciTexErrs = (window.__AF_CI_ERR__ || []).slice(0, 8);
+          out.ciTexErrCount = (window.__AF_CI_ERR__ || []).length;
+          return out;
         },
         floatCount() {
           return floatTextCount;
