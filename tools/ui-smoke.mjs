@@ -300,9 +300,10 @@ if (TUT) {
   // 常驻 DOM 预算仍达标（教程条 = 1 个常驻根节点）
   let resident2 = 0;
   walkAll(documentShim.body, () => { resident2++; });
-  // 预算明细：#af-ui-root + #af-hud + 3 分区 + toast 容器（R10.1 = 9 节点）
+  // 预算明细：#af-ui-root + #af-hud + 3 分区 + toast 容器 + 右下角 Agent 状态胶囊（R10.1 = 10 节点；
+  //            Agent 胶囊为 SPEC-VISUAL-001 Task 4 明确要求的零延迟占位，非可选项）
   //            + 教程条：条 1 + hd 1 + 标题 1 + 按钮 2 + steps 容器 1 + 7 芯片 + hint 2 + 提示标题 1 + 提示正文 1 = 16
-  ok(`常驻 DOM 预算（含教程条）= ${resident2} ≤ 28（R10.1 9 + 教程条 16）`, resident2 <= 28, `实测 ${resident2}`);
+  ok(`常驻 DOM 预算（含教程条）= ${resident2} ≤ 29（R10.1 10 + 教程条 16）`, resident2 <= 29, `实测 ${resident2}`);
 }
 
 console.log(`----\nui-smoke: ${pass} pass / ${fail} fail`);
