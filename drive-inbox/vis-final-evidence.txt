@@ -1,0 +1,34 @@
+批2 P1 画面可视化活体断言：10/10 全绿
+提交：9001484（修复）+ 5a7546d（交接文档）
+双路 CI：37353358465 / 37353358463 均 completed success（HEAD 5a7546d）
+实测轮次：fix10（此前 fix3→9 逐轮定位）
+
+实测数据（tools/agent-vis-assert.mjs，?ci=1 观察者通道）
+  A dir 步随   node 位移 11562 vs 服务端 11562，终距 0px
+  C 黑洞重放   dist 0px（3 条 agent_move 全入 pending → 解开后重放）
+  D move_to    dist 0px，done=true（98 步 / 26 航点）
+  B 行为飘字   floatCount=15，felled=true，msg=树被砍倒了！获得木材 x3
+  E 面板文案   「正在砍树」
+  P0 野错      console error = 0
+
+本轮修掉的四个真因（此前 9/10 时全部未被记录）
+  1. Application.playerNode 在进村后指向脱离场景树的孤儿 PlayerItem
+     （isValid=true 但 getScene()=null，位移全打在假节点上）。
+     改祖先链校验：根节点等于 director.getScene()；getScene() 本身在进村
+     链路下会中断，不能用来判等在树内。判据 + 唯一带 changeDir 的组件。
+  2. observe 是顶层消息（回包 {t:'state'}），不是 act('observe')。
+     此前断言发错协议，treesNear 恒空，chop 从未真正发出。
+  3. 砍树需要站格 + 连砍。服务端 actionPrecheck 要求目标格相邻；
+     树 hp=30、每斧 -20，只有 hp<=0 才 publish('正在砍树')，所以 E 要砍两斧。
+     站格必须取自 observe 的 treesNear 真实树格，不能用 obstacles.regions
+     的 bbox 角格猜（异形丛角格常无树）。
+  4. 黑洞 pending 与 agent_move_done 抢跑：done 先把节点吸附到终点，
+     随后解开的 pending 又把画面 tween 回中间格（C 场景 dist 314px）。
+     加 lastAuthAt 单调权威时间戳，pending 早于它即丢弃。
+
+已知边界（断言覆盖不到）
+  - agent 在画面上是 tween 滑动，不是原版走路帧动画：快速进村路径下玩家被
+    教程置进 stateClass 缺项的状态，changeDir 抛 checkEnableState。
+    正常玩家流程下 changeDir 是否可用，未经真机验证。
+  - 沙箱 swiftshader + CI 贴图全 stub，草地/沙地接缝需真机渲染环境复核。
+  - 门3 协议回归 / 门9 回放一致性本轮未跑。
