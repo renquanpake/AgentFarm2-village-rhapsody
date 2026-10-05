@@ -58,13 +58,19 @@ jobs:
           [ $RC -eq 0 ] || { echo "=== server log ==="; cat server-ci.log; exit 1; }
           echo "协议回归通过"
 
-      # 门 4：秘密扫描（gitleaks；豁免见 .gitleaks.toml 的 allowlist——历史明文密钥待轮换，轮换后移除豁免）
+      # 门 4：秘密扫描（gitleaks 直调 CLI；2026-10-05 替换 gitleaks-action@v2 wrapper——
+      # 该 wrapper 不再接受 input-path/config/scan-history 输入，且在 runner 强制 Node 24 下
+      # 报 "Unexpected exit code [1]" 假红（gitleaks 自身输出 no leaks found）。语义与原配置等价：
+      # 扫工作树（等价 input-path:. + scan-history:false），豁免见 .gitleaks.toml allowlist）
       - name: 门4 gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          input-path: .
-          config: .gitleaks.toml
-          scan-history: false
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_${GITLEAKS_VER}_linux_x64.tar.gz -o /tmp/gl.tgz \
+            || curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gl.tgz
+          tar xzf /tmp/gl.tgz -C /tmp gitleaks
+          /tmp/gitleaks dir . --config .gitleaks.toml --redact --exit-code 2 --no-banner \
+            --report-format sarif --report-path gitleaks-results.sarif
+        env:
+          GITLEAKS_VER: 8.24.3
 
       # 门 5：原版外壳哈希（Cocos 外壳只读约束）
       - name: 门5 原版哈希
