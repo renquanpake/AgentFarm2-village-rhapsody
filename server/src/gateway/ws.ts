@@ -12,33 +12,9 @@ import {
   trackSceneTogether, registerScenePeer, dropScenePeer, resolveOnlineUid, resolveAnyUid,
   RELATION_DEFS,
 } from '../world/social.ts';
-import { TASK_DEFS, tasksOf, taskCount, taskView } from '../world/tasks.ts';
-import { socialGive, socialBind } from '../world/social-actions.ts';
-import { loadHomeSlots, homeSlotViolation, homeSpawnPx, slotOfPlayer, type HomeSlotDoc } from '../world/spawn-slots.ts';
-
-// B4 槽位表缓存（data/home-slots.json 变更极少；30s 一次足够，避免每次移动读盘）
-let homeSlotsCache: { doc: HomeSlotDoc | null; at: number } = { doc: null, at: 0 };
-function homeSlots(dataDir: string): HomeSlotDoc | null {
-  const now = Date.now();
-  if (now - homeSlotsCache.at > 30_000) homeSlotsCache = { doc: loadHomeSlots(dataDir), at: now };
-  return homeSlotsCache.doc;
-}
-import { onboardingCount, onboardingView } from '../world/onboarding.ts';
-import { seasonEventsView } from '../world/season-events.ts';
-import { metricsAction, metricsSessionStart, metricsSessionEnd } from '../world/metrics.ts';
-import { guardSaveKey, guardTeleport } from '../world/save-guard.ts';
-import { recordAgentOp, recapView, opsOf } from '../world/agent-log.ts';
-import { pushAgentMail, agentMailOf, pushAsk, asksOf, ASK_KEY } from '../world/agent-mail.ts';
-
-// 查询类动作不写行为流水（否则「看流水」本身会污染流水，问答里出现「他刚看了流水」）
-const SILENT_OPS = new Set(['recap', 'mail', 'reply', 'observe', 'inbox', 'chat_log', 'dm_log', 'agent_move_state']);
-import { economyHookEnabled, economyHookFrozenMsg } from '../world/economy-gates.ts';
+import { TASK_DEFS, tasksOf, taskCount } from '../world/tasks.ts';
 import { worldPlants, worldPlots, worldSprinklers, growPlants, plantAtWorld, cropAtWorld, knapAdd, knapHas, knapSub, treeOf, nextPlantUid, soilAt, waterAt, plotAt } from '../world/farm.ts';
 import { PLANT_CROPS, pickWeighted, FISH_POOL, MINE_POOL } from '../world/tables.ts';
-import { catalogNotice } from '../world/act-catalog.ts';
-import { npcDialoguePrompt } from '../world/dialogue-prompt.ts';
-import { tutorialAct, tutorialProgress, tutorialSteps } from '../world/tutorial.ts';
-import { rulesPrompt } from '../world/rules-prompt.ts';
 import { freshSeed, pickWeightedSeeded } from '../world/rng.ts';
 import { WORLD_KEYS } from '../persistence/state.ts';
 import { doBuy, shopTable } from '../market/shop.ts';
@@ -47,31 +23,23 @@ import { navGridFromTables } from '../navigation/navgen.ts';
 import { applyRoads, roadOf, type RoadLine } from '../navigation/roads.ts';
 import { municipalOf, buildingTargetOf } from '../navigation/municipal.ts';
 import { astarClearance, checkArrive, snapInteraction, planRoute } from '../navigation/hpath.ts';
-import { cellKindOf, bestStandCell, moveFailMsg, actionPrecheck } from '../navigation/reloc.ts';
 import { feedAnimal, petAnimal, adoptAnimal, worldAnimals, ANIMALS } from '../world/livestock.ts';
 import { cook, buildFacility } from '../world/cooking.ts';
 import { placeDecor, removeDecor, courtyardScore, courtyardCompletion, courtyardContest } from '../world/decor.ts';
 import { recordFestivalScore, stallFee, activeFestival } from '../world/festival.ts';
-import { currentGameDay, calendarDay, weatherOf, STORM_INSURANCE_PER_PLANT } from '../world/calendar.ts';
+import { currentGameDay, calendarDay, STORM_INSURANCE_PER_PLANT } from '../world/calendar.ts';
 import { trainAttr, fitnessOf, GYM_ATTR_NAME, GYM_ATTRS } from '../world/fitness.ts';
 import { gate, FISH_COOLDOWN_MS, MINE_COOLDOWN_MS } from '../world/stamina.ts';
 import { recordGossip, isSignificant, latestGossip } from '../world/gossip.ts';
 import { publishNotice } from '../world/notices.ts';
 import { publish as delegatePublish, accept as delegateAccept, complete as delegateComplete, listFor as delegateList } from '../world/delegate.ts';
 import { openLease, care as careLease, tickLease as tickLeaseClock, regrow as regrowNow, leaseOf } from '../world/lease.ts';
-import { tryClaim, release as releaseClaim, claimsOf as myClaims, holderOf as claimHolder, type ClaimKind } from '../world/claims.ts';
 import type { AgentPos } from '../types.ts';
 import { observeState } from '../cognition/observe.ts';
 import { notePlayerOp, publishAgentActivityGlobal } from '../cognition/managed.ts';
 
 // 模块级共享（与 legacy 等价：shop 价目表启动时算一次）
 let shopCache: { tables: App['tables']; table: Record<number, Array<[number, number]>> } | null = null;
-// P4 教程步骤表缓存（每次 act 都读 JSON 会把热路径拖慢；换档/换 tables 时失效）
-let tutCache: { tables: App['tables']; steps: ReturnType<typeof tutorialSteps> } | null = null;
-function tutStepsOf(app: App): ReturnType<typeof tutorialSteps> {
-  if (!tutCache || tutCache.tables !== app.tables) tutCache = { tables: app.tables, steps: tutorialSteps(app.tables) };
-  return tutCache.steps;
-}
 export function shopOf(app: App): Record<number, Array<[number, number]>> {
   if (!shopCache || shopCache.tables !== app.tables) shopCache = { tables: app.tables, table: shopTable(app.tables) };
   return shopCache.table;
@@ -119,10 +87,7 @@ function navOf(app: App, scene?: number): ReturnType<typeof navGridFromTables> |
   }
   const mapName = sceneNameCache!.byScene.get(scene);
   if (!mapName) return null;
-  // B4：场景 1 优先用槽位化导航（多槽纵向拼接 + 槽间阻挡），无则回落单槽
-  const file = (scene === 1 && homeSlots(app.dataDir))
-    ? path.join(navDir, 'nav-zhujuejia-slots.json')
-    : path.join(navDir, `nav-${mapName}.json`);
+  const file = path.join(navDir, `nav-${mapName}.json`);
   const r = readNavJson(file);
   if (!sceneNavFileCache || sceneNavFileCache.file !== file || sceneNavFileCache.mtimeMs !== r.mtimeMs) {
     sceneNavFileCache = { file, mtimeMs: r.mtimeMs, nav: r.data as ReturnType<typeof navGridFromTables> | null };
@@ -157,22 +122,6 @@ export function normXYOf(app: App, x: unknown, y: unknown): { x: number; y: numb
   return normXY(app.tables, x, y);
 }
 
-// ---------- CI 旁路观察者（验收工具与玩家同 uid 共存） ----------
-
-/** CI 连接判定：join 载荷带 ci=1，或升级 URL 带 is_ci_bot=true（两方案等价，工具侧任选） */
-export function isCiJoin(msg: Record<string, unknown>, url?: URL | null): boolean {
-  if (String(msg.ci ?? '') === '1') return true;
-  return url?.searchParams.get('is_ci_bot') === 'true';
-}
-
-/** 把 agent 自身视角消息补发给同 uid 的 CI 观察者（玩家侧广播照旧走 state.online） */
-export function mirrorToCiObs(state: WorldState, uid: string, payload: Record<string, unknown>): void {
-  const set = state.ciObs.get(uid);
-  if (!set || !set.size) return;
-  const raw = JSON.stringify(payload);
-  for (const w of set) { if (w.readyState === 1) w.send(raw); }
-}
-
 // ---------- 托管移动广播（agent_move 给自己的客户端；move 给别人） ----------
 // seg = 当前航点序号（D1 执行确认闭环：客户端按 seg 回报 agent_arrive）
 // passage = 场景切换门户名（跨场景段：客户端据此走原版 changeSceneEasy）
@@ -183,7 +132,6 @@ function publishAgentMove(app: App, state: WorldState, uid: string, pos: { x: nu
     if (otherUid === uid) sendTo(player, { t: 'agent_move', scene: pos.scene, x: pos.x, y: pos.y, seg, passage });
     else sendTo(player, { t: 'move', uid, scene: pos.scene, x: pos.x, y: pos.y });
   }
-  mirrorToCiObs(state, uid, { t: 'agent_move', scene: pos.scene, x: pos.x, y: pos.y, seg, passage });
 }
 
 function publishAgentMoveDone(app: App, state: WorldState, uid: string, pos: { x: number; y: number; scene: number }): void {
@@ -193,7 +141,6 @@ function publishAgentMoveDone(app: App, state: WorldState, uid: string, pos: { x
     if (otherUid === uid) sendTo(player, { t: 'agent_move_done', scene: pos.scene, x: pos.x, y: pos.y });
     else sendTo(player, { t: 'move', uid, scene: pos.scene, x: pos.x, y: pos.y });
   }
-  mirrorToCiObs(state, uid, { t: 'agent_move_done', scene: pos.scene, x: pos.x, y: pos.y });
 }
 
 function persistAgentPosition(app: App, state: WorldState, uid: string, pos: { x: number; y: number; scene: number }): void {
@@ -420,10 +367,9 @@ async function runNavTask(app: App, state: WorldState, uid: string, apos: AgentP
 // ============================================================
 // 游戏通道 /ws
 // ============================================================
-export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
+export function gameConn(app: App, ws: WebSocket): void {
   const state = app.state;
   let uid: string | null = null;
-  let ciMode = false; // CI 旁路观察连接：只收不发，不占单点登录名额
   const send = (obj: unknown) => { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); };
   // 协议/网络层错误（如消息超过 maxPayload）只断开该连接，绝不冒泡崩溃进程
   ws.on('error', () => { try { ws.terminate(); } catch { /* ignore */ } });
@@ -443,20 +389,6 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         }
         let nick = String(msg.nick || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16);
         if (!nick) nick = '玩家' + uid.slice(-4);
-        // CI 旁路观察：与玩家同 uid 共存（跳过踢人 / 不写 online / 不广播 player_join），
-        // 只旁收 agent_move / agent_move_done / agent_activity，供画面可视化活体断言用。
-        if (isCiJoin(msg, url)) {
-          ciMode = true;
-          if (!state.playersDb.has(uid)) state.playersDb.set(uid, new Map());
-          let set = state.ciObs.get(uid);
-          if (!set) { set = new Set(); state.ciObs.set(uid, set); }
-          set.add(ws);
-          send({ t: 'welcome', uid, ci: true, players: Array.from(state.online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })) });
-          const myAgent = app.agentSockets.has(uid);
-          send({ t: 'agent_status', online: myAgent, nick: myAgent ? nick : null });
-          console.log(`[join:ci] ${uid} (${nick}) 旁路观察，在线:${state.online.size}`);
-          break;
-        }
         // 单点登录：同一 uid 重复上线时踢掉旧连接
         const old = state.online.get(uid);
         if (old && old.ws && old.ws !== ws) {
@@ -465,7 +397,6 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
           setTimeout(() => { try { oldWs.terminate(); } catch { /* ignore */ } }, 200);
         }
         if (!app.state.playersDb.has(uid)) app.state.playersDb.set(uid, new Map());
-        metricsSessionStart(app, uid); // N8：会话埋点（首登/会话数/当日活跃）
         state.online.set(uid, { ws, uid, nick, scene: (msg.scene as number | undefined) ?? 0, x: (msg.x as number | undefined) ?? 0, y: (msg.y as number | undefined) ?? 0 });
         // 跟踪同场景共处（自动 DM 解锁）
         for (const [k, o] of state.online) if (k !== uid && o.scene === state.online.get(uid)!.scene) registerScenePeer(state, uid, k, o.scene);
@@ -474,8 +405,6 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         send({ t: 'agent_status', online: myAgent, nick: myAgent ? nick : null });
         for (const [k, p] of state.online) if (k !== uid) sendTo(p, { t: 'player_join', p: { uid, nick } });
         console.log(`[join] ${uid} (${nick}) 在线:${state.online.size}`);
-        // P4 教程第 1 步（认识你的小人与镜头）：玩家进入世界即视为已看引导（客户端同时会 act onboarding）
-        tutorialAct(state, uid, 'onboarding', true, tutStepsOf(app));
         break;
       }
       case 'save': {
@@ -494,7 +423,6 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         if (kvArr.length > 1000) (msg as { kv: unknown[] }).kv = kvArr.slice(0, 1000);
         const kvOut: Array<[string, unknown]> = [];
         let touchedWorld = false;
-        let guarded = 0;
         for (const item of (msg.kv as unknown[])) {
           if (!Array.isArray(item) || item.length < 1) continue;
           const key = String(item[0]);
@@ -508,26 +436,6 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
           const b = bucketOf(key);
           // 未知 key 按玩家私有处理；name 剥净 uid 类后缀，防复合污染世界档
           const name = b ? b[1] : key.replace(/(_\d+|_u[0-9a-f]+)+$/g, '');
-          // D17 客户端直写防护：服务端专属桶拒写 / 背包增量封顶 / 未注册键拒写（见 world/save-guard.ts）
-          const verdict = guardSaveKey(name, b ? b[0] : 'player', val,
-            b && b[0] === 'player' ? state.playersDb.get(uid)?.get(name) : state.world.get(name));
-          if (!verdict.allow) {
-            guarded++;
-            console.log(`[save] 拒写 ${key}（${verdict.reason}${verdict.detail ? '：' + verdict.detail : ''}）`);
-            // 背包超限时保留服务端现值继续下发，保证客户端与服务端账本一致
-            if (verdict.value !== null) kvOut.push([key, JSON.stringify(verdict.value)]);
-            continue;
-          }
-          val = verdict.value;
-          // D17 瞬移检测（纯内存会话样本，不落盘）：同场景相邻两次 save 位移超阈值即回落上一次权威坐标
-          if (b && b[0] === 'player' && name === 'playerData') {
-            const tp = guardTeleport(uid, val);
-            if (!tp.allow) {
-              guarded++;
-              console.warn(`[save] 瞬移拦截 ${key}（${tp.detail}）`);
-              val = tp.value;
-            }
-          }
           if (b && b[0] === 'world') {
             // socialData 是服务器权威键（玩家间好感/关系），客户端回推的旧快照会覆盖实时数据，必须忽略
             if (name !== 'socialData') { state.world.set(name, val); if (WORLD_KEYS.has(name)) touchedWorld = true; }
@@ -539,7 +447,6 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
           kvOut.push([key, value]);
         }
         state.schedulePersist();
-        if (guarded) app.log.append('save.guarded', uid, { uid, guarded });
         if (touchedWorld) notePlayerOp(app, uid, 'save', '你（玩家）在游戏里活动，Agent 已让位等你');
         for (const k of state.online.keys()) if (k !== uid) state.queueSaveBroadcast(k, kvOut, uid);
         break;
@@ -553,24 +460,14 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         win.push(now);
         (ws as { _moveWin?: number[] })._moveWin = win;
         const cv = (v: unknown, d: number): number => { const n = Number(v); return Number.isFinite(n) && Math.abs(n) <= 1e6 ? n : d; };
-        const nextScene = msg.scene === undefined ? p.scene : Math.round(cv(msg.scene, p.scene));
-        const nextX = cv(msg.x, p.x);
-        const nextY = cv(msg.y, p.y);
-        // B4 槽位隔离：场景 1（家门口）是私有槽位，跨槽移动拒收（房子真的分家了）
-        if (nextScene === 1) {
-          const doc = homeSlots(app.dataDir);
-          const v = homeSlotViolation(doc, state.playerIdx.get(uid!) || 1, Math.floor(nextX / 100), Math.floor(nextY / 100));
-          if (v) { send({ t: 'move_blocked', reason: v }); break; }
-        }
-        p.scene = nextScene;
-        p.x = nextX;
-        p.y = nextY;
+        p.scene = msg.scene === undefined ? p.scene : Math.round(cv(msg.scene, p.scene));
+        p.x = cv(msg.x, p.x);
+        p.y = cv(msg.y, p.y);
         if (msg.scene !== undefined) {
           trackSceneTogether(state, uid!, p.scene);
           for (const [k, o] of state.online) if (k !== uid && o.scene === p.scene) registerScenePeer(state, uid!, k, p.scene);
         }
         for (const [k, o] of state.online) if (k !== uid) sendTo(o, { t: 'move', uid, scene: p.scene, x: p.x, y: p.y });
-        if (uid) tutorialAct(state, uid, 'move', true, tutStepsOf(app)); // P4 教程第 2 步（人类玩家走动）
         break;
       }
       case 'chat': {
@@ -626,9 +523,54 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
       case 'social_give': {
         const p = state.online.get(uid!);
         if (!p) break;
-        // N9：送礼实现下沉 world/social-actions.ts，人类 /ws 与 Agent /act 同源
-        const r = socialGive(app, state, uid!, String(msg.target ?? ''), msg.itemId, msg.num);
-        send({ t: 'social_result', social: 'give', ok: r.ok, msg: r.msg });
+        const target = resolveOnlineUid(state, String(msg.target || '')) || resolveAnyUid(state, app.accounts, String(msg.target || '')) || '';
+        const pB = state.online.get(target);
+        const targetAgentId = target.startsWith('agent:') ? target.slice(6) : null;
+        if (!pB && !targetAgentId) { send({ t: 'social_result', social: 'give', ok: false, msg: '对方不在线' }); break; }
+        if (pB) {
+          const nr = socialNear(state, uid!, target);
+          if (!nr.ok) { send({ t: 'social_result', social: 'give', ok: false, msg: nr.msg }); break; }
+        }
+        const itemId = Number(msg.itemId);
+        const num = Math.max(1, Math.min(99, Number(msg.num || 1)));
+        const it = app.tables.items.find(x => x.id === itemId);
+        if (!it) { send({ t: 'social_result', social: 'give', ok: false, msg: '没有这个物品' }); break; }
+        const pmA = state.playersDb.get(uid!);
+        if (!pmA || !knapHas(pmA, itemId, num)) { send({ t: 'social_result', social: 'give', ok: false, msg: `背包里没有 ${it.name}×${num}` }); break; }
+        knapSub(pmA, itemId, num);
+        const pmB = state.playersDb.get(target);
+        if (pmB) knapAdd(pmB, itemId, num);
+        const g = giftFavGain(state, app.tables, uid!, target, itemId);
+        const fav = addFav(state, uid!, target, g);
+        taskCount(state, app.tables, uid!, 'give');
+        const nmTarget = targetAgentId
+          ? `托管 ${targetAgentId}`
+          : (pB ? pB.nick : target);
+        // 事件溯源：物品转移 + 好感 + 任务 + DM 解锁
+        app.log.append('item.consumed', uid!, { uid: uid!, itemId, num });
+        app.log.append('item.gained', uid!, { uid: target, itemId, num });
+        app.log.append('social.fav', uid!, { a: uid!, b: target, delta: g });
+        app.log.append('task.progress', uid!, { uid: uid!, type: 'give', n: 1 });
+        for (const [, o] of state.online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🎁 ${p.nick} 送给了 ${nmTarget} ${it.name}×${num}，好感 +${g}` });
+        if (pB) sendTo(pB, { t: 'social_in', social: 'give', from: uid, nick: p.nick, itemId, num, fav });
+        else if (targetAgentId) {
+          // F1 离线 Agent 收货：入账 + 情绪事件（经收件箱推送，托管 agent 下次 observe 可见）
+          app.inboxPush(targetAgentId, p.nick, `收到你赠送的 ${it.name}×${num}，好感 +${g}`);
+        }
+        const giveMeet = dmUnlock(state, uid!, target);
+        if (giveMeet) {
+          app.log.append('dm.unlocked', uid!, { a: uid!, b: target });
+          announceDmUnlock(state, uid!, target, `🤝 ${p.nick} 给 ${nmTarget} 送了礼物，可以开始私聊了`);
+          pushDmUnlockedLists(state, uid!, target, app.agentSockets);
+        }
+        send({ t: 'social_result', social: 'give', ok: true, msg: `送礼成功，${nmTarget} 对你的好感 +${g}（现 ${fav}）` });
+        // F2 八卦：大额送礼入村口素材池
+        const giftCoins = itemId === 1 ? num : 0;
+        if (isSignificant('gift', giftCoins)) {
+          recordGossip(state, Date.now(), 'gift', `${p.nick} 大手笔送了 ${nmTarget} ${it.name}×${num}`);
+          publishNotice(state, Date.now(), 'generic', `村口传闻：${p.nick} 给 ${nmTarget} 送了 ${it.name}×${num}`);
+        }
+        console.log(`[social] ${p.nick} 送礼 ${nmTarget} ${it.name}x${num}`);
         break;
       }
       case 'social_fav': {
@@ -644,8 +586,27 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
       case 'social_bind': {
         const p = state.online.get(uid!);
         if (!p) break;
-        const r = socialBind(app, state, uid!, String(msg.target ?? ''), String(msg.type || 'friend'));
-        send({ t: 'social_result', social: 'bind', ok: r.ok, msg: r.msg });
+        const target = resolveOnlineUid(state, String(msg.target || '')) || '';
+        const pB = state.online.get(target);
+        if (!pB) { send({ t: 'social_result', social: 'bind', ok: false, msg: '对方不在线' }); break; }
+        const type = String(msg.type || 'friend');
+        const def = RELATION_DEFS[type];
+        if (!def) { send({ t: 'social_result', social: 'bind', ok: false, msg: '关系类型：friend(好友)/confidant(知己)/partner(伴侣)' }); break; }
+        const f = favBetween(state, uid!, target);
+        if ((f.aToB || 0) < def.level) { send({ t: 'social_result', social: 'bind', ok: false, msg: `好感不足：${def.name} 需要你对 TA 好感 ≥ ${def.level}（当前 ${f.aToB || 0}）` }); break; }
+        const { p: pair } = pairOf(state, uid!, target);
+        if (pair.relation && pair.relation !== type) { send({ t: 'social_result', social: 'bind', ok: false, msg: `你们已有其他关系（${RELATION_DEFS[pair.relation]?.name}）` }); break; }
+        pair.relation = type;
+        pair.relBy = uid!;
+        state.persist();
+        taskCount(state, app.tables, uid!, 'bind');
+        // 事件溯源：关系绑定入事件流
+        app.log.append('social.relation', uid!, { a: uid!, b: target, relation: type, by: uid! });
+        app.log.append('task.progress', uid!, { uid: uid!, type: 'bind', n: 1 });
+        for (const [, o] of state.online) sendTo(o, { t: 'chat', uid: 'sys', nick: '系统', text: `🎉 全村公告：${p.nick} 与 ${pB.nick} 结为「${def.name}」！` });
+        sendTo(pB, { t: 'social_in', social: 'bind', from: uid, nick: p.nick, relation: type, relName: def.name });
+        send({ t: 'social_result', social: 'bind', ok: true, msg: `已与 ${pB.nick} 结为「${def.name}」` });
+        console.log(`[social] ${p.nick} 与 ${pB.nick} 结为 ${def.name}`);
         break;
       }
       case 'social_unbind': {
@@ -692,8 +653,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
           total: d.count, done: !!t.done[d.id],
           reward: d.reward ? `${taskRewardNameInline(app, d.reward.id)}×${d.reward.num}` : '',
         }));
-        send({ t: 'task_list', tasks: out, view: taskView(state, app.tables, uid!) });
-        if (uid) tutorialAct(state, uid, 'tasks', true, tutStepsOf(app)); // P4 教程第 3 步（打开 📜 任务书）
+        send({ t: 'task_list', tasks: out });
         break;
       }
       case 'agent_msg': {
@@ -701,21 +661,11 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         if (!p) break;
         const text = String(msg.text || '').slice(0, 500);
         const acc = Object.values(app.accounts.accounts).find(a => a.uid === uid!);
-        const s = app.agentSockets.get(uid!);
-        const agentOnline = !!(s && s.size);
         if (acc) {
           app.inboxPush(uid!, p.nick, text);
-          pushAsk(state, uid!, text);           // 主人提问留痕，Agent 侧可读到
-          if (agentOnline) for (const w of s!) if (w.readyState === 1) w.send(JSON.stringify({ t: 'inbox_push' }));
+          const s = app.agentSockets.get(uid!);
+          if (s) for (const w of s) if (w.readyState === 1) w.send(JSON.stringify({ t: 'inbox_push' }));
         }
-        // 回执要诚实：没托管就说没托管，并给出可执行的替代（自己看行为流水）
-        send({
-          t: 'agent_msg_ack',
-          delivered: agentOnline,
-          msg: agentOnline
-            ? '已送达 Agent 收件箱（不打断它当前行动；它答完会用「回话」送到你的信箱）'
-            : '你的 Agent 当前未托管，消息不会有人处理。可在指挥面板点「启动托管」，或点「他做了什么」先看它过去的行为流水（act recap）。',
-        });
         break;
       }
       case 'dm_send': {
@@ -804,16 +754,9 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
   });
 
   ws.on('close', () => {
-    // CI 旁路观察连接：从旁路集合摘除（不碰 online，玩家连接不受影响）
-    if (ciMode && uid) {
-      const set = state.ciObs.get(uid);
-      if (set) { set.delete(ws); if (!set.size) state.ciObs.delete(uid); }
-      return;
-    }
     // 仅当关闭的是当前在线记录对应的连接时才移除（防双开被顶掉的旧连接误删新连接）
     if (uid && state.online.get(uid)?.ws === ws) {
       state.online.delete(uid);
-      metricsSessionEnd(app, uid); // N8：累计在线时长
       dropScenePeer(state, uid);
       app.narrative.liveDirector.clearWatch(uid); // M1：断开时清观战
       for (const [k, p] of state.online) sendTo(p, { t: 'player_leave', uid });
@@ -847,7 +790,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
   app.state.ensurePlayerData(uid);
   console.log(`[agent] 接入: ${nick} (${uid})`);
   if (!app.agentSockets.has(uid)) app.agentSockets.set(uid, new Set());
-  metricsSessionStart(app, uid); // N8：Agent 托管也算一次会话
   app.agentSockets.get(uid)!.add(ws);
 
   // 托管直接驱动玩家本体（相机/外观复用原版 playerNode）
@@ -931,7 +873,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
         let result: Record<string, unknown> = { ok: false, msg: 'unknown action' };
         let responseType = 'result';
         const STEP = app.agentMoveStep;
-        const CLAIM_TTL_MS = 5 * 60_000; // 抢占有效期：5 分钟未动作自动释放（过期可被别人接管）
         const publish = (text: string) => publishAgentActivityGlobal(app, uid, text);
         do {
           if (action === 'move') {
@@ -944,13 +885,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             else { result.msg = 'dir 需为 up/down/left/right'; continue; }
             if (blockedHouse(app.tables, apos.scene, nx, ny)) { result.msg = '前方有障碍'; continue; }
             if (nx < 0 || ny < 0) { result.msg = '地图边界'; continue; }
-            if ((apos.scene ?? 2) === 1) {
-              const v = homeSlotViolation(homeSlots(app.dataDir), state.playerIdx.get(uid) || 1, Math.floor(nx / 100), Math.floor(ny / 100));
-              if (v) { result.msg = v; continue; }   // B4：家门口是私有槽位，不能串门
-            }
             apos.x = nx; apos.y = ny;
-            taskCount(state, app.tables, uid, 'move');   // 任务链「找到水边/到达某处」靠它推进
-            app.log.append('task.progress', uid, { uid, type: 'move', n: 1 });
             publishAgentMove(app, state, uid, apos);
             persistAgentPosition(app, state, uid, apos);
             publish('移动中 (' + Math.round(apos.x) + ',' + Math.round(apos.y) + ')');
@@ -963,52 +898,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             console.log(`[agent-chat] ${nick}: ${text}`);
             publish('正在说话');
             result = { ok: true, sent: text };
-          } else if (action === 'tasks') {
-            // N9：任务清单纯文本出口（与 observe.tasks 同一 taskView，Agent 无需解析画面）
-            const view = taskView(state, app.tables, uid);
-            result = { ok: true, ...view };
-          } else if (action === 'recap') {
-            // 「他刚才干了什么」：结构化行为流水（世界桶 agentLogData），玩家与 Agent 读同一份
-            const nOps = Math.max(1, Math.min(50, Number(msg.n || 12)));
-            const view = recapView(state, uid, nOps);
-            result = view
-              ? { ok: true, ...view }
-              : { ok: true, total: 0, recent: [], lines: [], note: '还没有任何行为记录（每次 act 都会自动记一条）' };
-          } else if (action === 'reply') {
-            // Agent -> 主人回话：写信箱 + 推给在线主人（此前 dm_send 到自己被拒，没有回程通道）
-            const text = String(msg.text || '').trim().slice(0, 500);
-            if (!text) { result = { ok: false, msg: 'reply 需要 text（给主人回一句话）' }; continue; }
-            const asks = asksOf(state, uid);
-            const lastAsk = [...asks].reverse().find(a => !a.answered);
-            if (lastAsk) {
-              const arr = state.playersDb.get(uid)?.get(ASK_KEY) as Array<{ text: string; at: number; answered?: boolean }> | undefined;
-              if (arr) { const hit = arr.find(a => a.at === lastAsk.at); if (hit) hit.answered = true; }
-            }
-            const mail = pushAgentMail(state, uid, nick || uid, text, lastAsk?.text);
-            const owner = state.online.get(uid);
-            if (owner && owner.ws.readyState === 1) owner.ws.send(JSON.stringify({ t: 'agent_reply', from: mail.from, text: mail.text, at: mail.at, replyTo: mail.replyTo }));
-            app.log.append('agent.reply', uid, { uid, chars: text.length });
-            result = { ok: true, chars: text.length, msg: '已把这句话送到主人信箱（主人在线时立刻可见；act mail 可回读）' };
-          } else if (action === 'mail') {
-            const list = agentMailOf(state, uid, Math.max(1, Math.min(50, Number(msg.n || 5))));
-            result = { ok: true, mail: list, msg: list.length ? list.map(m => `${m.from}：${m.text}`).join(' / ') : '信箱是空的' };
-          } else if (action === 'onboarding') {
-            // N9：新手引导文本出口（下一步做什么 + 全部环节）
-            const view = onboardingView(state, app.tables, uid);
-            result = view
-              ? { ok: true, ...view }
-              : { ok: false, msg: '新手引导数据缺失（data/onboarding.json 未加载）' };
-          } else if (action === 'season') {
-            // N9：季节事件线文本出口
-            const day0 = currentGameDay(state) || 1;
-            result = { ok: true, day: day0, ...(seasonEventsView(app.tables, day0, weatherOf(day0)) || { active: [], upcoming: [], note: '事件线数据缺失' }) };
-          } else if (action === 'give') {
-            // N9：Agent 也能送礼/结关系（此前只长在 /ws 人类通道，社交任务对 Agent 恒不可完成）
-            const r = socialGive(app, state, uid, String(msg.target ?? ''), msg.itemId, msg.num);
-            result = { ok: r.ok, msg: r.msg, ...(r.ok ? { target: r.detail?.target, itemId: r.detail?.itemId, num: r.detail?.num, fav: r.detail?.fav } : {}) };
-          } else if (action === 'bind') {
-            const r = socialBind(app, state, uid, String(msg.target ?? ''), String(msg.type || 'friend'));
-            result = { ok: r.ok, msg: r.msg, ...(r.ok ? { relation: r.detail?.relation, relName: r.detail?.relName } : {}) };
           } else if (action === 'letter') {
             // P2 邮局：写信给在线目标（收件箱走 notes.pushInbox 持久化；对方 observe.inbox 可见，{t:'inbox'} 拉取）
             const to = String(msg.to || '').trim();
@@ -1018,7 +907,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             if (!target) { result = { ok: false, msg: `收信人 ${to} 不在线（在线：${Array.from(state.online.values()).map(o => o.nick).join('/') || '无'}）` }; continue; }
             app.inboxPush(String(target.uid), nick, `[letter] ${body}`);
             publish(`给${target.nick}写了封信`);
-            taskCount(state, app.tables, uid, 'letter');  // 任务链「互通书信/寄信」
             result = { ok: true, to: target.nick, msg: '信已投进对方邮局（对方 observe 的 inbox 可见）' };
           } else if (action === 'forecast') {
             // P2 气象台（北环小塔）：明日天气预告（日历确定性纯函数；投保钩子随经济类 M-B1 冻结，此处只播报）
@@ -1028,7 +916,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             if (tm.weather === 'storm') hints.push(`明日风暴：作物受灾（保险赔付 ${STORM_INSURANCE_PER_PLANT}/株 次日发放）`);
             if (tm.weather === 'rain') hints.push('明日有雨（生长 x1.5，钓点丰收）');
             if (tm.festival) hints.push(`明日节日「${tm.festival}」：赛事锚点在村中央宴会厅（observe 的 festival 字段有明细）`);
-            taskCount(state, app.tables, uid, 'forecast'); // 任务链「看天气/赴会准备」
             result = { ok: true, day, tomorrow: { season: tm.season, weather: tm.weather, festival: tm.festival }, hints, msg: `明日（第 ${day + 1} 天）${tm.weather === 'clear' ? '晴朗' : tm.weather === 'rain' ? '有雨' : tm.weather === 'snow' ? '下雪' : '风暴'}` };
           } else if (action === 'train') {
             // P2 健身房（东环新楼）：属性训练（力量/敏捷/亲和）+ 冷却；位置门：健身房门位 6 格内
@@ -1039,7 +926,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const inGym = Math.abs(Math.floor((apos.x ?? 0) / 100) - gx) <= 6 && Math.abs(Math.floor((apos.y ?? 0) / 100) - gy) <= 6;
             if (!inGym) { result = { ok: false, msg: `离健身房太远（需 move_to {near:"健身房"} 到门位附近）` }; continue; }
             const tr = trainAttr(state, uid, String(msg.attr || ''), Date.now());
-            if (tr.ok) { taskCount(state, app.tables, uid, 'train'); app.log.append('task.progress', uid, { uid, type: 'train', n: 1 }); }
             result = tr.ok
               ? { ok: true, attr: msg.attr, level: tr.level, msg: tr.msg }
               : { ok: false, waitSec: tr.waitSec, msg: tr.msg };
@@ -1063,21 +949,8 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const curScene = apos.scene ?? 2;
             const building = nearRaw && !ring ? buildingTargetOf(municipalOf(app), nearRaw) : null;
             const muNames = Array.from(municipalOf(app).buildings.values()).flat().filter(b => !b.pending && b.door).map(b => b.name).join(' / ');
-            // 地标也可作为 near 目标（村纪念碑/路口里程碑…）—— 引导文案里出现过，不列出来 Agent 会反复撞「无法解析」
-            const lmNames = Array.from(municipalOf(app).landmarks.values()).flat().filter(l => l && l.name).map(l => l.name).slice(0, 8).join(' / ');
             if (nearRaw && !ring && !building) {
-              result = { ok: false, msg: `near="${nearRaw}" 无法解析（可用：water / npc / 建筑名：${muNames || '无'}${lmNames ? '；地标名：' + lmNames : ''}）` }; continue;
-            }
-            // 场景 1 的家是私有的（B4 槽位化）：想去「家门口」时若落点是别人那一槽，
-            // 改送玩家回自己家 —— 否则「主角家门楼」这类地标会变成只有 1 号玩家能用的死目标
-            let ownHome: { x: number; y: number } | null = null;
-            if (building && building.scene === 1) {
-              const hdoc = homeSlots(app.dataDir);
-              const myIdx = state.playerIdx.get(uid) || 1;
-              if (homeSlotViolation(hdoc, myIdx, Math.floor(building.x / 100), Math.floor(building.y / 100))) {
-                const mine = homeSpawnPx(hdoc, myIdx);
-                if (mine) ownHome = mine;
-              }
+              result = { ok: false, msg: `near="${nearRaw}" 无法解析（可用：water / npc / 建筑名：${muNames || '无'}）` }; continue;
             }
             let targetScene = msg.scene === undefined ? curScene : Math.round(Number(msg.scene));
             const numOf = (v: unknown) => (v === undefined || v === null || v === '' ? NaN : Number(v));
@@ -1085,21 +958,6 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             const hasXY = Number.isFinite(cx0) && Number.isFinite(cy0);
             let tx = Math.floor(cx0 / 100), ty = Math.floor(cy0 / 100);
             if (building) { targetScene = building.scene; tx = Math.floor(building.x / 100); ty = Math.floor(building.y / 100); }
-            // 去别人家门口 -> 改送回自己家（上面的 ownHome 判定）
-            if (ownHome) { tx = Math.floor(ownHome.x / 100); ty = Math.floor(ownHome.y / 100); }
-            // B4 槽位隔离：场景 1（家门口）按玩家加入序号分槽，跨槽目标直接拒
-            // 注意：这里不要再用 spawnCell 覆盖 tx/ty —— 那是槽内局部坐标，会把
-            // near「建筑/地标」解析出来的全局坐标毁掉（实测：near 主角家门楼 ->
-            // 坐标被改成 (14,15) -> 误判「属于别人家」）。「没给任何目标」的情况
-            // 由后面的入参校验统一报错；near 到别人家由上面的 ownHome 改送自己家。
-            if (targetScene === 1) {
-              const hdoc = homeSlots(app.dataDir);
-              if (hdoc) {
-                const myIdx = state.playerIdx.get(uid) || 1;
-                const v = homeSlotViolation(hdoc, myIdx, tx, ty);
-                if (v) { result = { ok: false, msg: v }; continue; }
-              }
-            }
             // 坐标既缺又非有限（如误传 target=...）时，旧路径把 NaN 一路带到 A*/BFS，
             // 最终统一报「目标不可达（被障碍包围）」，把入参问题误诊成地形问题。
             if (!ring && !building && !hasXY) {
@@ -1124,33 +982,18 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               if (ring && !hasXY) {
                 const found = nav ? snapInteraction(nav, sx, sy, ring, 60) : null;
                 if (!found) {
-                  const altStand = nav ? bestStandCell(nav, sx, sy, [sx, sy], 60) : null;
-                  result = { ok: false, msg: (ring === 'water' ? `当前位置 (${sx},${sy}) 周边 60 格内找不到可站立的水边` : `当前位置 (${sx},${sy}) 周边 60 格内找不到可交互目标`) + (altStand ? `；建议 move_to ${altStand[0] * 100 + 50},${altStand[1] * 100 + 50}` : '') };
+                  result = { ok: false, msg: ring === 'water' ? `当前位置 (${sx},${sy}) 周边 60 格内找不到可站立的水边` : `当前位置 (${sx},${sy}) 周边 60 格内找不到可交互目标` };
                   continue;
                 }
                 goal = found;
               } else {
                 goal = (nav && snapInteraction(nav, tx, ty, ring)) ?? [tx, ty];
               }
-              const gx0 = goal[0], gy0 = goal[1];
-              if (sx === gx0 && sy === gy0) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
-              let path = (nav && astarClearance(nav, sx, sy, gx0, gy0, { wallHug: msg.wallHug === true })) ?? bfsPath(app.tables, sx, sy, gx0, gy0);
-              // 目标格在阻挡上且 A*/BFS 无法直达：吸附到 8 邻可站格重寻一次（杜绝「离目标太远」式死胡同）
-              let gx = gx0, gy = gy0;
-              if (!path && nav) {
-                const alt = bestStandCell(nav, gx0, gy0, [sx, sy], 1);
-                if (alt && (alt[0] !== sx || alt[1] !== sy)) {
-                  const p2 = astarClearance(nav, sx, sy, alt[0], alt[1], { wallHug: msg.wallHug === true }) ?? bfsPath(app.tables, sx, sy, alt[0], alt[1]);
-                  if (p2 && p2.length >= 2) {
-                    console.log(`[agent-move_to] 目标 ${gx0},${gy0} 不可直达，吸附到可站格 ${alt[0]},${alt[1]}`);
-                    path = p2; gx = alt[0]; gy = alt[1];
-                  }
-                }
-              }
-              if (!path) {
-                if (nav) result = { ok: false, msg: moveFailMsg([sx, sy], [gx, gy], nav, nav) };
-                else result = { ok: false, msg: `目标不可达（被障碍包围）：从 ${sx},${sy} 到 ${gx},${gy}（无场景导航数据）` }; continue;
-              }
+              const gx = goal[0], gy = goal[1];
+              if (sx === gx && sy === gy) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
+              const path = (nav && astarClearance(nav, sx, sy, gx, gy, { wallHug: msg.wallHug === true })) ?? bfsPath(app.tables, sx, sy, gx, gy);
+              console.log(`[agent-move_to] 路径: ${path ? path.length + ' 步' : '不可达'}（目标吸附到 ${gx},${gy}）`);
+              if (!path) { result = { ok: false, msg: '目标不可达（被障碍包围）' }; continue; }
               if (path.length < 2) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
               // 曾经的"单段 <=60 格"硬上限是还没有航点确认环时的权宜：现在 D1 段确认环
               // 已经把长路线按每 4 格一航点拆段、逐段等 arrive 确认+偏差重规划，长度不再靠拒绝兜底。
@@ -1196,8 +1039,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                 segMs: app.navArriveTimeoutMs,
                 ...(road ? { road } : {}),
               };
-              taskCount(state, app.tables, uid, 'move_to');   // 任务链「到达某处」以发起寻路为准（走完还有 arrive 确认环）
-responseType = 'move_started';
+              responseType = 'move_started';
               continue;
             }
             // 跨场景：D6 门户图 Dijkstra + 场景内 A*（planRoute 全量重规划级）
@@ -1211,12 +1053,7 @@ responseType = 'move_started';
               { scene: targetScene, x: goal[0] * 100 + 50, y: goal[1] * 100 + 50 },
               (sc) => navOf(app, sc), portalsOf(app), { wallHug: msg.wallHug === true },
             );
-            if (!pr.ok) {
-              const gk: 'open' | 'block' | 'water' | 'tree' | 'out' = toNav ? cellKindOf(toNav, goal[0], goal[1]) : 'out';
-              const gkCn = { open: '空地', block: '建筑/障碍', water: '水面', tree: '树丛', out: '越界' } as Record<'open' | 'block' | 'water' | 'tree' | 'out', string>;
-              const altCross = toNav ? bestStandCell(toNav, goal[0], goal[1], [tx, ty], 1) : null;
-              result = { ok: false, msg: `${pr.msg || '跨场景不可达'}；目标格 ${goal[0]},${goal[1]}（${gkCn[gk]}）${altCross ? `；建议改投 ${altCross[0] * 100 + 50},${altCross[1] * 100 + 50}` : ''}` }; continue;
-            }
+            if (!pr.ok) { result = { ok: false, msg: pr.msg || '跨场景不可达' }; continue; }
             if (pr.waypoints.length < 1) { result = { ok: true, msg: '已经在目标位置，无需移动' }; continue; }
             publish(`跨场景赶路中：${curScene} -> ${targetScene}（${pr.waypoints.length} 航点）`);
             const wps2: Array<{ scene: number; x: number; y: number; cellI: number }> = pr.waypoints.map((w, i) => ({ scene: w.scene, x: w.x, y: w.y, cellI: i }));
@@ -1239,8 +1076,7 @@ responseType = 'move_started';
               next: { index: 0, x: wps2[0].x, y: wps2[0].y },
               segMs: app.navArriveTimeoutMs,
             };
-            taskCount(state, app.tables, uid, 'move_to');   // 任务链「到达某处」以发起寻路为准（走完还有 arrive 确认环）
-responseType = 'move_started';
+            responseType = 'move_started';
           } else if (action === 'arrive') {
             // D1 确认环：agent/客户端确认到达第 i 个航点（偏差超限由服务端自动重规划；连续 3 次超限终止路线）
             const idx = Number(msg.index ?? 0);
@@ -1274,28 +1110,17 @@ responseType = 'move_started';
               // 天气/季节给模型中文名：原始键（clear/spring）会被 LLM 原样念给玩家听
               const WX_CN: Record<string, string> = { clear: '晴', rain: '雨', snow: '雪', storm: '风暴' };
               const SEASON_CN: Record<string, string> = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
-              // P3：规则上下文完整版一次拼装（权威源），对话与归因共用同一份 rulesHash
-              const rules = rulesPrompt(app, { budget: 'full', uid });
-              const system = npcDialoguePrompt({ npcName: npc.name || `NPC${npcId}`, identity: persona.identity, tagline: persona.tagline, desc: persona.desc, day, seasonCn: SEASON_CN[tm.season] ?? tm.season, weatherCn: WX_CN[tm.weather] ?? tm.weather, festival: tm.festival, gossip: (() => { const g = latestGossip(state); return g ? g.text : null; })() }, rules);
+              const system = `${npc.name}，${persona.identity}。口头禅：${persona.tagline}。性格：${persona.desc} 当前：第${day}天 ${SEASON_CN[tm.season] ?? tm.season}季、${WX_CN[tm.weather] ?? tm.weather}${tm.festival ? '，今天是「'+tm.festival+'」节' : ''}。${(() => { const g = latestGossip(state); return g ? `村里最近的事：${g.text}（可顺带一提）。` : ''; })()}用村民口吻说话，中文回答`;
               const userMsg = String(msg.text || '你好');
               ;(async () => {
                 try {
                   const reply = await app.cognition.llm(uid).chat(uid, system, userMsg, 'dialogue') ?? fallback;
-                  // 归因：把本次对话依据的规则版本 hash 记进行为流水（回答质量可追责到规则版本）
-                  // 归因记在同一条 talk 流水上（不另开 talk_npc：通用出口已记一条，会变双份且 actionCn 无中文名）
-                  const lastOp = opsOf(state, uid, 1)[0];
-                  if (lastOp && lastOp.action === 'talk') {
-                    lastOp.detail = `与 ${npc.name} 对话：${String(reply).slice(0, 60)}`;
-                    lastOp.rulesHash = rules.rulesHash;
-                  }
-                  send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}`, rulesHash: rules.rulesHash });
-                } catch (e) { console.warn(`[talk] NPC 对话失败（已降级为 tagline）：${e instanceof Error ? e.message : String(e)}`); }
+                  send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}` });
+                } catch { /* llm 不可用：已发价目表，对话降级 */ }
               })();
             }
             // 无 persona / 无认知栈时同步给一句 tagline，不让玩家的搭话落空（dialogue=null 像哑巴）
             const syncReply = persona ? persona.tagline : `……（${npc.name}似乎不太想说话）`;
-            taskCount(state, app.tables, uid, 'talk');   // 任务链「询价/搭话」：NPC 对话也算 talk
-            app.log.append('task.progress', uid, { uid, type: 'talk', n: 1 });
             result = { ok: true, msg: `${pricePart}\n${npc.name}：${syncReply}`, priceList: priceLines, dialogue: syncReply };
           } else if (action === 'buy') {
             const itemId = Number(msg.itemId || msg.item);
@@ -1367,7 +1192,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
+            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
             if (plotAt(state, gx, gy)) { result.msg = '这块地已经犁过了'; continue; }
             if (plantAtWorld(state, gx, gy)) { result.msg = '这个格子上有植物了'; continue; }
             if (waterAt(app.tables, gx, gy) || blockedAt(app.tables, gx, gy)) { result.msg = '这个格子不能犁（水面/障碍）'; continue; }
@@ -1383,7 +1208,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
+            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
             const p = cropAtWorld(state, gx, gy);
             if (!p) { result.msg = '这个格子上没有作物可浇'; continue; }
             if (p.farmType !== 1) { result.msg = '这是场景植物，不需要浇水'; continue; }
@@ -1406,7 +1231,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
+            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = `离目标太远（需要站在目标格相邻格，当前 (${px},${py}) 目标 (${gx},${gy})）`; continue; }
             if (!knapHas(pm, seedId, 1)) { result.msg = `背包里没有 ${crop.name}种子（先用 buy 买 id=${seedId}）`; continue; }
             if (!soilAt(app.tables, gx, gy) && !plotAt(state, gx, gy)) { result.msg = `这个格子不能种（${gx},${gy}）：不是可种土或农田`; continue; }
             if (plantAtWorld(state, gx, gy)) { result.msg = '这个格子已经有植物了'; continue; }
@@ -1425,9 +1250,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
-            const _holderplot = claimHolder(state, 'plot', `plot@${gx},${gy}`);
-            if (_holderplot && _holderplot !== uid) { result = { ok: false, holder: _holderplot, msg: `这块地已被 ${_holderplot} 认领（5 分钟后可接管）` }; continue; }
+            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
             const p = cropAtWorld(state, gx, gy);
             if (!p) { result.msg = '这个格子上没有作物'; continue; }
             if (p.farmType !== 1) { result.msg = '这不是你种的作物（是场景植物）'; continue; }
@@ -1451,12 +1274,9 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
+            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
             const p = growPlants(state).find(pl => pl.x === gx && pl.y === gy && treeOf(pl));
             if (!p) { result.msg = '这个格子上没有树'; continue; }
-            const _holdertree = claimHolder(state, 'tree', `tree@${Math.floor(_t.x / 100)},${Math.floor(_t.y / 100)}`);
-            if (_holdertree && _holdertree !== uid) { result = { ok: false, holder: _holdertree, msg: `这块资源已被 ${_holdertree} 认领（act claims 看清单；5 分钟后可接管）` }; continue; }
-
             p.hp = (p.hp || 10) - 20;
             if (p.hp <= 0) {
               worldPlants(state).splice(worldPlants(state).indexOf(p), 1);
@@ -1498,10 +1318,8 @@ responseType = 'move_started';
             result = { ok: true, caught: { itemId: fid, name: nameOf(app, fid) }, msg: `钓到一条${nameOf(app, fid)}！已放入背包` };
           } else if (action === 'mine') {
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const mineIdx = app.tables.mineSpots.findIndex(sp => Math.abs(sp.gx - px) <= 2 && Math.abs(sp.gy - py) <= 2);
-            if (mineIdx < 0) { result.msg = '附近没有矿山（在村庄边缘的矿点附近才能挖矿）'; continue; }
-            const _holdermine = claimHolder(state, 'mine', `mine@${mineIdx}`);
-            if (_holdermine && _holdermine !== uid) { result = { ok: false, holder: _holdermine, msg: `这个矿点已被 ${_holdermine} 认领（5 分钟后可接管）` }; continue; }
+            const nearSpot = app.tables.mineSpots.some(sp => Math.abs(sp.gx - px) <= 2 && Math.abs(sp.gy - py) <= 2);
+            if (!nearSpot) { result.msg = '附近没有矿山（在村庄边缘的矿点附近才能挖矿）'; continue; }
             if (!knapHas(pm, 58, 1)) { result.msg = '没有镐（id=58）'; continue; }
             // 采集冷却：挖矿更耗体力，冷却更长
             const mg = gate(state, uid, 'mine', MINE_COOLDOWN_MS, Date.now());
@@ -1524,7 +1342,7 @@ responseType = 'move_started';
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
-            const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
+            if (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1) { result.msg = '离目标太远（需要站在目标格相邻格）'; continue; }
             if (!knapHas(pm, itemId, 1)) { result.msg = `背包里没有 ${it.name}（先用 buy 买 id=${itemId}）`; continue; }
             if (worldSprinklers(state).find(s => s.x === gx && s.y === gy)) { result.msg = '这个格子已经安装了洒水器'; continue; }
             if (waterAt(app.tables, gx, gy) || blockedAt(app.tables, gx, gy)) { result.msg = '这个格子不能安装洒水器（水面/障碍）'; continue; }
@@ -1535,7 +1353,6 @@ responseType = 'move_started';
             app.log.append('sprinkler.placed', uid, { x: gx, y: gy, level: level ?? 0, owner: uid });
             const rangeLabel: Record<number, string> = { 1: '3×3', 2: '5×5', 3: '7×7' };
             const rangeTxt = rangeLabel[level ?? 1];
-            taskCount(state, app.tables, uid, 'place');   // 任务链「安装洒水器/庭院布置」
             result = { ok: true, placed: { name: it.name, gx, gy, level, range: rangeTxt }, msg: `已安装${it.name}（覆盖 ${rangeTxt} 范围，每天自动浇水2次）` };
           } else if (action === 'adopt') {
             // B9 领养动物（受畜棚容量限制）
@@ -1603,12 +1420,9 @@ responseType = 'move_started';
             const score = courtyardScore(state, app.tables, uid);
             const comp = courtyardCompletion(state, app.tables, uid, houseId);
             const rank = courtyardContest(app);
-            taskCount(state, app.tables, uid, 'courtyard'); // 任务链「庭院竞赛/布置验收」
             result = { ok: true, score, completion: Math.round(comp * 100) + '%', rank: rank.slice(0, 10) };
           } else if (action === 'stall') {
             // B11 节日集市开摊：摊位费 = 基础 100 × B3 通胀回收系数（节日日集市开启）
-            // M-B1 影子观察窗判门前冻结（economy-gates）：此前无闸，实际已向玩家收费，与 hooks 声明相反
-            if (!economyHookEnabled('stall')) { result = { ok: false, msg: economyHookFrozenMsg('stall', '集市开摊') }; continue; }
             const fest = activeFestival(app);
             if (!fest) { result = { ok: false, msg: '今天不是节日，集市未开启（每季最后一天有节日）' }; continue; }
             const fee = stallFee(app);
@@ -1617,7 +1431,6 @@ responseType = 'move_started';
             if (!stalls.some(s => s.uid === uid)) stalls.push({ uid, ts: Date.now() });
             state.world.set('afStalls', stalls);
             state.persist();
-            taskCount(state, app.tables, uid, 'stall');   // 任务链「节日开摊」
             app.log.append('market.stall', uid, { uid, fee, festival: fest });
               publish(`${nick} 在集市开了摊位（费 ${fee}）`);
               result = { ok: true, fee, festival: fest, msg: `已在${fest}集市开摊（摊位费 ${fee}，含通胀系数）` };
@@ -1628,7 +1441,6 @@ responseType = 'move_started';
               if (op === 'publish') {
                 const r = delegatePublish(state, uid, String(msg.task || '未注明任务'), Number(msg.itemId || 1), Math.max(1, Math.min(9999, Number(msg.num || 1))), tick);
                 if (r.ok) {
-                  taskCount(state, app.tables, uid, 'delegate');  // 任务链「挂出委托」
                   app.log.append('delegate.published', uid, { uid, id: r.id, task: String(msg.task), itemId: Number(msg.itemId || 1), num: Number(msg.num || 1) });
                   recordGossip(state, tick, 'delegate', `${nick} 挂出委托「${String(msg.task || '未注明任务')}」，报酬 ${Number(msg.num || 1)}${msg.itemId === 1 ? ' 金币' : ''}`);
                 }
@@ -1648,66 +1460,22 @@ responseType = 'move_started';
                 const filter = msg.filter === 'accepted' ? 'accepted' : (msg.filter === 'by' ? 'by' : undefined);
                 result = { ok: true, list: delegateList(state, uid, filter).map(x => ({ ...x, text: x.task })) };
               }
-            } else if (action === 'claim' || action === 'release' || action === 'claims') {
-              // C 包抢占原子化：给玩家/Agent 的真实入口（此前只有单测，机制对玩家不可见）
-              // act claim {kind:'tree'|'plot'|'mine', x,y} / act release {…} / act claims（我的认领清单）
-              const tick = Date.now();
-              if (action === 'claims') {
-                const mine = myClaims(state, uid);
-                const near = mine.map(c => {
-                  const [gx, gy] = c.ref.includes('@') ? [Number(c.ref.split('@')[1]), Number(c.ref.split('@')[2] || 0)] : [NaN, NaN];
-                  return { kind: c.kind, ref: c.ref, gx, gy, px: Number.isFinite(gx) ? gx * 100 + 50 : null, py: Number.isFinite(gy) ? gy * 100 + 50 : null, since: c.since, expiresAt: c.expiresAt ?? null };
-                });
-                result = { ok: true, claims: near, msg: near.length ? near.map(c => `${c.kind}@${c.gx},${c.gy}`).join(' / ') : '当前没有认领任何资源（act claim {kind,x,y} 可认领树/地块，5 分钟内别人动不了）' };
-              } else {
-                const kind = (['tree', 'plot', 'mine', 'stall', 'generic'].includes(String(msg.kind)) ? String(msg.kind) : 'tree') as ClaimKind;
-                const _t = normXYOf(app, msg.x, msg.y);
-                const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
-                const ref = `${kind}@${gx},${gy}`;
-                if (action === 'release') {
-                  const okR = releaseClaim(state, uid, kind, ref);
-                  if (okR) { state.persist(); app.log.append('claim.released', uid, { uid, kind, ref }); }
-                  result = { ok: okR, kind, gx, gy, msg: okR ? `已放弃 ${kind}@${gx},${gy}` : '你没有认领这块资源（或已过期被别人接管）' };
-                } else {
-                  // 认领对象必须真的存在（树/已犁地块），否则抢占变成凭空占位
-                  const hasTree = growPlants(state).some(pl => pl.x === gx && pl.y === gy && treeOf(pl));
-                  const hasPlot = plotAt(state, gx, gy);
-                  if (kind === 'tree' && !hasTree) { result = { ok: false, msg: `(${gx},${gy}) 没有树（observe 的 treesNear 给可砍目标）` }; continue; }
-                  if (kind === 'plot' && !hasPlot) { result = { ok: false, msg: `(${gx},${gy}) 不是已犁地块（先 act till）` }; continue; }
-                  const r = tryClaim(state, uid, kind, ref, tick, tick + CLAIM_TTL_MS);
-                  if (!r.ok) {
-                    result = { ok: false, holder: r.holder, msg: `已被 ${r.holder} 认领（先到先得）。可以 act claim {kind:"${kind}",x,y,force:true} 等其过期，或去别处` };
-                  } else {
-                    if (r.fresh) { state.persist(); app.log.append('claim.granted', uid, { uid, kind, ref, since: tick, expiresAt: r.record.expiresAt ?? null }); }
-                    result = { ok: true, kind, gx, gy, fresh: r.fresh, expiresAt: r.record.expiresAt ?? null,
-                      msg: r.fresh ? `已认领 ${kind}@${gx},${gy}（${Math.round(CLAIM_TTL_MS / 60000)} 分钟内归你，别人动不了）` : `你已认领 ${kind}@${gx},${gy}` };
-                  }
-                }
-              }
             } else if (action === 'lease') {
               // D 包租约：open {plot,leaseMs} / care {plot} / tick / status {plot}
               const op = String(msg.op || 'status');
               const plot = String(msg.plot || '');
               const tick = Date.now();
               if (op === 'open') {
-                const leaseMs = Math.max(10_000, Math.min(600_000, Number(msg.leaseMs || 60000)));
-                openLease(state, plot, uid, tick, leaseMs);
-                state.persist();
-                app.log.append('lease.opened', uid, { plot, uid, startTick: tick, leaseMs });
-                result = { ok: true, plot, until: tick + leaseMs, msg: `租约已开（${plot}，${Math.round(leaseMs / 1000)} 秒内需照料，否则枯萎并再生）` };
+                openLease(state, plot, uid, tick, Number(msg.leaseMs || 60000));
+                result = { ok: true, plot, msg: `租约已开（${plot}）` };
               } else if (op === 'care') {
                 const r = careLease(state, plot, uid, tick, 60000);
-                if (r) { state.persist(); app.log.append('lease.cared', uid, { plot, uid, lastCareTick: r.lastCareTick, leaseMs: r.leaseMs, careCount: r.careCount }); }
-                result = { ok: !!r, plot, msg: r ? `已照料（租约延长至 ${r.lastCareTick + r.leaseMs}）` : '租约不存在或非持有者' };
+                result = { ok: !!r, plot, msg: r ? `已照料（租约延长）` : '租约不存在或非持有者' };
               } else if (op === 'tick') {
                 const w = tickLeaseClock(state, tick);
                 const rg = regrowNow(state, tick);
                 for (const pl of w) { publishNotice(state, tick, 'lease', `租约到期：${pl}`); recordGossip(state, tick, 'lease', `田块 ${pl} 租约逾期未照料，进入再生`); }
                 for (const pl of rg) { publishNotice(state, tick, 'regrow', `田块再生：${pl} 可重新认领`); }
-                if (w.length || rg.length) {
-                  state.persist();
-                  app.log.append('lease.regrown', null, { plots: [...w, ...rg] });
-                }
                 result = { ok: true, withered: w, regrown: rg };
               } else {
                 const l = leaseOf(state, plot);
@@ -1715,29 +1483,6 @@ responseType = 'move_started';
               }
             }
         } while (false);
-        // N9：动作命中新手引导 / 会话埋点（统一出口：ok 才算完成，失败不推进）
-        if (result.ok) {
-          const step = onboardingCount(state, app.tables, uid, action);
-          if (step) {
-            app.log.append('onboarding.step', uid, { uid, step: step.id, minutes: step.minutes });
-            result.onboarding = { done: step.title, next: step.doneText };
-          }
-          // P4：人类玩家 7 步教程进度（数据驱动；只认 ok 的 act，与 onboarding 同一出口）
-          const tutSteps = tutStepsOf(app);
-          tutorialAct(state, uid, action, true, tutSteps);
-          const tp = tutorialProgress(state, uid, tutSteps);
-          if (tp.done.length) result.tutorial = { done: tp.done, active: tp.active };
-          metricsAction(app, uid, action);
-        }
-        // 行为流水（成功与失败都记）：玩家问「你刚才干了什么」时，答案来自这里而不是 LLM 记忆
-        if (!SILENT_OPS.has(action)) {
-          const _pd = state.playersDb.get(uid)?.get('playerData') as { day?: number } | undefined;
-          recordAgentOp(state, uid, {
-            day: Number(_pd?.day || 0), action, ok: !!result.ok,
-            detail: String(result.msg || (result.onboarding as { done?: string } | undefined)?.done || '').slice(0, 80),
-            scene: apos.scene ?? 2, x: Math.round(apos.x ?? 0), y: Math.round(apos.y ?? 0),
-          });
-        }
         send({ t: responseType, action, seq: msg.seq, ...result });
         break;
       }
@@ -1747,13 +1492,13 @@ responseType = 'move_started';
 
   ws.on('close', () => {
     const s = app.agentSockets.get(uid);
-    if (s) { s.delete(ws); if (!s.size) { app.agentSockets.delete(uid); metricsSessionEnd(app, uid); } }
+    if (s) { s.delete(ws); if (!s.size) app.agentSockets.delete(uid); }
     console.log(`[agent] 断开: ${nick}`);
     for (const [k, p] of state.online) if (k === uid) sendTo(p, { t: 'agent_status', online: false });
   });
 
-  // 欢迎 + 初始状态（notice 由 act-catalog 派生：新增 act 自动进文档，杜绝「文档说的 ≠ 代码做的」）
-  send({ t: 'welcome', uid, nick, notice: catalogNotice() });
+  // 欢迎 + 初始状态
+  send({ t: 'welcome', uid, nick, notice: 'AgentFarm2 游戏接入。发送 {t:"observe"} 查看世界，{t:"act",action:"move|chat|buy|trade|letter|forecast|train|report|move_to|arrive",...} 行动（trade: op=place|cancel|book；letter: {to, body} 写信给在线玩家；forecast 明日天气/节日预告；train {attr:力量/敏捷/亲和} 在健身房训练；report 在银行生成资产日报；move_to 返回 waypoints，near 可填 water/npc 或建筑名（如 move_to {near:"交易大厅"} 自动跨场景到门位），可用 arrive {index,x,y} 确认航点）。' });
   send({ t: 'state', ...observeState(app, uid, username, nick) });
 }
 
