@@ -67,8 +67,10 @@ jobs:
           curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_${GITLEAKS_VER}_linux_x64.tar.gz -o /tmp/gl.tgz \
             || curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gl.tgz
           tar xzf /tmp/gl.tgz -C /tmp gitleaks
-          /tmp/gitleaks dir . --config .gitleaks.toml --redact --exit-code 2 --no-banner \
-            --report-format sarif --report-path gitleaks-results.sarif
+          # job 默认工作目录是 server/，配置与扫描根一律用 $GITHUB_WORKSPACE 绝对路径，避免相对路径错位
+          /tmp/gitleaks dir "$GITHUB_WORKSPACE" --config "$GITHUB_WORKSPACE/.gitleaks.toml" \
+            --redact --exit-code 2 --no-banner \
+            --report-format sarif --report-path "$GITHUB_WORKSPACE/gitleaks-results.sarif"
         env:
           GITLEAKS_VER: 8.24.3
 
