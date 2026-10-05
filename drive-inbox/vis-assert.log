@@ -1,0 +1,16 @@
+[agent-vis] 账号 vis_167090 uid=uc4ffdf328508
+[agent-vis] 已关弹层: 稍后再说
+[agent-vis] 已点「开始游戏」（ClickEvent.emit fired=1/1）t=20s
+[agent-vis] 已点存档槽（slot-clicked）t=5s
+PASS - boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪 | ok
+PASS - HUD 浮层常驻：历法/Agent 胶囊可见且根节点最高层级 | {"clock":"📅 第0日 · 春 · ☀️ 晴","agent":"Agent 未连接","rootZ":"999999","hudZ":"999999"}
+FAIL - A dir 步随：node 位移≈服务端且终漂移 ≤440px | node 位移 8387 vs 服务端 255; 终距 8162px
+FAIL - C 黑洞重放：解除后 2.5s 内 node 对齐服务端 | dist 5298px
+PASS - C-blackhole 钩子可用（RED 信号） | ok
+FAIL - D move_to 终点对齐：node 距服务端 ≤40px | dist 9329px (done=false) | arrive={"target":{"x":2450,"y":250,"scene":2},"index":5,"sent":false,"hosted":true,"pos":{"scene":2,"x":11776,"y":0},"connected":true}
+PASS - D-move_to 可发起（服务端未回 error） | 已开始移动：33 步 / 10 航点（客户端将按航点回报 arrive，偏差自动重规划）
+PASS - B 行为飘字：chop 后 floatCount ≥1 | fc=6 chopped=false msg=n/a
+FAIL - E 面板文案：chop 后含「砍|正在」 | 赶路中：前往 (33,5) 附近|自动执行 · 赶路中：前往 (33,5) 附近
+FAIL - 页面 console error = 0（P0 无野错） | pageerror: Cannot read properties of undefined (reading '_compressed')
+----
+[agent-vis] 5/10 通过 | report: /tmp/opencode/vis-final2/report.json

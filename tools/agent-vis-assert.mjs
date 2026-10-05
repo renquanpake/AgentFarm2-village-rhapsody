@@ -240,6 +240,24 @@ try {
   check('boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪', boot === 'ok', '__AF_TEST__ + node() 非 null',
     `${boot}${btnSeen ? '' : ' | 未见开始游戏按钮'}${slotSeen ? '' : ' | 未点存档槽'}${resource404s.length ? ' | 资源404 x' + resource404s.length : ''}`);
 
+  // 实机画面留档（SPEC-VISUAL-001 Task 5）：进村后立即截图，供人工复核 HUD 浮层与世界加载态。
+  // 注意：?ci=1 无渲染模式下贴图被 stub，画面仅能验证 DOM 浮层与世界就绪，
+  // 草沙接缝等纯视觉表现需真机渲染环境复核——沙箱内不具备该能力。
+  if (boot === 'ok') {
+    await sleep(1500);
+    await page.screenshot({ path: OUT + '/shot-world-boot.png' }).catch(() => {});
+    const hudState = await page.evaluate(() => ({
+      clock: (document.getElementById('af-hud-clock') || {}).textContent || null,
+      agent: (document.getElementById('af-hud-agent') || {}).textContent || null,
+      rootZ: (document.getElementById('af-ui-root') || { style: {} }).style?.zIndex || null,
+      hudZ: (document.getElementById('af-hud') || { style: {} }).style?.zIndex || null,
+    })).catch(() => ({}));
+    check('HUD 浮层常驻：历法/Agent 胶囊可见且根节点最高层级',
+      !!(hudState.clock && hudState.agent && String(hudState.hudZ) === '999999'),
+      '#af-hud-clock 与 #af-hud-agent 均有文本，#af-hud z-index=999999',
+      JSON.stringify(hudState));
+  }
+
   // agent WS（游戏就绪后才接入，下 act 指令）
   const aws = new WebSocket(BASE.replace(/^http/, 'ws') + '/agent?token=' + encodeURIComponent(ag.agentToken));
   await new Promise((res) => aws.on('open', res));

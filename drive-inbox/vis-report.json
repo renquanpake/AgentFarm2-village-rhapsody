@@ -1,0 +1,73 @@
+{
+  "base": "http://127.0.0.1:8098",
+  "user": "vis_167090",
+  "results": [
+    {
+      "name": "boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪",
+      "pass": true,
+      "expected": "__AF_TEST__ + node() 非 null",
+      "actual": "ok"
+    },
+    {
+      "name": "HUD 浮层常驻：历法/Agent 胶囊可见且根节点最高层级",
+      "pass": true,
+      "expected": "#af-hud-clock 与 #af-hud-agent 均有文本，#af-hud z-index=999999",
+      "actual": "{\"clock\":\"📅 第0日 · 春 · ☀️ 晴\",\"agent\":\"Agent 未连接\",\"rootZ\":\"999999\",\"hudZ\":\"999999\"}"
+    },
+    {
+      "name": "A dir 步随：node 位移≈服务端且终漂移 ≤440px",
+      "pass": false,
+      "expected": "|Δnode-Δserver| ≤240 且 dist ≤440",
+      "actual": "node 位移 8387 vs 服务端 255; 终距 8162px"
+    },
+    {
+      "name": "C 黑洞重放：解除后 2.5s 内 node 对齐服务端",
+      "pass": false,
+      "expected": "dist ≤40px",
+      "actual": "dist 5298px"
+    },
+    {
+      "name": "C-blackhole 钩子可用（RED 信号）",
+      "pass": true,
+      "expected": "blackhole() 存在",
+      "actual": "ok"
+    },
+    {
+      "name": "D move_to 终点对齐：node 距服务端 ≤40px",
+      "pass": false,
+      "expected": "dist ≤40px",
+      "actual": "dist 9329px (done=false) | arrive={\"target\":{\"x\":2450,\"y\":250,\"scene\":2},\"index\":5,\"sent\":false,\"hosted\":true,\"pos\":{\"scene\":2,\"x\":11776,\"y\":0},\"connected\":true}"
+    },
+    {
+      "name": "D-move_to 可发起（服务端未回 error）",
+      "pass": true,
+      "expected": "move_started",
+      "actual": "已开始移动：33 步 / 10 航点（客户端将按航点回报 arrive，偏差自动重规划）"
+    },
+    {
+      "name": "B 行为飘字：chop 后 floatCount ≥1",
+      "pass": true,
+      "expected": "≥1",
+      "actual": "fc=6 chopped=false msg=n/a"
+    },
+    {
+      "name": "E 面板文案：chop 后含「砍|正在」",
+      "pass": false,
+      "expected": "/砍|正在/",
+      "actual": "赶路中：前往 (33,5) 附近|自动执行 · 赶路中：前往 (33,5) 附近"
+    },
+    {
+      "name": "页面 console error = 0（P0 无野错）",
+      "pass": false,
+      "expected": "0",
+      "actual": "pageerror: Cannot read properties of undefined (reading '_compressed')"
+    }
+  ],
+  "pass": 5,
+  "total": 10,
+  "consoleErrors": [
+    "pageerror: Cannot read properties of undefined (reading '_compressed')",
+    "pageerror: Cannot read properties of undefined (reading '_compressed')",
+    "pageerror: Cannot read properties of undefined (reading '_compressed')"
+  ]
+}

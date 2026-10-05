@@ -14,6 +14,48 @@ jobs:
       - name: Build snapshot zip
         run: git archive --format=zip -o /tmp/AgentFarm-latest.zip HEAD
 
+      - name: Upload drive-inbox artifacts to Drive (回传通道)
+        env:
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+        run: |
+          set -e
+          SHOTS=$(find "$GITHUB_WORKSPACE/drive-inbox" -type f 2>/dev/null | wc -l)
+          if [ "$SHOTS" -eq 0 ]; then echo "无回传文件，跳过"; exit 0; fi
+          TOK=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id="$GDRIVE_CLIENT_ID" -d client_secret="$GDRIVE_CLIENT_SECRET" \
+            -d grant_type=refresh_token -d refresh_token="$GDRIVE_REFRESH_TOKEN" | jq -r .access_token)
+          test "$TOK" != "null" && test -n "$TOK"
+          AUTH="Authorization: Bearer $TOK"
+          # 双 Agent 协议：回传目录 AgentFarm-回传（Gemini 侧读此目录取截图/日志）
+          FOLDER=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+            --data-urlencode "q=name = 'AgentFarm-回传' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" \
+            --data-urlencode "fields=files(id)" | jq -r '.files[0].id // empty')
+          if [ -z "$FOLDER" ]; then
+            FOLDER=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" \
+              -d '{"name":"AgentFarm-回传","mimeType":"application/vnd.google-apps.folder"}' \
+              "https://www.googleapis.com/drive/v3/files?fields=id" | jq -r .id)
+          fi
+          test -n "$FOLDER"
+          find "$GITHUB_WORKSPACE/drive-inbox" -type f | while read -r f; do
+            base=$(basename "$f"); size=$(stat -c%s "$f")
+            OLD=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+              --data-urlencode "q=name = '$base' and '$FOLDER' in parents and trashed = false" \
+              --data-urlencode "fields=files(id)" | jq -r '.files[0].id // empty')
+            META=$(printf '{"name":"%s","parents":["%s"]}' "$base" "$FOLDER")
+            if [ -n "$OLD" ]; then
+              URL="https://www.googleapis.com/upload/drive/v3/files/$OLD?uploadType=resumable"; VERB=PATCH
+            else
+              URL="https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable"; VERB=POST
+            fi
+            SESS=$(curl -s -X $VERB -D - -o /dev/null -H "$AUTH" -H "Content-Type: application/json" \
+              -H "X-Upload-Content-Length: $size" -d "$META" "$URL" \
+              | grep -i '^location:' | tr -d '\r' | cut -d' ' -f2)
+            curl -s -X PUT --data-binary @"$f" "$SESS" -o /dev/null
+            echo "回传: $base ($size B)"
+          done
+
       - name: Upload to Google Drive
         env:
           GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
