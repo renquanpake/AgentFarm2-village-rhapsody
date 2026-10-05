@@ -1,0 +1,61 @@
+name: drive-pull
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'list = 列目录 | get = 按名字下载文件'
+        required: true
+        default: 'list'
+      query:
+        description: '文件名（get 模式，支持模糊包含匹配）'
+        required: false
+        default: ''
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read from Google Drive
+        env:
+          MODE: ${{ inputs.mode }}
+          QUERY: ${{ inputs.query }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_PULL_TOKEN: ${{ secrets.GDRIVE_PULL_TOKEN }}
+        run: |
+          set -e
+          TOK=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id="$GDRIVE_CLIENT_ID" -d client_secret="$GDRIVE_CLIENT_SECRET" \
+            -d grant_type=refresh_token -d refresh_token="$GDRIVE_PULL_TOKEN" | jq -r .access_token)
+          if [ -z "$TOK" ] || [ "$TOK" = "null" ]; then echo "::error::token refresh failed"; exit 1; fi
+          AUTH="Authorization: Bearer $TOK"
+          mkdir -p out
+          if [ "$MODE" = "list" ]; then
+            curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files?pageSize=500&fields=files(name,id,mimeType,size,modifiedTime)" \
+              | jq -r '.files[] | [.name, (.size // "DIR"), .id, .mimeType] | @tsv' > out/files.tsv
+            { echo '## Drive listing'; echo '```'; cat out/files.tsv; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            wc -l < out/files.tsv
+          else
+            Q="name = '$QUERY' and trashed = false"
+            RESP=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+              --data-urlencode "q=$Q" --data-urlencode "fields=files(id,name,size,mimeType)")
+            FID=$(echo "$RESP" | jq -r '.files[0].id // empty')
+            FNAME="$QUERY"
+            if [ -z "$FID" ]; then
+              Q2="name contains '$QUERY' and trashed = false"
+              RESP=$(curl -s -G -H "$AUTH" "https://www.googleapis.com/drive/v3/files" \
+                --data-urlencode "q=$Q2" --data-urlencode "fields=files(id,name,size,mimeType)")
+              echo "$RESP" | jq -r '.files[] | [.name,.id] | @tsv' | head -20 > out/matches.txt
+              FID=$(echo "$RESP" | jq -r '.files[0].id // empty')
+              FNAME=$(echo "$RESP" | jq -r '.files[0].name // empty')
+            fi
+            if [ -z "$FID" ]; then echo "NOT FOUND: $QUERY" > out/matches.txt; cat out/matches.txt; else
+              curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files/$FID?alt=media" -o "out/$FNAME"
+              echo "downloaded: $FNAME ($(stat -c%s "out/$FNAME") bytes) id=$FID" | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drive-result
+          path: out/
