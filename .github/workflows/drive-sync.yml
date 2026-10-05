@@ -1,0 +1,57 @@
+name: drive-sync
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build snapshot zip
+        run: git archive --format=zip -o /tmp/AgentFarm-latest.zip HEAD
+
+      - name: Upload to Google Drive
+        env:
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+        run: |
+          set -e
+          TOK=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id="$GDRIVE_CLIENT_ID" \
+            -d client_secret="$GDRIVE_CLIENT_SECRET" \
+            -d grant_type=refresh_token \
+            -d refresh_token="$GDRIVE_REFRESH_TOKEN" | jq -r .access_token)
+          if [ -z "$TOK" ] || [ "$TOK" = "null" ]; then echo "::error::token refresh failed"; exit 1; fi
+          AUTH="Authorization: Bearer $TOK"
+          QF="name%3D%27AgentFarm-Snapshots%27+and+mimeType%3D%27application%2Fvnd.google-apps.folder%27+and+trashed%3Dfalse"
+          FOLDER=$(curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files?q=$QF&fields=files(id)" | jq -r '.files[0].id // empty')
+          if [ -z "$FOLDER" ]; then
+            FOLDER=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" \
+              -d '{"name":"AgentFarm-Snapshots","mimeType":"application/vnd.google-apps.folder"}' \
+              "https://www.googleapis.com/drive/v3/files?fields=id" | jq -r .id)
+          fi
+          test -n "$FOLDER" && test "$FOLDER" != "null"
+          QL="name%3D%27AgentFarm-latest.zip%27+and+%27$FOLDER%27+in+parents+and+trashed%3Dfalse"
+          FILEID=$(curl -s -H "$AUTH" "https://www.googleapis.com/drive/v3/files?q=$QL&fields=files(id)" | jq -r '.files[0].id // empty')
+          META=$(printf '{"name":"AgentFarm-latest.zip","parents":["%s"]}' "$FOLDER")
+          SIZE=$(stat -c%s /tmp/AgentFarm-latest.zip)
+          if [ -n "$FILEID" ]; then
+            URL="https://www.googleapis.com/upload/drive/v3/files/$FILEID?uploadType=resumable"
+            VERB=PATCH
+          else
+            URL="https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable"
+            VERB=POST
+          fi
+          SESS=$(curl -s -X $VERB -D - -o /dev/null \
+            -H "$AUTH" -H "Content-Type: application/json" \
+            -H "X-Upload-Content-Type: application/zip" \
+            -H "X-Upload-Content-Length: $SIZE" \
+            -d "$META" "$URL" | grep -i '^location:' | tr -d '\r' | cut -d' ' -f2)
+          test -n "$SESS"
+          curl -s -X PUT --data-binary @/tmp/AgentFarm-latest.zip "$SESS" -o /tmp/upres.json
+          jq -r '"uploaded: \(.name) id=\(.id) size=\(.size)"' /tmp/upres.json
