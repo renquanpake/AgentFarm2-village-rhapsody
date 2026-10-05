@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { fringeGid, isGrassGid, sandNeighborDir } from './lib/grass-fringe.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -95,7 +96,6 @@ const inRing = (x, y) => x < SH || y < SH || x >= SH + W || y >= SH + H;
 
 // ---------- 环填充：沙底 + 草皮（值噪声，与 P0 同风格） ----------
 const SAND_GIDS = [1, 2, 3, 4];
-const GRASS_GIDS = [5, 6, 7, 8];
 let seed = 20261001;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 function hash2(x, y) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -217,8 +217,25 @@ function buildXml() {
   xml += '</map>';
   return xml;
 }
-const newXml = buildXml();
-const newRawStr = rawStr.slice(0, valStart + 1) + JSON.stringify(newXml).slice(1, -1) + rawStr.slice(valEnd);
+// ---------- 外环草-沙接缝羽化（SPEC-VISUAL-001 §2.2 / 请示2 裁决：复用共享规则，不另造逻辑） ----------
+// carve() 把外环 caodi 置 0 后，草-沙交界会出现生硬水平刀切；此处按 lib/grass-fringe.mjs
+// 的既有 GID + 翻转掩码规则，为「本格是草、邻格是裸沙」的边界格补过渡瓦片。
+// 复用共享模块的 fringeGid()/isGrassGid()/sandNeighborDir()，与 map.mjs 同一份真源。
+{
+  let patched = 0;
+  const isSandCell = (ax, ay) => getTile('caodi', ax, ay) === 0;
+  for (let y = 0; y < H2; y++) {
+    for (let x = 0; x < W2; x++) {
+      if (!inRing(x, y)) continue;
+      if (!isGrassGid(getTile('caodi', x, y))) continue;   // 只处理草格
+      const d = sandNeighborDir(isSandCell, x, y);        // 邻格裸沙的方向
+      if (d) { get('caodi')[y * W2 + x] = fringeGid(d); patched++; }
+    }
+  }
+  console.log(`外环草沙羽化: 补过渡瓦片 ${patched} 格`);
+}
+
+const newXml = buildXml();const newRawStr = rawStr.slice(0, valStart + 1) + JSON.stringify(newXml).slice(1, -1) + rawStr.slice(valEnd);
 writeFileSync(VILLAGE_JSON, encryptBuf(Buffer.from(newRawStr, 'utf8')));
 console.log('已写回地图 json(加密):', VILLAGE_JSON);
 

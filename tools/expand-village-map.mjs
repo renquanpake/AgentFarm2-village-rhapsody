@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
+import { TRANS_GIDS, GRASS_GIDS, EDGE_FLIP, fringeGid } from './lib/grass-fringe.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLIENT = join(__dirname, '..', 'client', 'assets', 'resources', 'import');
@@ -129,8 +130,6 @@ console.log('layers:', layers.map(l => l.name).join(','));
 //   gid100+翻转位 的过渡块（翻转规律：沙在东→H|D(5)、南→H(4)、北→V|D(3)、西→无(0)）；
 //   全图只有村中一处石板广场（shilu 847-903），"路"= 裸露沙地。
 const SAND_GIDS = [1, 2, 3, 4];
-const GRASS_GIDS = [5, 6, 7, 8];
-const TRANS_GIDS = [99, 100, 101];
 const ROAD_GIDS = Array.from({ length: 903 - 847 + 1 }, (_, i) => 847 + i); // 847-903 石板路
 // 草地 gid 分布（从 diji/caodi 层统计原地图权重）
 const diji = layers.find(l => l.name === 'diji').data;
@@ -217,12 +216,17 @@ for (let y = 0; y < H2; y++) {
   }
 }
 // 1.5) 接缝镜像：原版外圈 2 行/列（caodi + 装饰层）镜像到扩展区贴缝处，保证接缝色调连续
+// 坐标纪律（SPEC-VISUAL-001 §2.1，2026-10-05 修正）：原版 (W,H) 被平移到扩展网格的
+// (LEFT, TOP)，故源列 sx / 行 sy 落到扩展坐标时必须补上该偏移。
+// 修正前四条带的 dx/dy 全部漏补偏移，导致镜像带整体错位 28 格——原版最左侧的悬崖边、
+// 断层水块、碎木桩被以错误原点投射到外圈沙地，即 lot_2 的碎瓦残影/悬空水井。
+// 现在四条带一律以 LEFT/TOP 对齐（north/south 带补 dx=LEFT，west/east 带补 dy=TOP）。
 const MIRROR_LAYERS = ['caodi', 'mulan', 'mulan2', 'caoduo1', 'caoduo2', 'caodui', 'caodi2'];
 const EDGE_MIRROR = [
-  { sx: 0, sy: 0, dx: 0, dy: TOP - 2, w: W, h: 2 },
-  { sx: 0, sy: H - 2, dx: 0, dy: TOP + H, w: W, h: 2 },
-  { sx: 0, sy: 0, dx: LEFT - 2, dy: 0, w: 2, h: H },
-  { sx: W - 2, sy: 0, dx: LEFT + W, dy: 0, w: 2, h: H },
+  { sx: 0, sy: 0, dx: LEFT, dy: TOP - 2, w: W, h: 2 },
+  { sx: 0, sy: H - 2, dx: LEFT, dy: TOP + H, w: W, h: 2 },
+  { sx: 0, sy: 0, dx: LEFT - 2, dy: TOP, w: 2, h: H },
+  { sx: W - 2, sy: 0, dx: LEFT + W, dy: TOP, w: 2, h: H },
 ];
 for (const e of EDGE_MIRROR) {
   for (let dy = 0; dy < e.h; dy++) {
@@ -342,8 +346,7 @@ for (let y = 0; y < H2; y++) {
 }
 // 6.5) 道路边缘过渡块（原版路缘风格）：与"路身沙格"相邻的草格按 70% 概率换成过渡块（gid 100+翻转），
 //      点状不成排 → 既有原版的柔和渐变观感，又不会形成"亮线"。
-//      翻转规律（原版，与口嘴一致）：沙在草 N→3、S→4、W→0、E→5
-const EDGE_FLIP = { N: 3, S: 4, W: 0, E: 5 };
+//      翻转规律（原版，与口嘴一致）：沙在草 N→3、S→4、W→0、E→5 —— 见 lib/grass-fringe.mjs
 const sandBody = (x, y) => { // 沙格 ≥2 个沙邻居 = 路身（过滤 dither 单粒沙）
   let n = 0;
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isSandTile(x + dx, y + dy)) n++;
@@ -362,7 +365,7 @@ for (let y = 0; y < H2; y++) {
     else if (sandBody(x + 1, y)) d = 'E'; // 沙在东
     else if (sandBody(x - 1, y)) d = 'W'; // 沙在西
     if (!d || rnd() >= 0.7) continue;
-    get('caodi')[y * W2 + x] = 100 + EDGE_FLIP[d] * 0x20000000;
+    get('caodi')[y * W2 + x] = fringeGid(d);
   }
 }
 
@@ -384,7 +387,7 @@ for (let y = 0; y < H2; y++) {
   console.log('水塘沙岸:', shore, '格');
 }
 
-const FLIP = { N: 3, S: 4, W: 0, E: 5 }; // 沙在 N→V|D, S→H, W→无, E→H|D
+const FLIP = EDGE_FLIP; // 沙在 N→V|D, S→H, W→无, E→H|D（共享同一张翻转表，消除副本）
 const inMirrorBand = (x, y) => (x >= LEFT - 2 && x < LEFT) || (x >= LEFT + W && x < LEFT + W + 2) ||
                                (y >= TOP - 2 && y < TOP) || (y >= TOP + H && y < TOP + H + 2);
 for (let y = 0; y < H2; y++) {
@@ -395,7 +398,7 @@ for (let y = 0; y < H2; y++) {
       const ox = x + dx, oy = y + dy;
       if (!inOrigCell(ox, oy)) continue;
       const g = getTile('caodi', ox, oy);
-      if (GRASS_GIDS.includes(g)) get('caodi')[oy * W2 + ox] = 100 + FLIP[d] * 0x20000000;
+      if (GRASS_GIDS.includes(g)) get('caodi')[oy * W2 + ox] = fringeGid(d);
     }
   }
 }
@@ -408,7 +411,7 @@ for (let y = 0; y < H2; y++) {
     for (const [dx, dy, d] of [[0, -1, 'N'], [0, 1, 'S'], [-1, 0, 'W'], [1, 0, 'E']]) {
       const ox = x + dx, oy = y + dy;
       if (!inOrigCell(ox, oy)) continue;
-      if (getTile('caodi', ox, oy) === 0) { get('caodi')[y * W2 + x] = 100 + FLIP[d] * 0x20000000; break; }
+      if (getTile('caodi', ox, oy) === 0) { get('caodi')[y * W2 + x] = fringeGid(d); break; }
     }
   }
 }
