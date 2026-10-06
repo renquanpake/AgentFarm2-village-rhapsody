@@ -33,8 +33,23 @@ export class MarketService {
     if (!b) {
       b = new OrderBook(item);
       // 重启校准：自增序号须越过磁盘历史最大值。已成交/已撤销行不进 restoreOpen，
-      // 不校准则新单复用旧 id -> UNIQUE constraint failed: market_orders.id
-      const mx = (this.app.db.prepare('SELECT MAX(id) AS mx FROM market_orders WHERE item_id = ?').get(item) as { mx: number | null }).mx;
+      // 不校准则新单复用旧 id -> UNIQUE constraint failed: market_orders.id。
+      // 全成交的 taker 单从不落 market_orders（syncOpen 只同步挂单），只查 market_orders
+      // 会漏掉这段已消耗的 id，重启后新单序号回绕到已成交成交记录上。
+      // 第四支：v7 迁移前的历史成交行 maker_order/taker_order 全为 0，幽灵单号只剩
+      // order.placed 事件里那份；挂单与全成交单都必落该事件，故它给的是完整上界。
+      const mx = (this.app.db.prepare(
+        `SELECT MAX(m) AS maxId FROM (
+           SELECT MAX(id) AS m FROM market_orders WHERE item_id = ?
+           UNION ALL
+           SELECT MAX(maker_order) AS m FROM market_fills WHERE item_id = ?
+           UNION ALL
+           SELECT MAX(taker_order) AS m FROM market_fills WHERE item_id = ?
+           UNION ALL
+           SELECT MAX(json_extract(payload, '$.orderId')) AS m FROM events
+             WHERE type = 'order.placed' AND json_extract(payload, '$.item') = ?
+         )`
+      ).get(item, item, item, item) as { maxId: number | null }).maxId;
       if (mx) b.calibrateTo(mx);
       this.books.set(item, b);
     }
@@ -276,8 +291,9 @@ export class MarketService {
   }
 
   private insertFillRow(item: number, f: Fill, now: number): void {
+    // maker_order/taker_order 让重启校准能覆盖「全成交不残留」的 taker 单号
     this.app.db.prepare(
-      'INSERT INTO market_fills (item_id, price, qty, maker, taker, ts) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(item, f.price, f.qty, f.maker, f.taker, now);
+      'INSERT INTO market_fills (item_id, price, qty, maker, taker, ts, maker_order, taker_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(item, f.price, f.qty, f.maker, f.taker, now, f.makerOrder, f.takerOrder);
   }
 }

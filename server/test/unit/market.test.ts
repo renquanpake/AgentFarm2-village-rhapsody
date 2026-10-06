@@ -265,15 +265,61 @@ describe('重启 ID 校准（market_orders.id UNIQUE）', () => {
     const maxRestored = Math.max(...openIds);
     const maxAll = Math.max(...rows.map(r => r.id));
     expect(maxRestored).toBeLessThan(maxAll); // 'filled' 行排在最后 -> 不进 restoreOpen
+    // r2 全成交从不落 market_orders：它的单号在 market_orders 里查不到，是「幽灵单号」
+    const takerGhost = r2.orderId!;
+    expect(rows.some(r => r.id === takerGhost)).toBe(false);
+    expect(takerGhost).toBeGreaterThan(maxAll);
+    // 模拟 v7 迁移前的历史成交行：maker_order/taker_order 全为 0，幽灵单号只剩 order.placed 事件里那份
+    a.db.prepare('UPDATE market_fills SET maker_order = 0, taker_order = 0').run();
     a.db.close();
 
-    // 阶段二：重启。未校准的簿 nextId 只被 open 行推到 maxRestored+1，新单撞 'filled' 行
+    // 阶段二：重启。未校准的簿 nextId 只被 open 行推到 maxRestored+1，新单撞 'filled' 行；
+    // 只查 market_orders/market_fills 又会回绕到幽灵单号（它比所有 market_orders 行都大）
     const b = build();
     b.market.load();
     give(b, 'u3', 12, 5);
     const rn = b.market.place('u3', 12, 'sell', aPx * 3, 5);
     expect(rn.ok).toBe(true);
     expect(rn.orderId!).toBeGreaterThan(maxAll);
+    expect(rn.orderId!).toBeGreaterThan(takerGhost);
     b.db.close();
+  });
+});
+
+describe('限价买单吃低价卖盘时正确退还价差预留', () => {
+  it('卖方挂单 60 块 1 件、买方挂单 100 块 1 件（预留 100）：成交 60、卖方实收 54、买方实付 60 且退 40', () => {
+    const h = harness();
+    const coins = (uid: string) => Number(((pm(h, uid).get('knapData') as { props: Array<{ id: number; num?: number }> }).props.find(p => p.id === 1)?.num) || 0);
+    // 先清掉做市商卖盘，否则买 100 会先吃到做市低价卖单，撞不到 60 的那笔
+    const mv = h.market.marketView(12);
+    const mmAsk = mv.book.asks[0];
+    expect(mmAsk.price).toBeLessThan(60);
+    give(h, 'u3', 1, 100000);
+    expect(h.market.place('u3', 12, 'buy', mmAsk.price, mmAsk.qty).fills!.length).toBe(1);
+
+    // 卖方挂卖 60 x1：高于做市买盘，落簿不成交
+    give(h, 'u1', 12, 1);
+    const rs = h.market.place('u1', 12, 'sell', 60, 1);
+    expect(rs.fills!.length).toBe(0);
+    expect(rs.resting).toBe(1);
+
+    // 买方限价 100 吃 60 的卖单：预留 100，实际只该支出 60
+    give(h, 'u2', 1, 1000);
+    const s0 = coins('u1'), b0 = coins('u2');
+    const rb = h.market.place('u2', 12, 'buy', 100, 1);
+    expect(rb.fills!.length).toBe(1);
+    expect(rb.fills![0].price).toBe(60);       // 成交价取挂单方（卖方）价
+    expect(rb.fills![0].maker).toBe('u1');
+    expect(rb.fills![0].taker).toBe('u2');
+    expect(knapHas(pm(h, 'u2'), 12, 1)).toBe(true);  // 买方收货
+    expect(b0 - coins('u2')).toBe(60);                // 预留 100 -> 实付 60（差额 40 已退回钱包）
+    const gross = 60;
+    const fee = Math.round(gross * TRADE_FEE_RATE);
+    expect(gross - fee).toBe(54);
+    expect(coins('u1') - s0).toBe(54);                // 卖方实收 60 - 10% 税 6
+    const refunds = h.log.since(0).filter(e => e.type === 'trade.refund');
+    expect(refunds.length).toBe(1);
+    expect(refunds[0].payload).toMatchObject({ refund: 40, limit: 100, price: 60, qty: 1 });
+    h.db.close();
   });
 });

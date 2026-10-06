@@ -206,12 +206,17 @@ export class OrderBook {
   /**
    * 持久化校准：把自增序号推进到磁盘历史最大值之后。
    * restoreOpen 只遍历未成交挂单，已成交/已撤销的历史行从不推进 nextId —— 重启后新单会
-   * 撞上 market_orders.id 的 UNIQUE 约束。调用方在簿创建时喂入 SELECT MAX(id) WHERE item_id=?。
+   * 撞上 market_orders.id 的 UNIQUE 约束。调用方在簿创建时喂入 market_orders 与 market_fills
+   * 两侧的联合全局最大值（成交记录持有被吃掉但不落 market_orders 的 taker 订单号）。
+   * 只有 maxOrderId 落在本簿分段（>= idBase）内才做减法；分段外的历史行属于其他物品簿，
+   * 直接当成本簿序号会污染 nextId。
    */
-  calibrateTo(maxId: number): void {
-    if (!Number.isFinite(maxId) || maxId <= 0) return;
-    const local = maxId >= this.idBase ? maxId - this.idBase : maxId;
-    if (local + 1 > this.nextId) this.nextId = local + 1;
+  calibrateTo(maxOrderId: number): void {
+    if (!Number.isFinite(maxOrderId) || maxOrderId <= 0) return;
+    if (maxOrderId >= this.idBase) {
+      const currentSeq = maxOrderId - this.idBase;
+      this.nextId = Math.max(this.nextId, currentSeq + 1);
+    }
   }
 
   /** 重启恢复：导入历史成交（快照 last / OHLC 用） */

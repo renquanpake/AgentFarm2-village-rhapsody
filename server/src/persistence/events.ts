@@ -43,6 +43,7 @@ export const EventSchemas: Record<string, z.ZodType<Record<string, unknown>>> = 
   'order.placed': z.object({ item: z.number(), side: z.string(), price: z.number(), qty: z.number(), orderId: z.number() }),
   'order.cancelled': z.object({ item: z.number(), orderId: z.number() }),
   'trade.filled': z.object({ item: z.number(), price: z.number(), qty: z.number(), maker: z.string(), taker: z.string(), ts: z.number() }),
+  'trade.refund': z.object({ item: z.number(), price: z.number(), qty: z.number(), limit: z.number(), refund: z.number(), ts: z.number() }),
   // 历法/天气（B8）：日效应已在 live 处理，事件为记录（重放 no-op）
   'calendar.day': z.object({ day: z.number(), season: z.string(), weather: z.string(), festival: z.string().nullable(), rainAccelerated: z.number(), stormDestroyed: z.number() }),
   'crop.stormDamaged': z.object({ uId: z.number(), day: z.number() }),

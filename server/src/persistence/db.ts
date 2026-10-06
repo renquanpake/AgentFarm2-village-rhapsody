@@ -191,6 +191,16 @@ const MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 7,
+    name: 'market-fills-order-ids',
+    sql: [
+      // 成交记录补记两侧订单号：全成交的 taker 单从不落 market_orders，
+      // 只查 market_orders 的 MAX(id) 会漏掉这段已消耗的 id，重启后序号回绕
+      `ALTER TABLE market_fills ADD COLUMN maker_order INTEGER DEFAULT 0`,
+      `ALTER TABLE market_fills ADD COLUMN taker_order INTEGER DEFAULT 0`,
+    ],
+  },
 ];
 
 export function applyMigrations(db: DatabaseSync): number {

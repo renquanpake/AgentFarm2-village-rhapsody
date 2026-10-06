@@ -1466,14 +1466,20 @@ responseType = 'move_started';
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
             const px = Math.floor((apos.x ?? 0) / 100), py = Math.floor((apos.y ?? 0) / 100);
             const _nav = navOf(app, apos.scene ?? 2); const _pre = _nav ? actionPrecheck(_nav, [gx, gy], [px, py]) : (Math.abs(gx - px) > 1 || Math.abs(gy - py) > 1 ? { ok: false, reason: 'far', msg: '离目标太远（需要站在目标格相邻格）' } : { ok: true }); if (!_pre.ok) { result.msg = _pre.msg; continue; }
-            const p = growPlants(state).find(pl => pl.x === gx && pl.y === gy && treeOf(pl));
+            // 砍树关键段完全同步：查树 -> 判死 -> 扣血 -> 移除在同一同步块内连排完成，
+            // 中间不得插入 await 或任何异步调用（含会落盘的 growPlants）—— 否则同帧第二个主体
+            // 能在「已扣血未移除」的窗口重新找到旧对象，二次结算刷木材
+            const plants = worldPlants(state);
+            const p = plants.find(pl => pl.x === gx && pl.y === gy && treeOf(pl));
             if (!p) { result.msg = '这个格子上没有树'; continue; }
-            const _holdertree = claimHolder(state, 'tree', `tree@${Math.floor(_t.x / 100)},${Math.floor(_t.y / 100)}`);
+            const _holdertree = claimHolder(state, 'tree', `tree@${gx},${gy}`);
             if (_holdertree && _holdertree !== uid) { result = { ok: false, holder: _holdertree, msg: `这块资源已被 ${_holdertree} 认领（act claims 看清单；5 分钟后可接管）` }; continue; }
 
-            p.hp = (p.hp || 10) - 20;
+            const hp0 = p.hp ?? 10; // ?? 而非 ||：hp===0 的已倒树不能当成"没砍过"复活成 10 再发一份木材
+            if (hp0 <= 0) { result = { ok: false, msg: '这棵树已经倒了（无可砍）' }; continue; }
+            p.hp = hp0 - 20;
             if (p.hp <= 0) {
-              worldPlants(state).splice(worldPlants(state).indexOf(p), 1);
+              plants.splice(plants.indexOf(p), 1); // 当场同步移除，彻底阻断同帧并发二次结算
               const plot = worldPlots(state).find(pl => pl.plantUID === p.uId);
               if (plot) plot.plantUID = 0;
               knapAdd(pm, 18, 3);
