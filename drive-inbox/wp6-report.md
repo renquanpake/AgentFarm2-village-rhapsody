@@ -7,7 +7,8 @@
   - Run `37456341255` — CI @ `260103-feat-playable-ship` (`dec6ca1`) → **success**
   - Run `37456390502` — CI @ `master` (`dec6ca1`) → **success**
   - Run `37456340991` / `37456390574` — drive-sync @ 双分支 (`dec6ca1`) → **success**
-  - 回传件: 代码 `48d0ae0` + 报告 `dec6ca1`
+  - 回传件: 代码 `48d0ae0` + 报告 `dec6ca1` + 补记 `a9f64df`
+  - `a9f64df`（本报告当前 head）双分支 CI: Run `37456796622` CI @ 分支 / `37456796744` CI @ master / `37456796514` + `37456796708` drive-sync → **全部 success**
 - 门禁总账（本地实测）:
   - `npx tsc --noEmit` → **exit 0**
   - `npx vitest run` → **51 文件 485/485 通过**，exit 0（新增 1 项退差单测，原 484 → 485）
