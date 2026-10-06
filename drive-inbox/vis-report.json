@@ -1,6 +1,6 @@
 {
   "base": "http://127.0.0.1:8098",
-  "user": "fix10",
+  "user": "wp1",
   "results": [
     {
       "name": "boot：页面加载 & __AF_TEST__ 就位 & 玩家节点就绪",
@@ -12,19 +12,19 @@
       "name": "HUD 浮层常驻：历法/Agent 胶囊可见且根节点最高层级",
       "pass": true,
       "expected": "#af-hud-clock 与 #af-hud-agent 均有文本，#af-hud z-index=999999",
-      "actual": "{\"clock\":\"📅 第16日 · 夏 · 🌧️ 雨\",\"agent\":\"Agent 未连接\",\"rootZ\":\"999999\",\"hudZ\":\"999999\"}"
+      "actual": "{\"clock\":\"📅 第84日 · 春 · ☀️ 晴\",\"agent\":\"Agent 未连接\",\"rootZ\":\"999999\",\"hudZ\":\"999999\"}"
     },
     {
       "name": "A dir 步随：node 位移≈服务端且终漂移 ≤440px",
       "pass": true,
       "expected": "|Δnode-Δserver| ≤240 且 dist ≤440",
-      "actual": "有效步 5/6; node 位移 11562 vs 服务端 11562; 终距 0px | nodes={\"app\":{\"name\":\"PlayerItem\",\"x\":10250,\"y\":5350,\"parent\":\"New Node\",\"inScene\":true,\"valid\":true},\"gp\":null,\"same\":false,\"resolved\":{\"name\":\"PlayerItem\",\"x\":10250,\"y\":5350},\"mods\":[\"Application\",\"GameManager\",\"GameEvent\",\"GameConfig\",\"GameDefine\",\"CGPlayer\",\"GameData\",\"ModVideoPlayer\",\"PlayerItem\",\"Gscene_config\",\"PlayerMoudle\",\"SceneManager\",\"SceneHelper\",\"PlayerJoysticks\"],\"cands\":[{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"New Node\",\"x\":10250,\"y\":5350},{\"name\":\"pnlTopLayer\",\"walk\":false,\"parent\":\"pnlAdapter\",\"x\":0,\"y\":0}],\"ciTexErrs\":[\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\"],\"ciTexErrCount\":3}"
+      "actual": "有效步 6/6; node 位移 8754 vs 服务端 8754; 终距 0px | nodes={\"app\":{\"name\":\"PlayerItem\",\"x\":5450,\"y\":6850,\"parent\":\"New Node\",\"inScene\":true,\"valid\":true},\"gp\":null,\"same\":false,\"resolved\":{\"name\":\"PlayerItem\",\"x\":5450,\"y\":6850},\"mods\":[\"Application\",\"GameManager\",\"GameEvent\",\"GameConfig\",\"GameDefine\",\"CGPlayer\",\"GameData\",\"ModVideoPlayer\",\"PlayerItem\",\"Gscene_config\",\"PlayerMoudle\",\"SceneManager\",\"SceneHelper\",\"PlayerJoysticks\"],\"cands\":[{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"pnlSceneLayer\",\"x\":6950,\"y\":250},{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"New Node\",\"x\":5450,\"y\":6850},{\"name\":\"pnlTopLayer\",\"walk\":false,\"parent\":\"pnlAdapter\",\"x\":0,\"y\":0}],\"ciTexErrs\":[\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\"],\"ciTexErrCount\":3}"
     },
     {
       "name": "C 黑洞重放：解除后 2.5s 内 node 对齐服务端",
       "pass": true,
       "expected": "dist ≤40px",
-      "actual": "dist 0px | nodes={\"app\":{\"name\":\"PlayerItem\",\"x\":10550,\"y\":5350,\"parent\":\"New Node\",\"inScene\":true,\"valid\":true},\"gp\":null,\"same\":false,\"resolved\":{\"name\":\"PlayerItem\",\"x\":10550,\"y\":5350},\"mods\":[\"Application\",\"GameManager\",\"GameEvent\",\"GameConfig\",\"GameDefine\",\"CGPlayer\",\"GameData\",\"ModVideoPlayer\",\"PlayerItem\",\"Gscene_config\",\"PlayerMoudle\",\"SceneManager\",\"SceneHelper\",\"PlayerJoysticks\"],\"cands\":[{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"New Node\",\"x\":10550,\"y\":5350},{\"name\":\"pnlTopLayer\",\"walk\":false,\"parent\":\"pnlAdapter\",\"x\":0,\"y\":0}],\"ciTexErrs\":[\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\"],\"ciTexErrCount\":3}"
+      "actual": "dist 0px | nodes={\"app\":{\"name\":\"PlayerItem\",\"x\":5750,\"y\":6850,\"parent\":\"New Node\",\"inScene\":true,\"valid\":true},\"gp\":null,\"same\":false,\"resolved\":{\"name\":\"PlayerItem\",\"x\":5750,\"y\":6850},\"mods\":[\"Application\",\"GameManager\",\"GameEvent\",\"GameConfig\",\"GameDefine\",\"CGPlayer\",\"GameData\",\"ModVideoPlayer\",\"PlayerItem\",\"Gscene_config\",\"PlayerMoudle\",\"SceneManager\",\"SceneHelper\",\"PlayerJoysticks\"],\"cands\":[{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"pnlSceneLayer\",\"x\":6950,\"y\":250},{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"New Node\",\"x\":5750,\"y\":6850},{\"name\":\"pnlTopLayer\",\"walk\":false,\"parent\":\"pnlAdapter\",\"x\":0,\"y\":0}],\"ciTexErrs\":[\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\"],\"ciTexErrCount\":3}"
     },
     {
       "name": "C-blackhole 钩子可用（RED 信号）",
@@ -36,19 +36,19 @@
       "name": "D move_to 终点对齐：node 距服务端 ≤40px",
       "pass": true,
       "expected": "dist ≤40px",
-      "actual": "dist 0px (done=true) | arrive={\"target\":null,\"index\":null,\"sent\":false,\"hosted\":false,\"pos\":{\"scene\":2,\"x\":3440,\"y\":492},\"connected\":true} | nodes={\"app\":{\"name\":\"PlayerItem\",\"x\":3440,\"y\":492,\"parent\":\"New Node\",\"inScene\":true,\"valid\":true},\"gp\":null,\"same\":false,\"resolved\":{\"name\":\"PlayerItem\",\"x\":3440,\"y\":492},\"mods\":[\"Application\",\"GameManager\",\"GameEvent\",\"GameConfig\",\"GameDefine\",\"CGPlayer\",\"GameData\",\"ModVideoPlayer\",\"PlayerItem\",\"Gscene_config\",\"PlayerMoudle\",\"SceneManager\",\"SceneHelper\",\"PlayerJoysticks\"],\"cands\":[{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"New Node\",\"x\":3440,\"y\":492},{\"name\":\"pnlTopLayer\",\"walk\":false,\"parent\":\"pnlAdapter\",\"x\":0,\"y\":0}],\"ciTexErrs\":[\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\"],\"ciTexErrCount\":9}"
+      "actual": "dist 0px (done=true) | arrive={\"target\":null,\"index\":null,\"sent\":false,\"hosted\":false,\"pos\":{\"scene\":2,\"x\":3443,\"y\":508},\"connected\":true} | nodes={\"app\":{\"name\":\"PlayerItem\",\"x\":3443,\"y\":508,\"parent\":\"New Node\",\"inScene\":true,\"valid\":true},\"gp\":null,\"same\":false,\"resolved\":{\"name\":\"PlayerItem\",\"x\":3443,\"y\":508},\"mods\":[\"Application\",\"GameManager\",\"GameEvent\",\"GameConfig\",\"GameDefine\",\"CGPlayer\",\"GameData\",\"ModVideoPlayer\",\"PlayerItem\",\"Gscene_config\",\"PlayerMoudle\",\"SceneManager\",\"SceneHelper\",\"PlayerJoysticks\"],\"cands\":[{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"pnlSceneLayer\",\"x\":6950,\"y\":250},{\"name\":\"PlayerItem\",\"walk\":true,\"parent\":\"New Node\",\"x\":3443,\"y\":508},{\"name\":\"pnlTopLayer\",\"walk\":false,\"parent\":\"pnlAdapter\",\"x\":0,\"y\":0}],\"ciTexErrs\":[\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\",\"ac7bce61-b8ef-4153-84e4-7f9afecaefa1\"],\"ciTexErrCount\":6}"
     },
     {
       "name": "D-move_to 可发起（服务端未回 error）",
       "pass": true,
       "expected": "move_started",
-      "actual": "已开始移动：98 步 / 26 航点（沿「南北大街·北林间道」）（客户端将按航点回报 arrive，偏差自动重规划）"
+      "actual": "已开始移动：135 步 / 35 航点（沿「南北大街·北林间道」）（客户端将按航点回报 arrive，偏差自动重规划）"
     },
     {
       "name": "B 行为飘字：chop 后 floatCount ≥1",
       "pass": true,
       "expected": "≥1",
-      "actual": "fc=15 chopped=true felled=true 站位={\"x\":25,\"y\":4} 近树=4 msg=树被砍倒了！获得木材 ×3（id=18）"
+      "actual": "fc=16 chopped=true felled=true 站位={\"x\":28,\"y\":3} 近树=6 msg=树被砍倒了！获得木材 ×3（id=18）"
     },
     {
       "name": "E 面板文案：chop 后含「砍|正在」",

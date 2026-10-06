@@ -1,0 +1,71 @@
+(node:20183) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+ "base": "http://127.0.0.1:8099",
+ "slot": 99,
+ "qty": 3,
+ "price": 60,
+ "seller": {
+  "nick": "econloop_a",
+  "uid": "790773",
+  "wood": "0→0",
+  "coins": "310→792"
+ },
+ "buyer": {
+  "nick": "econloop_b",
+  "uid": "2c5b7d",
+  "coinsStart": 250,
+  "buyQty": 3,
+  "wood": "0→3"
+ },
+ "fills": [
+  "60x3→2c5b7d"
+ ],
+ "gross": 180,
+ "fee": 18,
+ "net": 162,
+ "steps": [
+  {
+   "step": "1.砍树产出",
+   "ok": true,
+   "detail": "树被砍倒，木材 +3（1 斧，跳过 0 棵已倒的）"
+  },
+  {
+   "step": "2.挂卖单",
+   "ok": true,
+   "detail": "@60 x3 resting=3 立即成交=0 笔"
+  },
+  {
+   "step": "3.背包预留",
+   "ok": true,
+   "detail": "背包木材 3 → 0（挂单预留 3）"
+  },
+  {
+   "step": "4.买家吃单",
+   "ok": true,
+   "detail": "@60 x3 成交 1 笔 余挂 0"
+  },
+  {
+   "step": "5.撮合过户",
+   "ok": true,
+   "detail": "1 笔共 3x 单价[60] P2P(A→B)"
+  },
+  {
+   "step": "6.手续费烧币",
+   "ok": true,
+   "detail": "毛额 180 − trade.fee 18 = 净 162（卖方实收 90%，10% 出清不入任何账）"
+  },
+  {
+   "step": "7.卖方收款",
+   "ok": true,
+   "detail": "A 630 → 792（≥ 净 162；差额 0 来自任务链铸币）"
+  },
+  {
+   "step": "8.买方收货",
+   "ok": true,
+   "detail": "A 砍后 3 → 0（-3）；B 0 → 3（+3）"
+  }
+ ],
+ "pass": 8,
+ "total": 8
+}

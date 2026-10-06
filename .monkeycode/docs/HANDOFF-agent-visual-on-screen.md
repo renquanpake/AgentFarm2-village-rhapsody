@@ -44,7 +44,7 @@
 ### 2. agent 在画面上不动的两个真凶（都已修）
 
 - **`getPlayerItem()` 按模块名 `PlayerItem` 取不到组件** → 每条 `agent_move` 都进 pending 队列永远 flush 不掉。已改为按能力找（节点上唯一带 `changeDir` 的自定义组件）。
-- **`item.changeDir(dir,false)` 会抛** `Cannot read properties of undefined (reading 'checkEnableState')`：新手教程把玩家置进了 `stateClass` 里没有的状态，方法内部取 `stateClass[state]` 落空。**这一抛把 `applyAgentMoveMsg` 后面全部打断**（含 350ms 位置收敛兜底），实测症状就是「服务端在动、画面 node 位移恒为 0」。已在 try 内调用。
+- **`changeDir(dir,false)` 外面套 try/catch 是防御性写法，但它今天不抛**（2026-10-06 实测纠正）：`stateClass` 键 1-12 全齐、`state=1(STAND)`、`checkEnableState(MOVE)=false`、`intoState(MOVE)=true`、切后 `state=2(MOVE)`；`?ci=1` 观察者与真实加载两条路径 Spine 状态完全一致（`skeletonData.name==="skeleton"`）。**此前「新手教程把玩家置进 `stateClass` 缺项状态 → `changeDir` 抛 `checkEnableState`」的说法作废。** 真实节点不动的原因只剩上一条 `getPlayerItem()` 取不到组件，以及 2b-1 的孤儿节点。try/catch 保留无害。
 
 修完这两条：A 场景从 node 位移 0 → 292（服务端 255，终距 100px）；C 场景 dist 453px → **0px**；页面 pageerror 归零。
 
@@ -78,13 +78,21 @@
 - **页面冷启动很慢**：mod 钩子 ~20s 就绪，但 Cocos 场景要到 40–85s 才 `getRunningScene()`，软渲染下波动大。所有等待预算都按实测放宽（菜单 200s / 存档面板 180s / arrive 150s）。
 - **`__AF_TEST__.diag()`**：本次新增的诊断钩子（`af.test=1` 才注册），返回节点/组件解析结果、`lastMove`、pending 状态与 arrive 五要素。D 场景失败时断言输出会带上它。
 
-## 四、剩余问题（现在只剩这一条真问题）
+## 四、走路帧与节点生命周期（2026-10-06 WP1 已落）
 
-### 真人玩家的走路动画（未验证，影响「能不能玩」）
+### 走路帧动画（2026-10-06 已定位并修复）
 
-`changeDir` 被隔离后不再抛，但**走路状态机并没有真正接管**——当前位置收敛完全靠 tween 直接摆位。后果：agent 在画面上是「瞬移/平滑滑动」而不是原版走路动画。原因是快速进村路径下玩家被教程置进了 `stateClass` 缺项的状态。**正常玩家流程（非测试注入）下 `changeDir` 是否可用，至今没有验证过。** 这是活体断言覆盖不到的部分——断言只比位置与文案，不看帧动画。
+**病灶（实测确认）**：`applyAgentMoveMsg` 收尾的 `item.changeDir(0, false)` 走 `e==DirType.INVAIL` 分支 → `intoState(STAND)`，`RoleStateStand` 同帧重播 `idle_down`，把刚播下的 `walk_down` 覆盖掉。帧只活一帧，肉眼就是「滑动/瞬移」。
 
-已修完的部分（不再需要接手）：D move_to 终点对齐（`dist 0px, done=true`）、E 面板文案（`正在砍树`）、C 黑洞重放（`dist 0px`）、P0 `_nativeAsset` 野错（`console error = 0`）。
+**不是 `stateClass` 缺项**：键 1-12 全齐、`changeDir` 不抛（见 2）。状态机自驱也确认可用——`intoState(2)` + `setMoveDir(5)` 保持 1.5s，node 从 `[13400,8600]` 走到 `[13633,8600]`（+233px），与 `agentfarm.js` 的 tween 驱动确实并存。
+
+**修法（最小改动，10/10 断言口径零变动）**：`changeDir(0, false)` 改成 `item.moveDir = 0`。`moveDir` 是普通实例属性（`setMoveDir` 内 `this.moveDir = e`），直接赋值不触发 `updateMoveVector` / `updateAnimation`，方向帧不被改；而 `RoleStateMove.updateMove` 的闸门是 `getMoveDir() != DirType.INVAIL`，闸一关状态机就不再自驱位移，位置仍由 tween 独占驱动。整行删除会让 `moveDir` 保持 `dir`，状态机与 tween 抢位置，A/C/D 位移口径就会漂移。`clearAgentMoveState()`（真正停止时）仍走 `changeDir(0)`——那时需要回切 STAND 并停脚步声。
+
+### 节点生命周期（WP1b，已改）
+
+`resolvePlayerNode` 之前每次位移都回溯祖先链 + 遍历组件猜节点。现在订阅 `cc.Director.EVENT_AFTER_SCENE_LAUNCH`（`director._loadScene` 尾部、新场景已 `_activate` 后，是官方权威的场景就绪事件）做一次性绑定：换场景 → 旧绑定失效 → 排一个宏任务解析新角色节点 → 后续全命中缓存。节点 `isValid=false` 或场景 ID 变化立即解绑并清 `playerNodeCache`，避免把上个场景的孤儿节点继续当角色打位置。解析链保留为回退，绑定未就绪时行为与改造前一致（10/10 不回归）。
+
+已修完的部分（不再需要接手）：D move_to 终点对齐（`dist 0px, done=true`）、E 面板文案（`正在砍树`）、C 黑洞重放（`dist 0px`）、P0 `_nativeAsset` 野错（`console error = 0`）、走路帧动画、节点生命周期绑定。
 
 ## 五、没验证/不敢打包票的部分
 
@@ -132,3 +140,42 @@ node tools/agent-vis-assert.mjs --base http://127.0.0.1:8097 \
 ## 八、文档归档约定（本次新增）
 
 `docs/superpowers/plans/` 只保留**未完成**批次的计划稿。已完成的四份（nav-obstacle-audit / move-msg-coords / rules-prompt / newbie-tutorial）复选框从未勾选，留着会被误读成待办，已删除；完成记录保留在 `docs/长期工作规划书.md` 批次表与 git 历史里。
+## 九、经济闭环（WP2，2026-10-06 落地）
+
+架构师批复走「提示词纠偏 + 闭环 e2e」，两项都已落：
+
+### 提示词纠偏（3 处 stale，改完未破预算）
+
+full 档预算基线 **1199/1200 token，零余量**——加一句就把 NPC 名册从 26 砍到 20（`rules-prompt.test.ts` 断言 ≥24 直接红）。做法是**合并重复段**腾空间：
+
+| 位置 | 原表述 | 改后 |
+|---|---|---|
+| `rules-prompt.ts` 价目段头 | `（买入=玩家实付金币；NPC 收购参考=市场基价六折，当前无卖出通道）` | `（价格口径见条款）` |
+| `rules-prompt.ts` 条款段 | `当前没有卖出通道，别承诺能卖` | `NPC 不回购。卖货用 act trade place sell 挂订单簿（卖方实收 90%）` |
+| `market/shop.ts` 注释 | 同「暂无卖出通道」 | 指向 `act trade place sell` |
+
+改完实测 **1197 token，NPC 名册 26/26 保满**，`rules-prompt.test.ts` 25/25 绿。教训：预算零余量的提示词只能靠合并重复段加内容，不能硬塞。
+
+### 闭环 e2e（`tools/econ-loop-e2e.mjs`）
+
+自洽建 2 账号，全程只走公开协议 act/observe + 查事件落库，**不碰 dev 端点**——`AF_DEV_ENDPOINTS=0` 的加固实例上也能跑。跑法：
+
+```
+node tools/econ-loop-e2e.mjs --base http://127.0.0.1:8098 --slot 98 --qty 3 --price 60 \
+  --data-dir /tmp/opencode/afdata-final/saves/slot98 --timeout 420000
+```
+
+8 项断言：砍树产出 → 挂卖单 → 背包预留 → 买家吃单 → 撮合过户 → 手续费烧币 → 卖方收款 → 买方收货。
+
+**四个踩过的坑（都写进代码注释了）**：
+
+1. **村景真树判定**：`treeOf(p) = plantId>=14 && plantId<=19`。按 `farmType===2` 筛会混进 845 株装饰植物，chop 回「这个格子上没有树」且 `treesNear` 恒空——空转三轮。真树只有 171 株，分布在 x∈[0,74] y∈[0,59]，而新玩家出生在民居门口（x∈[9,102] y∈[54,119]），最近真树常在 45 格外；`observe.obstacles.regions` 半径只有 12 格够不着，所以按 `--data-dir` 读 `world.json` 取最近真树格喂 `move_to`（测试脚手架，不进协议）。
+2. **定价双约束**：下限 `topBid+1`（做市商买单恒为 `base×(1-spread)`≈5，低于它 A 的单会被做市商吃掉、对手方变 `'mm'` 而非买家）；上限 B 的 250 金币自带预算（买量要覆盖簿上更便宜的 ask，订单簿按价优先）。脚本逐档降价找同时满足两边的 P，实测 60→59。
+3. **任务铸币污染余额**：挂单触发「集市学徒-挂单」+140、成交触发「成交」+180，直接铸币进 A 的余额，**不能用余额增量做精确等式**。所以精确口径只对事件落库成立：`market_fills` 记对手方与价格、`events.type='trade.fee'` 记烧币金额；余额断言改成 `>= net` 并把差额报告为任务铸币。
+4. **事件库跟实例数据目录同源**：`DB_PATH` 必须跟着 `AF_DATA_DIR` 走，单独指仓库 `data/` 会查到空表（交易真发生了但账本在另一个库）——曾因此误判撮合失败。
+
+撮合账（实测）：卖 3 木材 @59 → 毛额 177，`trade.fee` 烧 18（=round(177×0.1)），A 实收 159，B 得 3 木材。
+
+### 待架构师复核（本次自行裁决，未请示）
+
+- `commerce` 维度的 LLM 行为自动执行器未实现（`personality.ts` 已在打分，但没有消费者把它转成挂单动作）。本轮按最小改动原则不动它，只在提示词里把卖出通道说清楚。

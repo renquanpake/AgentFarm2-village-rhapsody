@@ -2,6 +2,10 @@
 
 > 供后续会话快速上手。只记"怎么做/怎么跑/怎么排障"，不记"做了什么"。
 
+## 用户指令（长期生效）
+- **禁止向用户抛技术选择题（2026-10-06 用户明确指示）**：用户身份是项目总监/投资人，不回答技术选型问题。遇到需要裁决的技术分叉时：①一律用最小改动（Ponytail）原则自行选定；②把"选了哪条、为什么、放弃了哪条、被放弃方案的残余风险"写进回传汇报日志，交架构审查阶段（Gemini）复核；③不要用 `question` 工具中断流程去问。违反一次已导致流程被中止。
+- **文本无障碍设计铁律**见下「运行与部署」段末。
+
 ## 运行与部署（Operations & Deployment）
 - 正式服务端入口：`cd server && node src/index.ts`（`npm start` / `npm run dev` 同义）。
 - 平台 git credential helper 已持续 500（2026-10-05 实测，非偶发），推送走内联 token URL，别等它恢复：
@@ -33,6 +37,9 @@
 - **agent 坐标两套契约（2026-10-03 实测，写 e2e 必守）**：`move_to` 用**原始像素**（`floor(x/100)`=格，`x:50`→格0）；plant/water/plant_seed 等目标格动作走 `normXY`，小于 `soilW+28`/`soilH+28` 的值按**格坐标 ×100+50** 解释（`x:50`→格50）。要同时兼容两套就用 `cell*100+50`（cell≥2 时等价）。
 - **e2e 让 agent 进村景**：`/ws` 的 join 消息带 `scene: 2, x: 3500, y: 3000`（agent 通道连接时以 `state.online` 记录为初始 apos，见 `ws.ts agentConn`）；否则新账号 apos=(0,0) 且 `sceneType=0`，scene 0 无 nav（`navOf(0)=null`）→ 只会走 bfsPath 回落、拿不到任何 nav 文案。跨场景门户图（`data/nav/portals.json`）里 1-14/101-113 与村景全连通，跨场景失败只能由**无门户/无 nav 的场景**触发。
 - **后台测试实例别设 25 分钟超时**：e2e 全量跑 3-5 分钟，多跑几轮就撞上超时被杀，随后所有断言级联 timeout（表现为「服务没崩但全红」）；跑 e2e 用 `timeout: 0` 的后台终端，跑完用 `background_terminal_kill` 收。孤儿 `node src/index.ts` 进程（上轮 `bash &` 起的管理不到的）按 PID `kill -9` 清理。
+- **规则提示词预算零余量（2026-10-06 实测，改 rules-prompt 必读）**：full 档基线 **1199/1200 token**，一个字都加不了——超预算按固定阶梯降配，第一级就把 NPC 名册从 26 砍到 20（`rules-prompt.test.ts` 断言 ≥24 会红）。加一句说明前先看有没有**重复段**可以合并（价目段头与条款段曾重复解释价格语义，合并后腾出空间）。改完用一次性 harness 量预算：`node /tmp/opencode/measure-rules.mjs`（构造 Tables/WorldState/EventLog，打印 fullTokens 与 npcRosterHit）。
+- **村景真树判定（写砍树 e2e 必守）**：`treeOf(p) = plantId>=14 && plantId<=19`。按 `farmType===2` 筛会把 845 株装饰植物当成树，chop 回「这个格子上没有树」且 `treesNear` 恒空——曾空转三轮。真树 171 株只分布在 x∈[0,74] y∈[0,59]，而新玩家出生在民居门口（实测 x∈[9,102] y∈[54,119]），最近真树常在 45 格之外；`observe.obstacles.regions` 半径只有 12 格，够不着，所以测试脚手架要按 `--data-dir` 直接读 `world.json`（`datas[]` 里 `key==='plantData'` → `val.datas[]` 找 `sceneType===2` 桶）取最近真树格喂 `move_to`。`obstacles` 是 `{regions,note}` 包一层，取 `st.obstacles.regions`。
+- **经济闭环 e2e（WP2，2026-10-06）**：`node tools/econ-loop-e2e.mjs --base http://127.0.0.1:8098 --slot 98 --qty 3 --price 60 --data-dir /tmp/opencode/afdata-final/saves/slot98`。自洽建 2 账号，全程只走公开协议 act/observe + 查 `market_fills` 落库，**不碰 dev 端点**——`AF_DEV_ENDPOINTS=0` 的加固实例上也能跑。资金来源是新玩家自带 250 金币（heroTemplate），够 3 木材 @60 的买盘预留；调大 `--qty` 或 `--price` 超过 250 会明确报缺金币。卖单定价必须高于簿上最高买盘（做市商买单恒为 `base×(1-spread)`≈5），否则会被做市商顺手吃掉、成交对手方变成 `'mm'` 而非买家。撮合结算：卖方实收 `gross - round(gross×0.10)`，WS 只回成交笔数不含对手方，对手方只能从 `market_fills(maker/taker)` 查。单轮约 4-6 分钟（大头是 45 格寻路）。
 - CI 十二道门（`ci.yaml`）：门1 typecheck / 门2 vitest / 门3 协议回归 / 门4 gitleaks / 门5 原版哈希 / 门6 导航校验（gen-nav --check + build-scene-collisions --check + check-roads + nav-replay --smoke + --smoke --drift）/ 门7 角色扮演评测 / 门8 旗舰UI（ui-lint + ui-smoke 17 项）/ 门9 回放一致性（`tools/replay-consistency.mjs` 取 `/af/replay-status`，events=0 漂移判死、自由桶归因放行；D18 起该端点需 token，工具会优先用 `AF_ADMIN_TOKEN`，无则自备账号）/ 门10 文本无障碍表面审计（`tools/surface-audit.mjs`）/ **门11 存档键审计 `tools/save-key-audit.mjs`**（新增 world/global 桶键未登记即判死，见排障条目「幽灵桶」）/ **门12 路由鉴权矩阵 `tools/auth-matrix.mjs --check`**（生成 `docs/鉴权矩阵.md`，未授权路由判死 + 文档与代码同源；改 `http.ts` 路由后必须 `--write` 重生成）。
 - **上线安全三件（2026-10-03 收口）**：D17 `world/save-guard.ts`（服务端专属桶拒写 + knapData 增量封顶金币+500/物品+20 + 未注册键拒写；`AF_TRUST_CLIENT_SAVE=1` 全放行；拒写计数看 `/af/replay-status.saveGuard`）；D18 矩阵 + `/af/saves` `/af/players` `/af/replay-status` 补 token、`/af/room` 的 roomCode 仅带 token、`AF_DEV_ENDPOINTS=0` 关调试发币发物；N12 `cognition/llm-budget.ts`（`AF_LLM_DAILY_TOKENS` 每日账号预算 + `AF_LLM_BUDGET_WARN` 软提醒，熔断后 chat→null/embed→伪向量；缓存命中不耗额度不受熔断）。
 - **经济钩子冻结闸**：`world/economy-gates.ts`，缺省全冻结（M-B1 影子窗判门前），`AF_ECON_HOOKS=stall,interest|interest|*` 解冻；`act stall` 已过闸（此前无闸会真扣金币，与 buildings.json hooks 声明相反）；`/af/economy` 增 `hooksFrozen`（刻意不进 `alerts`，alerts 是通胀/总量语义）。
