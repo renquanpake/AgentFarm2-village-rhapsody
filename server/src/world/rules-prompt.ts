@@ -68,7 +68,9 @@ function pricesSection(app: App, limit: number): string {
     const l = priceLine(app, id);
     if (l) lines.push(l);
   }
-  return `【价目】id 名称（买入=玩家实付金币；NPC 收购参考=市场基价六折，当前无卖出通道）：\n${lines.join('；')}`;
+  // 价格语义只写一遍（放【条款】）：价目段头重复解释会吃掉 ~40 token，
+  // 而 full 档预算基线 1199/1200 零余量，多一句就把 NPC 名册裁掉。
+  return `【价目】id 名称（价格口径见条款）：\n${lines.join('；')}`;
 }
 
 function landmarksSection(app: App, limit: number): string {
@@ -164,7 +166,7 @@ function termsSection(): string {
   return [
     '【条款】价格/日历/坐标/动作语义以本段所列权威数据为准，改数据即改规则。',
     '坐标一律像素坐标（格 → 格*100+50，如格 15 → 1550）；目标格动作需站相邻格。',
-    `买入价=玩家在商店实付金币；NPC 收购参考=市场基价六折（规则口径，当前没有卖出通道，别承诺能卖）。`,
+    `买入=商店实付金币；NPC 收购参考=市场基价六折，NPC 不回购。卖货用 act trade place sell 挂订单簿（卖方实收 90%）。`,
     '以上资料未写明的，回答不知道。',
   ].join('\n');
 }

@@ -19,8 +19,9 @@ export function sellX2(tables: Tables, itemId: number): number {
 export const NPC_BUY_RATE = 0.6;
 
 /** NPC 收购价 = 市场基价 × NPC_BUY_RATE（向下取整，最少 1 金币）
- *  注意：这是**规则参考口径**（spec §3.1），当前没有卖出/回收通道，
- *  agent 报这个数时必须同时说明「暂无卖出通道」，否则等于教 LLM 编造交易路径。 */
+ *  注意：这是**规则参考口径**（spec §3.1），NPC 商店本身没有买入/回收动作。
+ *  agent 报这个数时必须同时说明卖出走 act trade place sell 挂订单簿（含 10% 手续费），
+ *  否则等于教 LLM 把参考口径当成实际卖出价。 */
 export function npcBuyPrice(tables: Tables, itemId: number): number {
   return Math.max(1, Math.round(tables.basePriceOf(itemId) * NPC_BUY_RATE));
 }
