@@ -3,7 +3,11 @@
 ## [交付凭据]
 
 - Commit: `48d0ae0` — `fix(market,chop): 订单簿自增序列持久化硬化 + 退差单测守卫 + 砍树并发原子性`（6 文件，+99 / −15）
-- 分支: `260103-feat-playable-ship`（本地，CI Run ID 见文末补记）
+- 分支与 CI（双分支同一 commit `dec6ca1`，master 由 `578ba22` fast-forward，无 force-push）:
+  - Run `37456341255` — CI @ `260103-feat-playable-ship` (`dec6ca1`) → **success**
+  - Run `37456390502` — CI @ `master` (`dec6ca1`) → **success**
+  - Run `37456340991` / `37456390574` — drive-sync @ 双分支 (`dec6ca1`) → **success**
+  - 回传件: 代码 `48d0ae0` + 报告 `dec6ca1`
 - 门禁总账（本地实测）:
   - `npx tsc --noEmit` → **exit 0**
   - `npx vitest run` → **51 文件 485/485 通过**，exit 0（新增 1 项退差单测，原 484 → 485）
@@ -22,6 +26,7 @@
   `market_orders.id` / `market_fills.maker_order` / `market_fills.taker_order`。
 - `server/src/persistence/db.ts` 新增迁移 **v7 `market-fills-order-ids`**：`ALTER TABLE market_fills ADD COLUMN maker_order INTEGER DEFAULT 0` / `taker_order INTEGER DEFAULT 0`；`service.ts insertFillRow` 同步写入两列。理由：全成交的 taker 单从不落 `market_orders`（`syncOpen` 只同步挂单），只查 `market_orders` 会漏掉这段已消耗的 id。
 - 实机验证：v7 已在持久存档位应用（启动日志 `[db] migration v7 (market-fills-order-ids) 已应用`），新成交行写入 `maker_order=18000014, taker_order=18000015`。
+  - **验证次序提醒**：8098 持久实例必须重启后才跑 e2e，否则跑的是内存里的旧代码。本轮第一次 e2e 就是在只改了磁盘代码、未重启服务的状态下跑的，恰好复现了三支查询的回绕（新卖单拿到已被上一轮 taker 吃掉的 `18000012`）；以四支查询重启服务后重跑，同一存档位拿到 `18000014 / 18000015`，回绕消除。
 
 **任务 二 — 限价买单吃低价卖盘退差加固与单测守卫**
 
