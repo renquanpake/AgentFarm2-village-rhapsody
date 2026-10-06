@@ -1,0 +1,86 @@
+(node:3082) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[清盘] open wood 订单 0 笔 -> 撤单 0 笔
+{
+ "base": "http://127.0.0.1:8098",
+ "slot": 98,
+ "qty": 3,
+ "price": 60,
+ "runTs": 1791285161560,
+ "navSteps": 68,
+ "hops": 6,
+ "seller": {
+  "nick": "econloop_a6",
+  "uid": "e549b7",
+  "wood": "0→0",
+  "coins": "310→792"
+ },
+ "buyer": {
+  "nick": "econloop_b6",
+  "uid": "b0d4e6",
+  "coinsStart": 250,
+  "buyQty": 3,
+  "wood": "0→2",
+  "recycled": {
+   "id": 18,
+   "name": "木材",
+   "qty": 1,
+   "coins": 3
+  }
+ },
+ "fills": [
+  "60x3→b0d4e6"
+ ],
+ "gross": 180,
+ "fee": 18,
+ "net": 162,
+ "steps": [
+  {
+   "step": "1.砍树产出",
+   "ok": true,
+   "detail": "树被砍倒，木材 +3（1 斧，跳过 0 棵已倒的）"
+  },
+  {
+   "step": "2.挂卖单",
+   "ok": true,
+   "detail": "@60 x3 resting=3 立即成交=0 笔"
+  },
+  {
+   "step": "3.背包预留",
+   "ok": true,
+   "detail": "背包木材 3 → 0（挂单预留 3）"
+  },
+  {
+   "step": "4.买家吃单",
+   "ok": true,
+   "detail": "@60 x3 成交 1 笔 余挂 0"
+  },
+  {
+   "step": "5.撮合过户",
+   "ok": true,
+   "detail": "1 笔共 3x 单价[60] P2P(A→B)"
+  },
+  {
+   "step": "6.手续费烧币",
+   "ok": true,
+   "detail": "毛额 180 − trade.fee 18 = 净 162（卖方实收 90%，10% 出清不入任何账）"
+  },
+  {
+   "step": "7.卖方收款",
+   "ok": true,
+   "detail": "A 630 → 792（≥ 净 162；差额 0 来自任务链铸币）"
+  },
+  {
+   "step": "8.买方收货",
+   "ok": true,
+   "detail": "A 砍后 3 → 0（-3）；B 0 → 3（+3）"
+  },
+  {
+   "step": "9.回炉消耗",
+   "ok": true,
+   "detail": "B 回炉 1x 木材 → 得金币 3，背包 3 → 2，trade.recycle 事件 1 条（3x 买入的木材已有合法出口）"
+  }
+ ],
+ "pass": 9,
+ "total": 9
+}
