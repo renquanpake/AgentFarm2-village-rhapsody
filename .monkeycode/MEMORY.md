@@ -4,7 +4,10 @@
 
 ## 运行与部署（Operations & Deployment）
 - 正式服务端入口：`cd server && node src/index.ts`（`npm start` / `npm run dev` 同义）。
-- 平台 git credential helper 偶发 500：push 失败先间隔重试几次；持续失败就留本地 commit 继续干活，恢复后再推，勿改 remote。
+- 平台 git credential helper 已持续 500（2026-10-05 实测，非偶发），推送走内联 token URL，别等它恢复：
+  - push：`git -c credential.helper= push https://x-access-token:<PAT>@github.com/<owner>/<repo>.git HEAD:<分支> master:master`
+  - fetch：`export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0="https://x-access-token:<PAT>@github.com"` 后照常 `git fetch origin master`
+  - 输出必须过 `sed 's/ghp_[A-Za-z0-9]*/ghp_***/g'` 遮罩；token 严禁写入任何文件/网盘/文档。改 remote 与 force-push 一律禁止。
 - Node 22 原生直接跑 TS（type stripping），**无构建步骤**；`afserver.mjs` 是冻结的 legacy 行为基准，勿再改。
 - 常用环境变量：
   - `PORT`（默认 8080）、`AF_SLOT`（存档位 1/2/3，默认 1）
@@ -19,7 +22,10 @@
 
 ## 构建与验证（Build & Test）
 - 类型检查：`cd server && npx tsc --noEmit`（tsconfig strict + erasableSyntaxOnly，禁用 enum/namespace/参数属性）。
-- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 **448 项/48 文件**）。
+- 单元/事件溯源/M7 测试：`cd server && npx vitest run`（在 `server/test/unit/`，当前 **471 项/50 文件**）。
+- 前端与静态门禁（无需起服务）：`node tools/hash-manifest.mjs --check`（门5，现 5138 文件，生成物豁免已登记）+ `node tools/ui-lint.mjs`（门8 三项：裸色值 0 / af-* 点击 100% 走 AFUI.on / 常驻 DOM ≤10）+ `node tools/security-check.mjs`（默认扫暂存区，`--all` 扫全仓；暂存区为空会跳过扫描，commit 前必须先 git add）。
+- **画面可视化活体断言（client/mod 改动必跑）**：`node tools/agent-vis-assert.mjs --base http://127.0.0.1:8098 --out /tmp/opencode/visN --user userN --pass passN`（puppeteer-core 起页，走 `?ci=1` 观察者通道，需先 `bash tools/ci-seed-datadir.sh <AF_DATA_DIR>` 铺数据再起隔离实例）。**单轮 5–12 分钟，跑在 `timeout: 0` 的后台终端**；每轮换 `--user/--pass/--out` 避免撞上一轮的存档与报告。断言项 10 项（boot/HUD/A dir 步随/C 黑洞重放/C 钩子/D move_to 终点/D 可发起/B 飘字/E 面板文案/P0 console error=0），退出码 0 才算全绿。
+- **活体断言的时序抖动读法**：A/C/E 是时序敏感项，单轮出现单点红先换轮次复跑再定因，别急着改代码——fix7→10 四轮每轮红的都是不同项，真因是孤儿节点/协议发错/砍树斧数/pending 乱序四个独立缺陷，逐个才暴露出来。`--long` 默认 120s 已对齐服务端 `AF_NAV_ARRIVE_MS=8000` × 航点数（约 38 航点），别再往回压。
 - 协议回归：起服务 `AF_NO_TUNNEL=1 AF_NO_GIT=1 AF_WS_HEARTBEAT_MS=2000 node src/index.ts`，另跑 `AF_BASE=http://127.0.0.1:8080 node server/ws-test.mjs`（13 项全过；**ws-test 自备账号**：register/login + `POST /af/agent-token` 铸 agentToken，不再读 gitignore 的 `data/accounts.json`——全新 checkout 直接 ENOENT 是旧坑）。
 - **隔离数据目录必须铺静态数据（2026-10-03 修）**：`AF_DATA_DIR` 是整目录替换，空临时目录会让 `Tables` 回落空数组（npcs/items/collision/spawns 全空 → 协议回归报「没有这个 NPC」）。用 `bash tools/ci-seed-datadir.sh "$AF_DATA_DIR"` 复制 git 跟踪的 data/**（跳过 saves/accounts）；CI 门3/门9 已接。此前门3 依赖本地 `data/accounts.json` + 空数据目录，**必然红**。
 - **压测/灰度并发两条硬约束（2026-10-03 实测）**：①`ensurePlayerData` 必须走 `schedulePersist()`（同步 persist 把 >1MB world.json 写进事件循环 → 客户端 ECONNRESET，30 并发必现/12 并发正常）；②`accounts.register` 有「每秒 5 个」硬限流（accounts.ts regWin），并发注册只有前 5 个成功 —— 压测脚本要串行备号 + 退避。
@@ -88,6 +94,9 @@
 - 委托注意事项：flash 小模型无工具/仓库访问能力，prompt 里必须打包所需代码上下文；输出有"自言自语纠错"倾向（先写错再自行输出干净终版），主模型必须审查后取终版集成；适合独立函数/单文件脚本/文档/测试草稿等边界清晰任务，多文件重构与调试类主模型自己做更划算。
 
 ## 项目知识补充
+- **双人协作总线（2026-10-04 起，长期生效）**：Gemini = 架构师/审查官（Spec、根因、质量把关），MonkeyCode = 执行官（本地融合、跑测试、git 推送），**Google Drive = 异步协同总线**——Spec 在 `01_需求与设计规范 (Specs)/`，证据回传写在 `drive-inbox/`。回传产物 push 后由 `.github/workflows/drive-sync.yml` 自动上传 Drive（无需本地凭据），`drive-pull.yml` 反向拉取。结论摘要写一个纯文本 `*-evidence.txt` 放 `drive-inbox/`，让审查方一眼读到；report.json / 截图同目录。
+- **双路 CI 约定（2026-10-04 起）**：每个 commit 同时推功能分支与 `master`，两条 CI 都要绿才算交付。本地 `master` 用 `git update-ref refs/heads/master HEAD` 快进到分支头再一起推（先 `git merge-base --is-ancestor master HEAD` 确认能 ff）；分歧一律 merge + fast-forward，**禁止 force-push**。里程碑批次打 annotated tag（例 `v2.1-p1-visual-settled`）并 `git push origin <tag>`。本地 `origin/master` 引用偶有陈旧缓存，判断前务必先 `git fetch origin master` 再比对。
+- **平台环境事实**：`jq` 未安装，解析 JSON 用 `curl ... | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',...)"`；git 2.39.5 不支持 `git branch --vv`（报 unknown option）；后台终端默认是 `sh`，`${PIPESTATUS[0]}` 会报 Bad substitution，取退出码用 `$?`。
 - **数据驱动内容层（2026-10-03 起，内容扩容只改 data/*.json）**：`data/task-chains.json`（6 链 31 阶，`world/tasks.ts` 消费，`taskView` 是唯一出口 → observe.tasks + `act tasks`）、`data/season-events.json`（16 事件，每季 1 主线保证每天有事件；日推进钩子在 `calendar.ts runGameDay` 第 5 步）、`data/onboarding.json`（第一小时 10 环，进度存玩家私有桶 `afOnboarding`，服务端权威）、`data/economy-tables.json`（N10 唯一数值源：`Tables.basePriceOf` 三级口径 + `npcUnitPrice` 种子 6 折 + `/af/economy-design` 设计 vs 实盘）。**新增玩家可见信息必须同时加进 `tools/surface-audit.mjs`（15 面）与 `tools/eval-textonly.mjs`（14 环），否则门10 判死**。
 - **存档版本与迁移（N11）**：`SAVE_VERSION`（`persistence/save-version.ts`，缺省 5）是唯一版本源，`persist()` 与 `/af/save-version` 共用；迁移只能往 `MIGRATIONS` 追加（声明 `[from,to)` 区间 + 幂等 flag），构造时自动按序补齐。加迁移后必跑 `node tools/migration-rehearse.mjs`（16 个真实存档位重演：抹版本号+flag → 跑迁移 → 断言世界键/玩家桶不减少 + 幂等复演）。
 - **抢占与租约（C/D 包，2026-10-03 接上玩家入口 + 事件流）**：`act claim/release/claims {kind,x,y}`（5 分钟 TTL，过期可接管），chop/harvest/mine 会拒绝他人已认领的目标；事件 `claim.granted/released`、`lease.opened/cared/regrown` + apply 分支 + `structuredHash` 覆盖 claims/lease。**事件载荷必须逐字带 live 侧的 Date.now() 值**（`since`/`startTick`/`leaseMs`），否则回放哈希漂移。`noticeData`/`gossipData`/`delegatedData` 多路径直写，暂不入哈希。
