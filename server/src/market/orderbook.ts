@@ -203,6 +203,17 @@ export class OrderBook {
     this.nextId = Math.max(this.nextId, local + 1);
   }
 
+  /**
+   * 持久化校准：把自增序号推进到磁盘历史最大值之后。
+   * restoreOpen 只遍历未成交挂单，已成交/已撤销的历史行从不推进 nextId —— 重启后新单会
+   * 撞上 market_orders.id 的 UNIQUE 约束。调用方在簿创建时喂入 SELECT MAX(id) WHERE item_id=?。
+   */
+  calibrateTo(maxId: number): void {
+    if (!Number.isFinite(maxId) || maxId <= 0) return;
+    const local = maxId >= this.idBase ? maxId - this.idBase : maxId;
+    if (local + 1 > this.nextId) this.nextId = local + 1;
+  }
+
   /** 重启恢复：导入历史成交（快照 last / OHLC 用） */
   importFills(fs: Fill[]): void { this.fills.push(...fs); }
 }

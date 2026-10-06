@@ -78,3 +78,14 @@ export function actionPrecheck(nav: NavGrid, goal: [number, number], pos: [numbe
   }
   return { ok: true };
 }
+
+/**
+ * 树木可砍性（检视层前置过滤用）：与 actionPrecheck 的 target-blocked / no-stand 判定同源。
+ * 目标格必须是可站立空地，且四周至少一格可站立；否则该树永不可砍，向 Agent 下发即产生假目标。
+ * nav 为 null（非村景/无网格）时无从判定，返回 true 不下发过滤。
+ */
+export function chopReachable(nav: NavGrid | null, gx: number, gy: number): boolean {
+  if (nav === null) return true;
+  if (cellKindOf(nav, gx, gy) !== 'open') return false;
+  return stdRingOf(nav, gx, gy, 1).some(c => c[0] !== gx || c[1] !== gy);
+}

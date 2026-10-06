@@ -17,6 +17,7 @@ import { agentMailOf, asksOf } from '../world/agent-mail.ts';
 import { seasonEventsView } from '../world/season-events.ts';
 import { currentGameDay, weatherOf } from '../world/calendar.ts';
 import { municipalOf, municipalContext, villageNavOf, buildingTargetOf, type Building } from '../navigation/municipal.ts';
+import { chopReachable } from '../navigation/reloc.ts';
 
 /** D2 区域级障碍：12 格窗口内连续水域/树丛 -> 区域名 + 格子范围 + 绕行原则（§4.2：不喂单树坐标清单给导航） */
 export function obstacleRegions(app: App, state: WorldState, gx: number, gy: number, radius = 12): Array<Record<string, unknown>> {
@@ -93,6 +94,11 @@ export function observeState(app: App, uid: string, username: string, nick: stri
   const inVillage = sceneId === WORLD_SCENE_TYPE;
   const notInVillageHint = inVillage ? undefined : '当前不在村景，以下村庄地块/植物/树清单为空；可 move_to {near:"村纪念碑"} 回村';
 
+  // 村景导航格：树木可砍性判定（chopReachable）与地标指引共用一份（villageNavOf 自带 mtime 缓存）
+  // 服务端过滤：chop 前置校验要求目标格 cellKind==='open' 且四周有相邻可站立格；
+  // 落在阻挡/水面/树丛格上的树、四周被墙围死的树恒被 target-blocked/no-stand 拒 —— 永不可执行的假目标，不下发。
+  const villageNav = inVillage ? villageNavOf(app) : null;
+
   // 周围植物（3 格内）：玩家/Agent 种的作物 + 可砍的树
   const plantsNear = !inVillage ? [] : growPlants(state)
     .filter(p => (p.farmType === 1 || treeOf(p)) && Math.abs(p.x - gx) <= 3 && Math.abs(p.y - gy) <= 3)
@@ -109,7 +115,7 @@ export function observeState(app: App, uid: string, username: string, nick: stri
   // 附近可砍的树（默认 3 格内供 chop 定位；10 格清单仅在 AF_NAV_DEBUG_TREES=1 调试时输出——§4.2 不喂导航级树坐标清单）
   const treeRadius = process.env.AF_NAV_DEBUG_TREES === '1' ? 10 : 3;
   const treesNear = !inVillage ? [] : growPlants(state)
-    .filter(p => treeOf(p) && Math.abs(p.x - gx) <= treeRadius && Math.abs(p.y - gy) <= treeRadius)
+    .filter(p => treeOf(p) && chopReachable(villageNav, p.x, p.y) && Math.abs(p.x - gx) <= treeRadius && Math.abs(p.y - gy) <= treeRadius)
     .map(p => ({ gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantId: p.plantId, hp: p.hp }));
   // D2 区域级障碍（水域/树丛：区域名 + 格子范围 + 绕行原则）
   const obstacles = obstacleRegions(app, state, gx, gy);

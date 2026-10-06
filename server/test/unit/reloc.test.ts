@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  cellKindOf, stdRingOf, bestStandCell, targetUnreachableMsg, moveFailMsg, actionPrecheck,
+  cellKindOf, stdRingOf, bestStandCell, targetUnreachableMsg, moveFailMsg, actionPrecheck, chopReachable,
 } from '../../src/navigation/reloc.ts';
 import { buildNavGrid, type NavGrid } from '../../src/navigation/navgen.ts';
 
@@ -147,3 +147,37 @@ describe('actionPrecheck', () => {
     expect(r).toEqual({ ok: true });
   });
 });
+
+describe('chopReachable（treesNear 假目标过滤）', () => {
+  it('树长在阻挡格上 -> 不可砍（actionPrecheck 会报 target-blocked）', () => {
+    const nav = buildNavGrid(2, [0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0], 5, 5);
+    expect(cellKindOf(nav, 2, 1)).toBe('block');
+    expect(chopReachable(nav, 2, 1)).toBe(false);
+  });
+  it('树长在水格 / 树丛格上 -> 不可砍', () => {
+    const blocked = new Array(25).fill(0);
+    blocked[2 * 5 + 2] = 1;
+    const water = new Array(25).fill(0);
+    water[2 * 5 + 2] = 1;
+    const trees = new Array(25).fill(0);
+    trees[3 * 5 + 3] = 1;
+    const nav = buildNavGrid(2, blocked, 5, 5, water, trees);
+    expect(cellKindOf(nav, 2, 2)).toBe('water');
+    expect(cellKindOf(nav, 3, 3)).toBe('tree');
+    expect(chopReachable(nav, 2, 2)).toBe(false);
+    expect(chopReachable(nav, 3, 3)).toBe(false);
+  });
+  it('树长在孤岛空地（四周全阻挡）-> 不可砍（actionPrecheck 会报 no-stand）', () => {
+    const blocked = [1,1,1,1,1, 1,1,0,1,1, 1,1,1,1,1, 0,0,0,0,0, 0,0,0,0,0];
+    const nav = buildNavGrid(2, blocked, 5, 5);
+    expect(cellKindOf(nav, 2, 1)).toBe('open');
+    expect(chopReachable(nav, 2, 1)).toBe(false);
+  });
+  it('正常空地树 -> 可砍', () => {
+    expect(chopReachable(buildNavGrid(2, new Array(25).fill(0), 5, 5), 2, 2)).toBe(true);
+  });
+  it('nav 为 null（非村景/无网格）不过滤，保持下发', () => {
+    expect(chopReachable(null, 71, 0)).toBe(true);
+  });
+});
+

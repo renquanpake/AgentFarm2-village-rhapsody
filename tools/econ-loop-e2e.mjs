@@ -17,18 +17,24 @@
 //   move_to 会把目标吸附到可站立环，落点必然贴着树，所以 treesNear 立即非空。
 // 用法：node tools/econ-loop-e2e.mjs [--base http://127.0.0.1:8098] [--slot 98]
 //       [--qty 3] [--price 60] [--db <events.db>] [--data-dir <saves/slot98>] [--timeout 300000]
-//       [--timeout 300000]
+//       [--user-a econloop_a] [--user-b econloop_b]
+// 复用存档位不要求全新账号：开头会按存档位的 accounts.json 遍历所有 owner 清掉历史 open 挂单，
+// 还原干净盘面（撤单才退预留，改 DB 会与内存订单簿脱节）；B 本金不够时会把本轮数量自适应钳制。
+// 复用存档位时上一轮账号已被买盘预留掏空（自带 250 金币见底，撑不起 60×qty 的预留），
+// 传一对新账号名即可拿回 heroTemplate 本金，同时保留市场历史以验证重启 ID 校准。
 // 退出码：0 = 全绿；1 = 任一步失败；2 = 环境/参数错误。
 import WebSocket from 'ws';
 import { DatabaseSync } from 'node:sqlite';
 import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = (arg('--base', 'http://127.0.0.1:8098')).replace(/\/+$/, '');
 const WS_BASE = BASE.replace(/^http/, 'ws');
 const SLOT = Number(arg('--slot', '98'));
-const QTY = Math.max(1, Number(arg('--qty', '3')));
+// 数量可被动态算价保护钳制（见「定价 + 挂卖单」段），故用 let
+let QTY = Math.max(1, Number(arg('--qty', '3')));
 const PRICE = Number(arg('--price', '60'));
 const TIMEOUT_MS = Number(arg('--timeout', '180000'));
 const WOOD = 18;          // 砍树产出（ws.ts chop -> knapAdd(pm, 18, 3)）
@@ -144,7 +150,9 @@ try {
   // 1. 建号（自洽）。账号名固定，跨轮次幂等：先 login，登不上再 register。
   //    固定的目的是——上一轮失败残留的挂单能在开头按 owner 精确撤掉，
   //    否则残留买单会把 topBid 抬到 59，A 的单被 MM 吃掉、B 的余额又撑不起 60×N，测试必红。
-  const NAME_A = 'econloop_a', NAME_B = 'econloop_b';
+  // 账号名可覆盖：复用同一存档位时上一轮的 econloop_b 已被买盘预留掏空（自带 250 金币见底），
+  // 换一对新名即可拿到 heroTemplate 的 250 本金，同时保留 market_orders/market_fills 历史以验证重启 ID 校准。
+  const NAME_A = arg('--user-a', 'econloop_a'), NAME_B = arg('--user-b', 'econloop_b');
   const ensureAccount = async (name) => {
     let r = await jpost('/af/login', { username: name, password: 'econloop' });
     if (!r.token) r = await jpost('/af/register', { username: name, password: 'econloop' });
@@ -161,14 +169,48 @@ try {
   const wB = await openAgent(B.agentToken);
   await Promise.all([observe(wA), observe(wB)]);
 
-  // 3. 清掉自己上一轮残留的挂单（撤单会把背包预留退回来）
-  {
+  // 3. 全局清盘：当前存档位库里所有 open 的 wood 订单全部撤掉，还原干净盘面。
+  //    撤单必须走 ws 协议（撤单才把挂单预留退回去）——直接改 DB 会与内存订单簿脱节，
+  //    下次 persist 又被覆盖。复用存档位时上一轮的残留买单把 topBid 抬到 59、残留卖单撑大
+  //    ask 深度，B 自带的 250 本金算不出可行价位，撮合链 5-9 步必红。
+  //    owner 到账号的映射从存档位同级的 accounts.json 取（含 token，无需密码）。
+  const cancelOrders = async (owner, orderId) => {
     const mine = (uid) => dbRows(`SELECT id FROM market_orders WHERE item_id = ? AND owner = ? AND status = 'open'`, [WOOD, uid]);
+    let cancelled = 0;
     for (const { uid, w } of [{ uid: A.uid, w: wA }, { uid: B.uid, w: wB }]) {
-      for (const row of mine(uid)) {
+      if (uid !== owner) continue;
+      for (const row of (orderId ? [{ id: orderId }] : mine(uid))) {
         await callAct(w, { t: 'act', action: 'trade', op: 'cancel', itemId: WOOD, orderId: row.id });
+        cancelled++;
       }
     }
+    return cancelled;
+  };
+  {
+    const openOrders = dbRows(`SELECT id, owner FROM market_orders WHERE item_id = ? AND status = 'open'`, [WOOD]);
+    const accts = (() => {
+      try { return JSON.parse(readFileSync(join(DATA_DIR, '..', '..', 'accounts.json'), 'utf8')); } catch { return {}; }
+    })();
+    const byUid = new Map(Object.values(accts).map(a => [a.uid, a]));
+    const owners = [...new Set(openOrders.map(o => o.owner))];
+    let cancelled = 0, skipped = [];
+    for (const owner of owners) {
+      cancelled += await cancelOrders(owner, null);
+      if (owner === A.uid || owner === B.uid) continue;
+      const acc = byUid.get(owner);
+      if (!acc) { skipped.push(owner); continue; }
+      try {
+        const tok = await jpost('/af/agent-token', { token: acc.token });
+        if (!tok.agentToken) { skipped.push(owner); continue; }
+        const wc = await openAgent(tok.agentToken);
+        for (const row of openOrders.filter(o => o.owner === owner)) {
+          await callAct(wc, { t: 'act', action: 'trade', op: 'cancel', itemId: WOOD, orderId: row.id });
+          cancelled++;
+        }
+        wc.close();
+      } catch { skipped.push(owner); }
+    }
+    console.log(`[清盘] open wood 订单 ${openOrders.length} 笔 -> 撤单 ${cancelled} 笔${skipped.length ? `；跳过 ${skipped.length} 个无凭据 owner（${skipped.join(',')}）` : ''}`);
   }
 
   // 4. A 找可砍的树（纯协议三段式，不读服务端任何文件）
@@ -277,7 +319,8 @@ try {
   // 5. 定价 + 挂卖单。两个约束共同定 P：
   //    下限 topBid+1 —— 低于等于最高买盘，A 的单会被做市商顺手吃掉，对手方变成 'mm' 而不是 B；
   //    上限 B 的采购预算 —— B 自带 250 金币，买量要覆盖簿上更便宜的 ask，价额超预算就下不了单。
-  //    所以下单前就把 B 的预算问出来，逐档降价找同时满足两边的 P。
+  //    动态算价保护：定价取「topBid+1」（簿空回落 60），预算撑不起定价×数量就把本轮数量钳到
+  //    B 买得起的量（≥1），不再因硬编码 3x 预算溢出直接判红。
   const bk = await callAct(wA, { t: 'act', action: 'trade', op: 'book', itemId: WOOD });
   const topBid = bk?.book?.bids?.[0]?.price ?? 0;
   const asks0 = bk?.book?.asks || [];
@@ -285,12 +328,15 @@ try {
   const stB0 = await observe(wB);
   const bCoins = stB0.coins || 0;
   const woodBeforeB = woodNum(stB0);
-  const buyQtyAt = (p) => Math.max(QTY, askQtyBelow(p) + QTY);
-  let P = Math.max(PRICE, topBid + 1);
-  let buyQty = buyQtyAt(P);
-  let afford = P * buyQty <= bCoins;
-  while (!afford && P > topBid + 1) { P--; buyQty = buyQtyAt(P); afford = P * buyQty <= bCoins; }
-  if (!afford) bad('4.买家吃单', `B 自带金币 ${bCoins} 撑不起任何可行价位（topBid=${topBid}，最低需 ${topBid + 1}*${buyQty}）`);
+  let P = Math.max(PRICE, topBid > 0 ? topBid + 1 : 60);
+  if (P * QTY > bCoins) {
+    const clamped = Math.max(1, Math.floor(bCoins / P));
+    ok('4.买家吃单', `B 余额 ${bCoins} 撑不起 ${P}×${QTY}，本轮数量钳制为 ${clamped}`);
+    QTY = clamped;
+  }
+  const buyQty = Math.max(QTY, askQtyBelow(P) + QTY);
+  const afford = P * buyQty <= bCoins;
+  if (!afford) bad('4.买家吃单', `B 余额 ${bCoins} 不足 ${P}×${buyQty}（topBid=${topBid}，簿上更低价 ask 深度 ${askQtyBelow(P)}，清盘未清干净）`);
   const sell = await callAct(wA, { t: 'act', action: 'trade', op: 'place', itemId: WOOD, side: 'sell', price: P, qty: QTY });
   sell?.ok
     ? ok('2.挂卖单', `@${P} x${QTY} resting=${sell.resting} 立即成交=${sell.fills} 笔`)

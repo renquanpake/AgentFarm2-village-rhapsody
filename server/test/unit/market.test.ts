@@ -134,7 +134,8 @@ describe('交易所系统手续费（10% 烧币通缩回收）', () => {
 });
 
 describe('持久化与 OHLC', () => {
-  it('重启 load() 恢复挂单与成交历史；OHLC 可查', () => {
+  // SQLite 磁盘 I/O 重（两次 WorldState+EventLog 构造与快照），多文件并行时 5s 默认超时会偶发抖动
+  it('重启 load() 恢复挂单与成交历史；OHLC 可查', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'af-mkt2-'));
     dirs.push(dir);
     const build = () => {
@@ -167,7 +168,7 @@ describe('持久化与 OHLC', () => {
     expect(o[0].close).toBe(sellPx);
     expect(o[0].volume).toBe(2);
     b.db.close();
-  });
+  }, 15000);
 });
 
 describe('买入限价改善退差（价格改善归买方）', () => {
@@ -229,5 +230,50 @@ describe('买入限价改善退差（价格改善归买方）', () => {
     expect(b0 - coins('u2')).toBe(gross);          // 退差后只付成交总价
     expect(coins('u1') - s0).toBe(gross - fee);     // 卖方收 90%
     h.db.close();
+  });
+});
+
+describe('重启 ID 校准（market_orders.id UNIQUE）', () => {
+  it('重启后新挂单不复用已成交历史行 id（restoreOpen 只回灌未成交单）', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'af-mkt-cal-'));
+    dirs.push(dir);
+    const build = () => {
+      const tables = new Tables(path.join(dir, 'data'));
+      const opts: StateOpts = { savesDir: path.join(dir, 'saves'), seedFile: '', slot: 1, farmLeft: 14, spawns: null, growDayMs: 600000, init: false };
+      const state = new WorldState(opts);
+      const db = openDb(path.join(dir, 'events.db'));
+      const log = new EventLog(db, { snapshotEvery: 5000, getState: () => state, stateOpts: opts });
+      log.init();
+      const app = { state, tables, db, log } as unknown as App;
+      return { state, db, market: new MarketService(app) };
+    };
+
+    // 阶段一：卖单压在 mm 卖盘下方成为最高 open id -> 买单把它全部吃光，该行状态转 'filled'。
+    // 重启后 restoreOpen 只回灌仍 open 的行，未校准时新单会重生该 'filled' 行的 id
+    const a = build();
+    give(a, 'u1', 12, 5);
+    const ask = Math.round(a.market.basePrice(12) * 1.05); // 做市卖盘价
+    const aPx = ask - 1;                                     // 压在 mm 卖盘下方：买盘只吃得到它
+    const r1 = a.market.place('u1', 12, 'sell', aPx, 5);
+    give(a, 'u2', 1, 100000);
+    const r2 = a.market.place('u2', 12, 'buy', aPx, 5);
+    expect(r1.fills!.length).toBe(0);
+    expect(r2.fills!.length).toBe(1);
+    expect(r2.fills![0].maker).toBe('u1'); // 锁死场景：A 被吃光，B 全部成交不残留
+    const rows = a.db.prepare('SELECT id, status FROM market_orders WHERE item_id = ? ORDER BY id').all(12) as Array<{ id: number; status: string }>;
+    const openIds = rows.filter(r => r.status === 'open').map(r => r.id);
+    const maxRestored = Math.max(...openIds);
+    const maxAll = Math.max(...rows.map(r => r.id));
+    expect(maxRestored).toBeLessThan(maxAll); // 'filled' 行排在最后 -> 不进 restoreOpen
+    a.db.close();
+
+    // 阶段二：重启。未校准的簿 nextId 只被 open 行推到 maxRestored+1，新单撞 'filled' 行
+    const b = build();
+    b.market.load();
+    give(b, 'u3', 12, 5);
+    const rn = b.market.place('u3', 12, 'sell', aPx * 3, 5);
+    expect(rn.ok).toBe(true);
+    expect(rn.orderId!).toBeGreaterThan(maxAll);
+    b.db.close();
   });
 });

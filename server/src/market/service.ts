@@ -30,7 +30,14 @@ export class MarketService {
 
   bookOf(item: number): OrderBook {
     let b = this.books.get(item);
-    if (!b) { b = new OrderBook(item); this.books.set(item, b); }
+    if (!b) {
+      b = new OrderBook(item);
+      // 重启校准：自增序号须越过磁盘历史最大值。已成交/已撤销行不进 restoreOpen，
+      // 不校准则新单复用旧 id -> UNIQUE constraint failed: market_orders.id
+      const mx = (this.app.db.prepare('SELECT MAX(id) AS mx FROM market_orders WHERE item_id = ?').get(item) as { mx: number | null }).mx;
+      if (mx) b.calibrateTo(mx);
+      this.books.set(item, b);
+    }
     return b;
   }
 
