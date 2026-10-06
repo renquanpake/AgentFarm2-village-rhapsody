@@ -6,7 +6,7 @@
 import { createHash } from 'node:crypto';
 import type { App } from '../app.ts';
 import type { WorldState } from '../persistence/state.ts';
-import { calendarDay, currentGameDay, SEASON_DAYS } from './calendar.ts';
+import { calendarDay, currentGameDay } from './calendar.ts';
 import { municipalOf } from '../navigation/municipal.ts';
 import { taskView } from './tasks.ts';
 import { npcBuyPrice, buyPriceOf, shopTable } from '../market/shop.ts';
@@ -58,7 +58,7 @@ function priceLine(app: App, id: number): string | null {
   const buy = buyPriceOf(app.tables, id);
   if (buy <= 0) return null; // 不可购买：不报价（0 才是真相）
   const ref = npcBuyPrice(app.tables, id);
-  return `${id}=${clip(it.name, 8)}（买入 ${buy}，NPC 收购参考 ${ref}）`;
+  return `${id}=${clip(it.name, 8)}（买入 ${buy},收${ref}）`;
 }
 
 function pricesSection(app: App, limit: number): string {
@@ -68,9 +68,9 @@ function pricesSection(app: App, limit: number): string {
     const l = priceLine(app, id);
     if (l) lines.push(l);
   }
-  // 价格语义只写一遍（放【条款】）：价目段头重复解释会吃掉 ~40 token，
-  // 而 full 档预算基线 1199/1200 零余量，多一句就把 NPC 名册裁掉。
-  return `【价目】id 名称（价格口径见条款）：\n${lines.join('；')}`;
+  // 价格语义只写一遍（放【条款】，「收」列在那里定义）：价目段头重复解释会吃掉 ~40 token，
+  // 而 full 档预算零余量，多一句就把 NPC 名册裁掉。
+  return `【价目】id=名称(口径见条款)： ${lines.join('；')}`;
 }
 
 function landmarksSection(app: App, limit: number): string {
@@ -86,7 +86,7 @@ function landmarksSection(app: App, limit: number): string {
       out.push(`${clip(lm.name, 12)}@(${lm.x * 100 + 50},${lm.y * 100 + 50})`);
     }
   }
-  return `【地标】村景坐标（像素）：${out.join('、')}`;
+  return `【地标】村景像素:${out.join('、')}`;
 }
 
 function buildingsSection(app: App, limit: number): string {
@@ -97,7 +97,7 @@ function buildingsSection(app: App, limit: number): string {
       if (out.length >= limit) break;
       const d = b.door;
       if (!d) continue;
-      out.push(`${clip(b.name, 10)}(场景${scene} 门位 ${d.x},${d.y})`);
+      out.push(`${clip(b.name, 10)}(${scene} 门位 ${d.x},${d.y})`);
     }
   }
   return `【建筑】move_to near 建筑名 到门位：${out.join('、')}`;
@@ -112,7 +112,10 @@ function npcSection(app: App, limit: number, tagCount: number): string {
   const list = sorted.slice(0, limit);
   const out = list
     .map((n, i) => {
-      const id = clip((n as { identity?: string }).identity ?? (n as { persona?: { identity?: string } }).persona?.identity, 6);
+      // 岗位与人设 identity 相同时（屠夫/木匠/医生…）该括注是零信息量冗余，直接省掉
+      const ident = String((n as { identity?: string }).identity ?? (n as { persona?: { identity?: string } }).persona?.identity ?? '');
+      const nm = String(n.name ?? '');
+      const id = ident && ident !== nm ? clip(ident, 6) : '';
       const tag = i < tagCount ? clip((n as { persona?: { tagline?: string } }).persona?.tagline, 10) : '';
       return `${clip(n.name, 6)}${id ? `(${id})` : ''}${tag ? `「${tag}」` : ''}`;
     })
@@ -123,11 +126,8 @@ function npcSection(app: App, limit: number, tagCount: number): string {
 function calendarSection(app: App, state: WorldState): string {
   const day = currentGameDay(state, Date.now());
   const c = calendarDay(day);
-  const bits = [
-    `第 ${day} 天（${SEASON_DAYS} 天一季，四季循环）`,
-    `季节 ${SEASON_CN[c.season] ?? c.season}`,
-    `天气 ${WEATHER_CN[c.weather] ?? c.weather}`,
-  ];
+  // 「10 天一季，四季循环」在【世界观】已声明，这里只报真值（每轮重复该说明是纯冗余）
+  const bits = [`第 ${day} 天`, `季节 ${SEASON_CN[c.season] ?? c.season}`, `天气 ${WEATHER_CN[c.weather] ?? c.weather}`];
   if (c.festival) bits.push(`今日节日「${clip(c.festival, 12)}」`);
   return `【日历】${bits.join('，')}`;
 }
@@ -164,9 +164,9 @@ function tasksSection(app: App, state: WorldState, uid: string | undefined): str
 /** 反幻觉条款 + 权威源注记（固定尾句，所有档位一致） */
 function termsSection(): string {
   return [
-    '【条款】价格/日历/坐标/动作语义以本段所列权威数据为准，改数据即改规则。',
-    '坐标一律像素坐标（格 → 格*100+50，如格 15 → 1550）；目标格动作需站相邻格。',
-    `买入=商店实付金币；NPC 收购参考=市场基价六折，NPC 不回购。卖货用 act trade place sell 挂订单簿（卖方实收 90%）。`,
+    '【条款】数值以本段权威数据为准，改数据即改规则。',
+    '坐标=像素(格*100+50，格15→1550)；格操作需先站相邻格。',
+    '买入=商店实付；价目「收」=NPC 收购参考=市场基价六折，NPC 不回购；卖货 act trade place sell 挂单(卖方实收 90%)；消耗 act recycle 回炉(废资价五折，保底出口)。',
     '以上资料未写明的，回答不知道。',
   ].join('\n');
 }
@@ -182,7 +182,7 @@ export function rulesPrompt(app: App, opts: RulesPromptOptions): RulesPrompt {
   const state = app.state;
   if (opts.budget === 'lite') {
     const text = [
-      `【世界观】AgentFarm2 农场村庄：四场景 + 槽位私有的家，40 天一年（10 天一季），种田/钓鱼/挖矿/交易/社交。村景地图 ${mapSizeText(app)}。`,
+      `【世界观】AgentFarm2 农庄:四场景+槽位私有的家,40天一年(10天一季),种田/钓鱼/挖矿/交易/社交。地图 ${mapSizeText(app)}。`,
       calendarSection(app, state),
       termsSection(),
     ].join('\n');
@@ -190,7 +190,7 @@ export function rulesPrompt(app: App, opts: RulesPromptOptions): RulesPrompt {
   }
 
   const head = [
-    `【世界观】AgentFarm2 农场村庄：村景(场景2)+河畔/梯田/后山等四场景，家(场景1)按加入序号槽位私有；40 天一年（10 天一季），核心玩法 种田/砍伐/钓鱼/挖矿/建造/装饰/交易/委托/社交。村景地图 ${mapSizeText(app)}（含全部地块）。`,
+    `【世界观】AgentFarm2 农庄:村景(场景2)+河畔/梯田/后山四场景,家(场景1)按加入序号私有;40天一年(10天一季);玩法 种田/砍伐/钓鱼/挖矿/建造/装饰/交易/委托/社交。村景地图 ${mapSizeText(app)}。`,
     calendarSection(app, state),
   ];
   const tail = [

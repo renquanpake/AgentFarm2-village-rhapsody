@@ -41,7 +41,7 @@ import { tutorialAct, tutorialProgress, tutorialSteps } from '../world/tutorial.
 import { rulesPrompt } from '../world/rules-prompt.ts';
 import { freshSeed, pickWeightedSeeded } from '../world/rng.ts';
 import { WORLD_KEYS } from '../persistence/state.ts';
-import { doBuy, shopTable } from '../market/shop.ts';
+import { doBuy, doRecycle, shopTable } from '../market/shop.ts';
 import { bfsPath, nearestReachable, blockedAt, blockedHouse, normXY } from '../navigation/grid.ts';
 import { navGridFromTables } from '../navigation/navgen.ts';
 import { applyRoads, roadOf, type RoadLine } from '../navigation/roads.ts';
@@ -1348,6 +1348,20 @@ responseType = 'move_started';
               } else {
                 result = { ok: false, msg: pr.msg };
               }
+            }
+          } else if (action === 'recycle') {
+            // 批4 P2：基础资源消耗出口。木材从「挂单→被买→压背包」的死账变成可回炉的原料。
+            // 回收价由 RECYCLE_RATE 唯一决定（见 shop.ts），刻意低于 NPC 收购参考六折，
+            // 让订单簿仍是主卖货通道，回炉只当保底出口。
+            const rc = doRecycle(state, app.tables, uid, Number(msg.itemId || msg.item), Number(msg.qty || 1));
+            if (rc.ok && rc.recycled) {
+              taskCount(state, app.tables, uid, 'trade', rc.recycled.qty);
+              app.log.append('trade.recycle', uid, { itemId: rc.recycled.id, qty: rc.recycled.qty, coins: rc.recycled.coins });
+              app.log.append('task.progress', uid, { uid, type: 'trade', n: rc.recycled.qty });
+              publish('打铁炉回炉 ' + rc.recycled.qty + 'x ' + rc.recycled.name);
+              result = { ...rc, msg: `打铁炉回炉 ${rc.recycled.qty}x ${rc.recycled.name}，得金币 ${rc.recycled.coins}` };
+            } else {
+              result = { ok: false, msg: rc.msg };
             }
           } else if (['till', 'water', 'plant', 'harvest', 'chop', 'place'].includes(action)) {
             // 近邻格动作统一入参门：缺有效 x/y 会让 normXY 产出 NaN，

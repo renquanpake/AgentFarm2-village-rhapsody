@@ -27,6 +27,7 @@ export const ACT_CATALOG: ActEntry[] = [
   { act: 'forecast', args: '{}', returns: '明日天气/节日预告（生长倍率、风暴赔付提示）' },
   { act: 'buy', args: '{itemId|item, count?}', returns: '扣金币入包；金币不足/无此物品给可读失败' },
   { act: 'trade', args: '{op:"place"|"cancel"|"book", itemId, price?, num?}', returns: '订单簿挂单/撤单/撮合结果' },
+  { act: 'recycle', args: '{itemId}', returns: '打铁炉回炉 1 个原料换废资价（只收木材 id=18；带 qty 可批量）；低于收购参考六折，是保底出口不是主卖货通道' },
   { act: 'stall', args: '{}', returns: '节日集市开摊（需钩子解冻+节日+摊位费）' },
   { act: 'delegate', args: '{op:"list"|"publish"|..., task?, itemId?, num?}', returns: '委托挂单/接取/结算结果' },
   { act: 'lease', args: '{op:"open"|"care"|"tick"|"status", plot, leaseMs?}', returns: '地块包租约状态与到期时间' },
@@ -86,7 +87,7 @@ export function catalogText(): string {
 
 /** 高频动作：紧凑渲染时仍给全参数（agent 日常真正会调的那些） */
 export const HIGH_FREQ_ACTS = new Set([
-  'move', 'move_to', 'arrive', 'observe', 'chat', 'talk', 'buy', 'trade', 'letter',
+  'move', 'move_to', 'arrive', 'observe', 'chat', 'talk', 'buy', 'trade', 'recycle', 'letter',
   'till', 'plant', 'water', 'harvest', 'chop', 'fish', 'mine', 'tasks', 'forecast', 'report', 'train',
 ]);
 

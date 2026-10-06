@@ -1,0 +1,4 @@
+[full] chars=2240 tokens=1120 hash=be464c8afd
+[lite] chars=274 tokens=137 hash=d1dd164000
+[catalog-terse] chars=1120 tokens=560
+[sections] {"世界观":{"chars":112,"tokens":56},"日历":{"chars":20,"tokens":10},"价目":{"chars":235,"tokens":118},"地标":{"chars":100,"tokens":50},"建筑":{"chars":169,"tokens":85},"NPC 名册":{"chars":245,"tokens":123},"动作":{"chars":19,"tokens":10},"任务":{"chars":37,"tokens":19},"条款":{"chars":25,"tokens":13}}

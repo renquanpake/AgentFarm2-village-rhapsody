@@ -2,7 +2,7 @@
 // 说明：当前为"固定价目 NPC 商人"实现；B1（M2.1）将替换为 CDA 订单簿撮合引擎。
 import type { Tables } from '../world/tables.ts';
 import type { WorldState } from '../persistence/state.ts';
-import { knapAdd, knapSub } from '../world/farm.ts';
+import { knapAdd, knapHas, knapSub } from '../world/farm.ts';
 
 /** NPC 基准价（items.sell_price x 2，种子类按 N10 折扣 —— 见 Tables.npcUnitPrice） */
 export function sellX2(tables: Tables, itemId: number): number {
@@ -38,6 +38,42 @@ export function buyPriceOf(tables: Tables, itemId: number, shop?: Record<number,
     if (hit) return hit[1];
   }
   return tables.npcUnitPrice(itemId);
+}
+
+/**
+ * 回收出口（批4 P2：基础资源消耗闭环）。
+ * 木材此前只有两个去向——挂订单簿等撮合、或者躺在背包里当死账。买方吃完卖方挂单后
+ * 手里压着木材却没有任何合法出口把它变成生产力，「砍伐→挂单→购买」这条链在买方手里断了。
+ * 这里补一个「打铁炉回炉」：直接烧成炉灰换回废资价，走通「砍伐→挂单→购买→消耗」。
+ *
+ * 定价阶梯（低→高，故意留档，任何一档不能反超上一档，否则玩家会绕过撮合）：
+ *   回炉 RECYCLE_RATE 0.5  <  NPC 收购参考 NPC_BUY_RATE 0.6  <  订单簿卖方实收 0.9
+ * 所以回炉只在「没买家 / 不想等撮合」时作保底出口，日常卖货仍走订单簿。
+ * 唯一数值源：报「回收价」一律走 RECYCLE_RATE，不要在对话/文档里另写一个比率。
+ */
+export const RECYCLE_RATE = 0.5;
+
+/** 可回炉的原料（id=18 木材）。扩展时在 doRecycle 的报错文案里同步说明白名单。 */
+export const RECYCLABLE = new Set([18]);
+
+export interface RecycleResult {
+  ok: boolean; msg?: string;
+  recycled?: { id: number; name: string; qty: number; coins: number };
+  coins?: number;
+}
+
+/** 打铁炉回炉：烧掉原料换废资价金币（回收价 = basePrice × RECYCLE_RATE） */
+export function doRecycle(state: WorldState, tables: Tables, uid: string, itemId: number, qty: number): RecycleResult {
+  if (!RECYCLABLE.has(itemId)) return { ok: false, msg: `打铁炉只回炉木材（id=18）；物品 ${itemId} 不能回炉` };
+  if (!Number.isFinite(qty) || qty < 1) return { ok: false, msg: '数量需 ≥1' };
+  const pm = state.playersDb.get(uid);
+  if (!pm) return { ok: false, msg: '玩家数据不存在' };
+  if (!knapHas(pm, itemId, qty)) return { ok: false, msg: `背包木材不足（需要 ${qty}）` };
+  const coins = Math.round(tables.basePriceOf(itemId) * RECYCLE_RATE) * qty;
+  knapSub(pm, itemId, qty);
+  knapAdd(pm, 1, coins);
+  state.persist();
+  return { ok: true, recycled: { id: itemId, name: tables.items.find(x => x.id === itemId)?.name || '物品' + itemId, qty, coins }, coins };
 }
 
 // NPC 商店价目（服务器内部；agent 通过 talk 向 NPC 询价获得）

@@ -642,9 +642,10 @@
   let lastAuthAt = 0;
   let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
   let lastAgentMovePayload = null, agentMoveDoneCount = 0, lastServerPos = null;
-  // 节点生命周期显式绑定（WP1b）：scene-launched 一次性绑定 + 失效解绑，
+  // 节点生命周期显式绑定（WP1b）：scene-launched 触发 + EVENT_AFTER_UPDATE 帧级探测 + 失效解绑，
   // 声明提前到状态区，避免闭包内 TDZ。
   let sceneBoundNode = null, sceneBoundId = null, sceneSubBound = false, sceneLaunchCb = null;
+  let sceneBindFrames = 0, afterUpdateCb = null;
 
   // P1.1 节点获取链（实测修正）：Application.playerNode 可能指向已脱离场景树的孤儿 PlayerItem
   //（isValid=true 但 getScene()=null，位移全打在假节点上）；原版混淆构建里 PlayerMoudle._gPlayer 取不到。
@@ -716,25 +717,51 @@
   // 销毁清理两条：节点被 destroy/GC 时 isValid=false 立即解绑；换场景时也解绑旧引用，
   // 避免把上个场景的孤儿节点当成当前角色继续打位置。
   // 解析链本身保留为回退：绑定未就绪或已失效时照常走，行为与改造前一致。
+  const BIND_FRAME_LIMIT = 10;   // 10 帧保底：仍未解析到角色节点即放弃绑定，退回解析链
   function currentSceneId() {
     try { return (typeof cc !== 'undefined' && cc.director && cc.director.getScene()) || null; } catch (e) { return null; }
   }
   function releaseSceneBind() {
+    stopFrameProbe();
     sceneBoundNode = null;
     sceneBoundId = null;
     playerNodeCache = null;   // 绑定失效时同步清掉 resolvePlayerNode 的时间缓存
+  }
+  // 帧级确定性绑定：EVENT_AFTER_UPDATE 在每帧 lateUpdate 之后、draw 之前触发（引擎主循环内，
+  // 与场景激活同一条帧管线），用它逐帧探测角色节点。相比 setTimeout(0) 的宏任务——宏任务排在
+  // 渲染帧之外，场景内节点晚挂上来时它已经跑完，绑定必然失败退回 fallback。帧探测命中即
+  // 当帧完成绑定并立即注销监听，10 帧未命中记警告后同样注销，监听永不常驻。
+  function stopFrameProbe() {
+    if (!afterUpdateCb) return;
+    try { if (cc.director) cc.director.off(cc.Director.EVENT_AFTER_UPDATE, afterUpdateCb); } catch (e) { /* ignore */ }
+    afterUpdateCb = null;
+  }
+  function startFrameProbe(sc) {
+    stopFrameProbe();
+    sceneBindFrames = 0;
+    afterUpdateCb = function () {
+      if (!cc.director || !currentSceneId() || currentSceneId() !== sc) { stopFrameProbe(); return; }
+      sceneBindFrames++;
+      const n = resolvePlayerNode();
+      if (n && nodeInScene(n)) {
+        sceneBoundNode = n; sceneBoundId = sc;
+        stopFrameProbe();
+        console.log('[AF] 帧级绑定成功 ' + (n.name || 'PlayerItem') + ' @' + sceneBindFrames + ' 帧');
+        return;
+      }
+      if (sceneBindFrames >= BIND_FRAME_LIMIT) {
+        stopFrameProbe();
+        console.warn('[AF] 帧级绑定 ' + BIND_FRAME_LIMIT + ' 帧未就绪，退回解析链 fallback');
+      }
+    };
+    try { cc.director.on(cc.Director.EVENT_AFTER_UPDATE, afterUpdateCb); } catch (e) { afterUpdateCb = null; }
   }
   function bindScenePlayer() {
     const sc = currentSceneId();
     if (!sc || sc === sceneBoundId) return;
     // 场景变了：旧绑定失效（即使旧节点此刻还 isValid，它也属于上个场景）
     releaseSceneBind();
-    // 新场景已 _activate，但角色节点可能在同帧晚一点挂上，排一个宏任务再解析一次
-    setTimeout(() => {
-      if (currentSceneId() !== sc) return;
-      const n = resolvePlayerNode();
-      if (n && nodeInScene(n)) { sceneBoundNode = n; sceneBoundId = sc; }
-    }, 0);
+    startFrameProbe(sc);
   }
   function bindPlayerNode() {
     if (sceneSubBound || typeof cc === 'undefined' || !cc.director || !cc.Director) return;
@@ -743,13 +770,13 @@
     sceneLaunchCb = function (sc) {
       // 只解绑、不写 sceneBoundId：bindScenePlayer 靠 sceneBoundId 判「已绑定」，
       // 这里先写上新场景 id 会让它直接 return，节点永远绑不上。
-      if (sc) { sceneBoundNode = null; sceneBoundId = null; setTimeout(bindScenePlayer, 0); }
+      if (sc) { sceneBoundNode = null; sceneBoundId = null; bindScenePlayer(); }
     };
     try {
       cc.director.on(ev, sceneLaunchCb);
       sceneSubBound = true;
       bindScenePlayer();
-      console.log('[AF] 节点生命周期绑定已挂载（scene-launched 一次性绑定 + 失效解绑）');
+      console.log('[AF] 节点生命周期绑定已挂载（scene-launched + EVENT_AFTER_UPDATE 帧级绑定，' + BIND_FRAME_LIMIT + ' 帧保底）');
     } catch (e) { sceneSubBound = false; sceneLaunchCb = null; }
   }
   function resolveBoundPlayerNode() {

@@ -1,25 +1,34 @@
-(node:20183) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:25024) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 (Use `node --trace-warnings ...` to show where the warning was created)
 {
  "base": "http://127.0.0.1:8099",
  "slot": 99,
  "qty": 3,
  "price": 60,
+ "runTs": 1791272945327,
+ "navSteps": 194,
+ "hops": 6,
  "seller": {
   "nick": "econloop_a",
-  "uid": "790773",
-  "wood": "0→0",
-  "coins": "310→792"
+  "uid": "dda1a2",
+  "wood": "3→6",
+  "coins": "954→1116"
  },
  "buyer": {
   "nick": "econloop_b",
-  "uid": "2c5b7d",
-  "coinsStart": 250,
+  "uid": "501186",
+  "coinsStart": 222,
   "buyQty": 3,
-  "wood": "0→3"
+  "wood": "2→4",
+  "recycled": {
+   "id": 18,
+   "name": "木材",
+   "qty": 1,
+   "coins": 3
+  }
  },
  "fills": [
-  "60x3→2c5b7d"
+  "60x3→501186"
  ],
  "gross": 180,
  "fee": 18,
@@ -28,7 +37,7 @@
   {
    "step": "1.砍树产出",
    "ok": true,
-   "detail": "树被砍倒，木材 +3（1 斧，跳过 0 棵已倒的）"
+   "detail": "树被砍倒，木材 +6（1 斧，跳过 0 棵已倒的）"
   },
   {
    "step": "2.挂卖单",
@@ -38,7 +47,7 @@
   {
    "step": "3.背包预留",
    "ok": true,
-   "detail": "背包木材 3 → 0（挂单预留 3）"
+   "detail": "背包木材 9 → 6（挂单预留 3）"
   },
   {
    "step": "4.买家吃单",
@@ -58,14 +67,19 @@
   {
    "step": "7.卖方收款",
    "ok": true,
-   "detail": "A 630 → 792（≥ 净 162；差额 0 来自任务链铸币）"
+   "detail": "A 954 → 1116（≥ 净 162；差额 0 来自任务链铸币）"
   },
   {
    "step": "8.买方收货",
    "ok": true,
-   "detail": "A 砍后 3 → 0（-3）；B 0 → 3（+3）"
+   "detail": "A 砍后 9 → 6（-3）；B 2 → 5（+3）"
+  },
+  {
+   "step": "9.回炉消耗",
+   "ok": true,
+   "detail": "B 回炉 1x 木材 → 得金币 3，背包 5 → 4，trade.recycle 事件 1 条（3x 买入的木材已有合法出口）"
   }
  ],
- "pass": 8,
- "total": 8
+ "pass": 9,
+ "total": 9
 }

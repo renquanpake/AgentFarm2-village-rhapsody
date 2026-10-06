@@ -5,20 +5,24 @@
 // 全程只走公开协议 act/observe 与 market_fills 事件落库，砍树与撮合都是真动作。
 // 资金来源：新玩家自带 250 金币（heroTemplate），够 3 木材 @60 的买盘预留，
 // 全程不碰 dev 端点 —— 因此在 AF_DEV_ENDPOINTS=0 的加固实例上也能跑。
-// 定位提示（仅测试脚手架，不进协议）：村景真树是 plantId 14-19（treeOf 判定，farmType===2 里
-// 混着装饰植物会砍到"这个格子上没有树"），共 171 株，只分布在 x∈[0,74] y∈[0,59]；
-// 而新玩家出生在民居门口（实测 x∈[9,102] y∈[54,119]），最近树常在 45 格之外。
-// observe 的 obstacles 半径只有 12 格，够不着；所以按 --data-dir 读世界档直接取
-// 离 A 最近的真树格作为 move_to 目标（move_to 会吸附可站立环，落点必然贴着树）。
+// 定位口径（纯协议，批4 P1）：不读服务端任何世界档文件，全部走公开接口。
+// ①宏观寻路：公开地标网络。村景真树只在 x∈[0,74] y∈[0,59]（treeOf 判定：plantId 14-19；
+//   farmType===2 会混进装饰植物，砍到「这个格子上没有树」），新玩家出生在民居门口
+//   （实测 x∈[9,102] y∈[54,119]），最近树常在 40+ 格外。observe 的 obstacles 只有 12 格窗，
+//   treesNear 更是 3 格窗（§4.2 不喂导航级树坐标清单），从出生点直接看不到树。
+//   所以先 move_to {near:'北路口里程碑'}（树场东北入口，路名「南北大街·北林间道」），
+// ②林区选址：GET /af/mapdoc 是公开文本地图（专为纯文本 LLM 自规划路线设计），
+//   里面给出阻挡簇 bbox（格坐标）。西北象限的簇就是树丛，挑离当前位置最近的簇 move_to 进去。
+// ③局部感知：observe 的 treesNear 3 格窗。到位后就近树丛再步进 1-2 跳，直到 treesNear 非空。
+//   move_to 会把目标吸附到可站立环，落点必然贴着树，所以 treesNear 立即非空。
 // 用法：node tools/econ-loop-e2e.mjs [--base http://127.0.0.1:8098] [--slot 98]
-//       [--qty 3] [--price 60] [--db <events.db>] [--data-dir <saves/slot98>]
+//       [--qty 3] [--price 60] [--db <events.db>] [--data-dir <saves/slot98>] [--timeout 300000]
 //       [--timeout 300000]
 // 退出码：0 = 全绿；1 = 任一步失败；2 = 环境/参数错误。
 import WebSocket from 'ws';
 import { DatabaseSync } from 'node:sqlite';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readFileSync } from 'node:fs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = (arg('--base', 'http://127.0.0.1:8098')).replace(/\/+$/, '');
@@ -33,26 +37,33 @@ const DATA_DIR = arg('--data-dir') || join(dirname(fileURLToPath(import.meta.url
 // 事件库与实例数据目录同源：服务端按 AF_DATA_DIR 落盘，所以 DB_PATH 默认跟着 DATA_DIR 走，
 // 单独指仓库 data/ 会查到空表（交易真发生了但账本在另一个库）——曾因此误判撮合失败。
 const DB_PATH = arg('--db') || join(DATA_DIR, 'events.db');
+// 本轮时间水位：market_fills 与 events 都是历史追加表，隔离实例跨轮复用同一存档位，
+// 不带 ts 过滤会把上一轮的成交算进本轮（毛额翻倍、卖方收款口径被污染）。
+const RUN_TS = Date.now();
 // 只读小查询。WAL 模式下开连接偶发 ENOENT/锁竞争，调用方自己判空重试。
 const dbRows = (sql, params = []) => {
   try { const db = new DatabaseSync(DB_PATH, { readOnly: true }); const r = db.prepare(sql).all(...params); db.close(); return r; }
   catch { return []; }
 };
 
-// 读世界档取村景真树位（测试脚手架，见文件头说明）。桶结构：datas[] = {key:'plantData', val:{datas:[{sceneType, plants[]}]}}。
-// 树判定跟 treeOf 对齐：plantId 14-19。按 farmType===2 筛会混进装饰植物，chop 回「这个格子上没有树」。
-// 服务端持续 persist 这个文件，读失败重试几次，全失败返回空数组（退回 obstacles 逼近）。
-function loadTrees() {
-  const p = join(DATA_DIR, 'world.json');
-  if (!existsSync(p)) return [];
-  for (let i = 0; i < 4; i++) {
+// 公开文本地图解析：/af/mapdoc 是服务端专门为「纯文本 LLM 自规划路线」生成的公开接口，
+// 给出阻挡簇 bbox（格坐标）。西北象限（x<82, y<62）的簇就是树丛簇——树场整片都在那一带，
+// 而民居/广场/河湾都在 x>84。挑离当前位置最近的簇，move_to 进去就贴着树了。
+// 只保留 n>=4 的簇（<4 格的散点在服务端已按噪声丢弃）并排除世界边界大框。
+async function mapdocClusters() {
+  for (let i = 0; i < 3; i++) {
     try {
-      const w = JSON.parse(readFileSync(p, 'utf8'));
-      const pd = (w.datas || []).find(d => d.key === 'plantData')?.val?.datas || [];
-      const s2 = pd.find(s => s.sceneType === 2);
-      const trees = (s2?.plants || []).filter(x => x.plantId >= 14 && x.plantId <= 19).map(x => ({ gx: x.x, gy: x.y }));
-      if (trees.length) return trees;
-    } catch { /* 文件正在写入，重试 */ }
+      const r = await fetch(BASE + '/af/mapdoc');
+      const doc = (await r.json()).mapdoc || '';
+      const sec = (doc.split('## 不可通行区')[1] || '').split('## ')[0] || '';
+      const out = [];
+      for (const m of sec.matchAll(/\[(-?\d+),(-?\d+)\]-\[(-?\d+),(-?\d+)\] \((\d+)格\)/g)) {
+        const c = { x1: +m[1], y1: +m[2], x2: +m[3], y2: +m[4], n: +m[5] };
+        if (c.n >= 4 && (c.x2 - c.x1) * (c.y2 - c.y1) < 400) out.push(c);
+      }
+      if (out.length) return out;
+    } catch { /* 实例未就绪，重试 */ }
+    await sleep(300);
   }
   return [];
 }
@@ -103,6 +114,23 @@ const cellOf = (st) => [Math.floor((st?.pos?.x ?? 0) / 100), Math.floor((st?.pos
 // observe 的 obstacles 是 { regions: [...], note } 包一层，取 regions
 const regionsOf = (st) => st?.obstacles?.regions || [];
 const clustersOf = (st) => regionsOf(st).filter(o => o.name === '树丛');
+
+// 阻挡格集合（格坐标）：obstacles 只有 12 格窗，但树丛在 treesNear 里必然也在窗内，够用。
+const blockedCells = (st) => {
+  const s = new Set();
+  for (const o of regionsOf(st)) for (let x = o.x1; x <= o.x2; x++) for (let y = o.y1; y <= o.y2; y++) s.add(`${x},${y}`);
+  return s;
+};
+// move_to 打树格本身会吸附到可站立环，但吸附点不保证贴着树（树丛深处只能落到 2 格外，chop 直接 far）。
+// 正确做法是打「树格的邻近可站格」：该格本身可站，move_to 精确落点，chop 距离必为 1。
+const standNextTo = (st, t, m) => {
+  const blk = blockedCells(st);
+  return [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+    .map(([dx, dy]) => ({ cx: t.gx + dx, cy: t.gy + dy }))
+    .filter(o => !blk.has(`${o.cx},${o.cy}`))
+    .sort((a, b) => Math.max(Math.abs(a.cx - m[0]), Math.abs(a.cy - m[1])) - Math.max(Math.abs(b.cx - m[0]), Math.abs(b.cy - m[1])))
+    .shift() || null;
+};
 const woodNum = (st) => (st?.backpack || []).find(p => p.id === WOOD)?.num || 0;
 const openAgent = (token) => new Promise((res, rej) => {
   const ws = new WebSocket(WS_BASE + '/agent?token=' + encodeURIComponent(token));
@@ -143,73 +171,108 @@ try {
     }
   }
 
-  // 4. A 找可砍的树。村景树只在 x∈[0,76] y∈[0,60]，新玩家出生在民居门口（可能在 40+ 格外），
-  //    obstacles 半径 12 格够不着，所以优先用世界档提示取最近树；否则退回 obstacles 逼近。
+  // 4. A 找可砍的树（纯协议三段式，不读服务端任何文件）
   let st = await observe(wA);
+  let navSteps = 0, hops = 0;
   if (st.scene !== 2) {
-    await callAct(wA, { t: 'act', action: 'move_to', near: '村纪念碑' });
+    navSteps += (await callAct(wA, { t: 'act', action: 'move_to', near: '村纪念碑' }))?.steps || 0;
     st = (await waitFor(wA, s => s.scene === 2, 60000)) || await observe(wA);
   }
-  const me = cellOf(st);
-  const clusters = clustersOf(st);
-  let tree = null, hint = '';
-  if (clusters.length) {
-    const c = clusters.reduce((m, o) => {
-      const cx = Math.floor((o.x1 + o.x2) / 2), cy = Math.floor((o.y1 + o.y2) / 2);
-      return Math.max(Math.abs(cx - me[0]), Math.abs(cy - me[1])) < m.d ? { d: Math.max(Math.abs(cx - me[0]), Math.abs(cy - me[1])), gx: cx, gy: cy } : m;
-    }, { d: Infinity, gx: Math.floor((clusters[0].x1 + clusters[0].x2) / 2), gy: Math.floor((clusters[0].y1 + clusters[0].y2) / 2) });
-    tree = { gx: c.gx, gy: c.gy };
-    hint = `obstacles 树丛(${c.d}格)`;
-  } else {
-    const trees = loadTrees();
-    if (trees.length) {
-      tree = trees.reduce((m, t) => {
-        const d = Math.max(Math.abs(t.gx - me[0]), Math.abs(t.gy - me[1]));
-        return d < m.d ? { ...t, d } : m;
-      }, { gx: trees[0].gx, gy: trees[0].gy, d: Infinity });
-      hint = `世界档提示(${tree.d}格)`;
-    }
-  }
-  if (!tree) {
+  // 4a. 宏观寻路：公开地标网络 -> 北路口里程碑（树场东北入口，路名「南北大街·北林间道」）
+  navSteps += (await callAct(wA, { t: 'act', action: 'move_to', near: '北路口里程碑' }))?.steps || 0;
+  st = (await waitFor(wA, s => { const c = cellOf(s); return Math.max(Math.abs(c[0] - 94), Math.abs(c[1] - 53)) <= 3; }, 120000)) || await observe(wA);
+  // 4b. 林区选址：GET /af/mapdoc 公开文本地图的阻挡簇 -> 挑西北象限离当前最近的一簇
+  const docClusters = await mapdocClusters();
+  const forest = docClusters.filter(c => c.x1 < 82 && c.y2 < 62);
+  if (!forest.length) {
     wA.close(); wB.close();
-    throw new Error(`A 找不到可砍的树（位置 ${JSON.stringify(me)}，12 格内树丛 0 个，世界档 ${loadTrees().length} 棵树，--data-dir=${DATA_DIR}）`);
+    throw new Error(`mapdoc 里找不到西北林区阻挡簇（共 ${docClusters.length} 簇），无法定位树场`);
   }
-  // move_to 目标吸附可站立环：对准树格本身，到位后落在相邻可站格，treesNear 随即非空
-  await callAct(wA, { t: 'act', action: 'move_to', x: tree.gx * 100 + 50, y: tree.gy * 100 + 50 });
-  st = await waitFor(wA, s => (s.treesNear || []).length > 0, TIMEOUT_MS);
-  if (!(st.treesNear || []).length) {
-    wA.close(); wB.close();
-    throw new Error(`走到树(${tree.gx},${tree.gy}) ${hint} 后 treesNear 仍为空（位置 ${JSON.stringify(cellOf(st))}）`);
+  {
+    const m = cellOf(st);
+    const near = forest.reduce((best, c) => {
+      const cx = (c.x1 + c.x2) / 2, cy = (c.y1 + c.y2) / 2;
+      const d = Math.max(Math.abs(cx - m[0]), Math.abs(cy - m[1]));
+      return d < best.d ? { cx, cy, d } : best;
+    }, { cx: 0, cy: 0, d: Infinity });
+    navSteps += (await callAct(wA, { t: 'act', action: 'move_to', x: near.cx * 100 + 50, y: near.cy * 100 + 50 }))?.steps || 0;
+    st = await observe(wA);
   }
+   // 4c. 局部试砍：林区簇里逐簇靠近，用 treesNear（3 格窗）逐棵试砍。见下。
 
-  // 4. 砍树 -> 木材进背包。树 hp 不定（10/30/60 都实测过），每斧 -20，所以要按 hp 连砍 ceil(hp/20) 斧。
-  //    砍到「这个格子上没有树」说明目标已倒，从 treesNear 里换一棵（优先挑 hp 低的省斧数）。
+  // 4. 砍树 -> 木材进背包。树 hp 不定（10/30/60 都实测过），每斧 -20，所以按 hp 连砍 ceil(hp/20) 斧。
+  //    两类树砍不动，都得跳过换下一棵：
+  //      · 已倒的 —— 回「这个格子上没有树」
+  //      · 种在导航格「建筑/障碍」上的 —— 回 target-blocked（数据侧树与阻挡格重叠，详见报告）
+  //    本簇的树全砍不动就换下一簇树丛，而不是原地重试。
   const woodBefore = woodNum(st);
   const coinsBefore = st.coins || 0;
   let chopped = 0, chops = 0, deadSkips = 0;
+  const dead = new Set();
   const pick = (near, skip) => {
     const alive = near.filter(t => !skip.has(`${t.gx},${t.gy}`));
     if (!alive.length) return null;
     alive.sort((a, b) => (a.hp || 0) - (b.hp || 0));
     return alive[0];
   };
-  const dead = new Set();
-  for (let i = 0; i < 14 && !chopped; i++) {
+  // 靠近一棵树：先 move_to 树的邻近可站格，再按 chebyshev 距离单步 move 补足。
+  // move_to 的吸附落点不保证贴着树（树丛深处可能落到 2-3 格外，chop 直接 far），
+  // 而 move 只吃 dir 没有绝对坐标，所以只能一步步逼近。
+  const approach = async (t) => {
     st = await observe(wA);
-    const t = pick(st.treesNear || [], dead);
-    if (!t) break;
-    await callAct(wA, { t: 'act', action: 'move_to', x: t.px, y: t.py });
-    await waitFor(wA, s => { const c = cellOf(s); return Math.abs(c[0] - t.gx) <= 1 && Math.abs(c[1] - t.gy) <= 1; }, 30000);
-    const ch = await callAct(wA, { t: 'act', action: 'chop', x: t.px, y: t.py });
-    if (ch?.ok && /砍倒了/.test(ch.msg || '')) { chopped = 1; break; }
-    chops++;
-    if (/没有树/.test(ch?.msg || '')) { dead.add(`${t.gx},${t.gy}`); deadSkips++; continue; }
-  }
+    const land = standNextTo(st, t, cellOf(st));
+    const mv = await callAct(wA, { t: 'act', action: 'move_to', x: land ? land.cx * 100 + 50 : t.px, y: land ? land.cy * 100 + 50 : t.py });
+    navSteps += mv?.steps || 0;
+    let cur = cellOf({ pos: mv?.pos || (await observe(wA))?.pos });
+    for (let s = 0; s < 6; s++) {
+      if (Math.max(Math.abs(cur[0] - t.gx), Math.abs(cur[1] - t.gy)) <= 1) break;
+      const dx = Math.sign(t.gx - cur[0]), dy = Math.sign(t.gy - cur[1]);
+      if (!dx && !dy) break;
+      const dir = Math.abs(t.gy - cur[1]) >= Math.abs(t.gx - cur[0]) ? (dy > 0 ? 'up' : 'down') : (dx > 0 ? 'right' : 'left');
+      const mv2 = await callAct(wA, { t: 'act', action: 'move', dir });
+      if (!mv2?.ok) break;
+      cur = cellOf({ pos: mv2.pos });
+    }
+    return cur;
+  };
+   // 候选簇：mapdoc 的林区簇按离当前位置的 chebyshev 距离就近排序。
+   const m0 = cellOf(st);
+   const ranked = forest
+     .map(c => ({ cx: (c.x1 + c.x2) / 2, cy: (c.y1 + c.y2) / 2 }))
+     .map(c => ({ cx: c.cx, cy: c.cy, d: Math.max(Math.abs(c.cx - m0[0]), Math.abs(c.cy - m0[1])) }))
+     .sort((a, b) => a.d - b.d);
+   let lastFail = '';
+   outer:
+   for (const c of ranked) {
+     hops++;
+     navSteps += (await callAct(wA, { t: 'act', action: 'move_to', x: c.cx * 100 + 50, y: c.cy * 100 + 50 }))?.steps || 0;
+     st = (await waitFor(wA, s => (s.treesNear || []).length > 0, 60000)) || await observe(wA);
+     for (let i = 0; i < 6 && !chopped; i++) {
+       st = await observe(wA);
+       const t = pick(st.treesNear || [], dead);
+       if (!t) break;
+       const cur = await approach(t);
+       const ch = await callAct(wA, { t: 'act', action: 'chop', x: t.px, y: t.py });
+       lastFail = `站位${JSON.stringify(cur)} 树(${t.gx},${t.gy}) => ${JSON.stringify(ch).slice(0, 120)}`;
+       if (ch?.ok && /砍倒了/.test(ch.msg || '')) { chopped = 1; break; }
+       chops++;
+       // 砍倒/砍不动才换下一棵；「砍了一斧头」说明树还活着（hp 60 要 3 斧），留在原地继续砍。
+       if (!ch?.ok) {
+         if (/没有树/.test(ch?.msg || '')) deadSkips++;
+         dead.add(`${t.gx},${t.gy}`);
+       }
+     }
+     if (chopped) break;
+   }
+   if (!chopped) {
+     wA.close(); wB.close();
+     throw new Error(`林区 ${ranked.length} 簇、${chops} 斧后没砍倒一棵树（位置 ${JSON.stringify(cellOf(st))}），末次返回 ${lastFail}`);
+   }
   st = await observe(wA);
   const woodGained = woodNum(st) - woodBefore;
   (chopped && woodGained >= 3)
     ? ok('1.砍树产出', `树被砍倒，木材 +${woodGained}（${chops} 斧，跳过 ${deadSkips} 棵已倒的）`)
-    : bad('1.砍树产出', `未出现"砍倒了"，木材 +${woodGained}（${chops} 斧，跳过 ${deadSkips}）`);
+    : bad('1.砍树产出', `未出现"砍倒了"，木材 +${woodGained}（${chops} 斧，跳过 ${deadSkips}），末次返回 ${lastFail}`);
 
   // 5. 定价 + 挂卖单。两个约束共同定 P：
   //    下限 topBid+1 —— 低于等于最高买盘，A 的单会被做市商顺手吃掉，对手方变成 'mm' 而不是 B；
@@ -257,8 +320,8 @@ try {
   let db = null, rows = [], fees = [], retries = 0;
   while (retries < 6) {
     try { db = new DatabaseSync(DB_PATH, { readOnly: true });
-      rows = db.prepare('SELECT price, qty, maker, taker FROM market_fills WHERE item_id = ? AND maker = ? ORDER BY ts ASC').all(WOOD, A.uid);
-      fees = db.prepare("SELECT payload FROM events WHERE type = 'trade.fee' AND actor = ?").all(A.uid);
+      rows = db.prepare('SELECT price, qty, maker, taker FROM market_fills WHERE item_id = ? AND maker = ? AND ts >= ? ORDER BY ts ASC').all(WOOD, A.uid, RUN_TS);
+      fees = db.prepare("SELECT payload FROM events WHERE type = 'trade.fee' AND actor = ? AND ts >= ?").all(A.uid, RUN_TS);
       if (rows.length) break;
     } catch { /* WAL 未就绪，重试 */ }
     await sleep(500); retries++;
@@ -284,13 +347,29 @@ try {
     ? ok('8.买方收货', `A 砍后 ${woodNum(st)} → ${woodEnd}（-${QTY}）；B ${woodBeforeB} → ${woodEndB}（+${woodEndB - woodBeforeB}）`)
     : bad('8.买方收货', `A ${woodNum(st)} → ${woodEnd}；B ${woodBeforeB} → ${woodEndB}，期望 A -${QTY} / B +${QTY}`);
 
-  // 9. 汇总
+  // 9. 消耗出口：B 把吃进来的木材回炉换废资价金币。木材此前到 B 手里就是死账，
+  //    回炉让「砍伐→挂单→购买→消耗」形成闭环（批4 P2）。数量只回 1 个，保留其余木材。
+  const bWoodForRecycle = woodNum(await observe(wB));
+  const bCoinsBeforeRecycle = (await observe(wB)).coins || 0;
+  const rc = bWoodForRecycle >= 1 ? await callAct(wB, { t: 'act', action: 'recycle', itemId: WOOD, qty: 1 }) : null;
+  const stBR = await observe(wB);
+  const woodEndRecycle = woodNum(stBR);
+  const coinsEndRecycle = stBR.coins || 0;
+  const feeRows = (() => { try { const d = new DatabaseSync(DB_PATH, { readOnly: true }); const r = d.prepare("SELECT payload FROM events WHERE type = 'trade.recycle' AND actor = ? AND ts >= ?").all(B.uid, RUN_TS); d.close(); return r; } catch { return []; } })();
+  if (rc?.ok && woodEndRecycle === bWoodForRecycle - 1 && coinsEndRecycle - bCoinsBeforeRecycle >= rc.recycled?.coins >= 1) {
+    ok('9.回炉消耗', `B 回炉 1x 木材 → 得金币 ${rc.recycled.coins}，背包 ${bWoodForRecycle} → ${woodEndRecycle}，trade.recycle 事件 ${feeRows.length} 条（${QTY}x 买入的木材已有合法出口）`);
+  } else {
+    bad('9.回炉消耗', `rc=${JSON.stringify(rc).slice(0, 120)} 背包 ${bWoodForRecycle} → ${woodEndRecycle}，金币 ${bCoinsBeforeRecycle} → ${coinsEndRecycle}`);
+  }
+
+  // 10. 汇总
   wA.close(); wB.close();
   const failed = steps.filter(s => !s.ok);
   console.log(JSON.stringify({
-    base: BASE, slot: SLOT, qty: QTY, price: P,
+    base: BASE, slot: SLOT, qty: QTY, price: P, runTs: RUN_TS,
+    navSteps, hops,
     seller: { nick: A.nick, uid: A.uid.slice(-6), wood: `${woodBefore}→${woodEnd}`, coins: `${coinsBefore}→${coinsAfter}` },
-    buyer: { nick: B.nick, uid: B.uid.slice(-6), coinsStart: bCoins, buyQty, wood: `${woodBeforeB}→${woodEndB}` },
+    buyer: { nick: B.nick, uid: B.uid.slice(-6), coinsStart: bCoins, buyQty, wood: `${woodBeforeB}→${woodEndRecycle}`, recycled: rc?.recycled || null },
     fills: fills.map(f => `${f.price}x${f.qty}→${String(f.taker).slice(-6)}`),
     gross, fee: feeBurned, net,
     steps, pass: steps.length - failed.length, total: steps.length,
