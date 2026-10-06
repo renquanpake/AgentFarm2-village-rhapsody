@@ -3,10 +3,12 @@
 ## [交付凭据]
 
 - Commit: `cf3d3d5` — `fix(market): 重启校准订单 id 杜绝 UNIQUE 撞车 + treesNear 服务端过滤假目标树`（8 文件，+189 / −18）
-- 分支与 CI: `260103-feat-playable-ship` + `master`（双分支同一 commit，master 由 `138c036` fast-forward 至 `cf3d3d5`，无 force-push）
-  - Run `37444391312` — CI @ `260103-feat-playable-ship` → **success**
-  - Run `37444391459` — CI @ `master` → **success**
-  - Run `37444391334` / `37444391405` — drive-sync @ 双分支 → success
+- 分支与 CI: `260103-feat-playable-ship` + `master`（双分支同一 commit，master 由 `138c036` fast-forward 至 `6bb7580`，无 force-push）
+  - Run `37444391312` — CI @ `260103-feat-playable-ship` (`cf3d3d5`) → **success**
+  - Run `37444391459` — CI @ `master` (`cf3d3d5`) → **success**
+  - Run `37444984158` — CI @ `260103-feat-playable-ship` (`6bb7580`) → **success**
+  - Run `37444983984` — CI @ `master` (`6bb7580`) → **success**
+  - Run `37444391334` / `37444391405` / `37444983979` / `37444984323` — drive-sync @ 双分支 → success
 - 门禁总账: tsc **exit 0** | vitest **484/484** | 门5 哈希 **5138 通过** | ui-lint **全绿**（裸色值 0 / AFUI.on 100% / 常驻 DOM 10） | e2e **9/9** | vis **未重跑**（本轮未触碰 `client/**`，沿用批4 的 10/10）
 - 提交前安全审查: `node tools/security-check.mjs` → PASS
 
@@ -40,6 +42,7 @@
 
 ## [新发现缺陷与技术债]
 
+- `nav-replay-nightly` 工作流 `stress-claims` 作业 | **P2** | Run `37444980675`（schedule 触发，head_sha `cf3d3d5`）失败在「准备隔离数据目录」步骤，服务尚未启动即中止，与导航数据无关——同 workflow 的 `nav-replay` 作业 success。属 CI 环境/夹具层故障（40 并发抢同一资源的压力作业），非本轮代码改动引入，未在本轮处置范围内。
 - `server/src/market/service.ts:110` 与 `:206` | **P2** | `ensureMaker` 仅在 `place` / `cancel` 路径触发，`op:'book'` 查询不播种做市商单。本轮清盘后订单簿为空但 `recentFills` 非空，故未播种、盘面恰好干净；若某物品历史上从无成交，簿将空盘、无做市商流动性，首个挂单方需自造深度。
 - `tools/econ-loop-e2e.mjs` 清盘段 | **P3** | owner→账号映射依赖存档位同级 `accounts.json` 的 `token` 字段。该字段随登录刷新，长期未登录账号的 token 可能过期，清盘会跳过该 owner 并由算价保护显式报红，不会静默误判为全绿。
 - `server/src/market/shadow.ts:36` | **P3** | `ShadowMarket.bookOf` 自建 `OrderBook` 且不校准时序，影子簿与实盘簿共用同一 id 分段基址。影子簿不落 `market_orders`，当前无碰撞面；若日后影子簿也落库，需同步接入校准。
