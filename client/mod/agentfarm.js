@@ -642,6 +642,9 @@
   let lastAuthAt = 0;
   let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
   let lastAgentMovePayload = null, agentMoveDoneCount = 0, lastServerPos = null;
+  // 节点生命周期显式绑定（WP1b）：scene-launched 一次性绑定 + 失效解绑，
+  // 声明提前到状态区，避免闭包内 TDZ。
+  let sceneBoundNode = null, sceneBoundId = null, sceneSubBound = false, sceneLaunchCb = null;
 
   // P1.1 节点获取链（实测修正）：Application.playerNode 可能指向已脱离场景树的孤儿 PlayerItem
   //（isValid=true 但 getScene()=null，位移全打在假节点上）；原版混淆构建里 PlayerMoudle._gPlayer 取不到。
@@ -666,6 +669,9 @@
     return false;
   }
   function resolvePlayerNode() {
+    // WP1b：显式绑定优先。scene-launched 已绑定且仍有效 → 直接返回，零回溯。
+    const bound = resolveBoundPlayerNode();
+    if (bound) return bound;
     if (playerNodeCache && nodeInScene(playerNodeCache) && Date.now() - playerNodeCacheAt < 1500) return playerNodeCache;
     playerNodeCache = null;
     const mods = window.__AF_MODS__;
@@ -700,6 +706,57 @@
     }
     if (node) { playerNodeCache = node; playerNodeCacheAt = Date.now(); }
     return node;
+  }
+
+  // ---------- 节点生命周期显式绑定（WP1b） ----------
+  // 原版 director 在场景切换时发 EVENT_AFTER_SCENE_LAUNCH（cc.director._loadScene 尾部，
+  // 新场景已 _activate 之后），这是官方权威的场景就绪事件。订阅它做一次性绑定：
+  // 换场景 → 绑定自动失效 → 重新走一遍解析链拿新角色节点 → 后续全部命中缓存，
+  // 不再每次位移都回溯祖先链 + 遍历组件猜节点。
+  // 销毁清理两条：节点被 destroy/GC 时 isValid=false 立即解绑；换场景时也解绑旧引用，
+  // 避免把上个场景的孤儿节点当成当前角色继续打位置。
+  // 解析链本身保留为回退：绑定未就绪或已失效时照常走，行为与改造前一致。
+  function currentSceneId() {
+    try { return (typeof cc !== 'undefined' && cc.director && cc.director.getScene()) || null; } catch (e) { return null; }
+  }
+  function releaseSceneBind() {
+    sceneBoundNode = null;
+    sceneBoundId = null;
+    playerNodeCache = null;   // 绑定失效时同步清掉 resolvePlayerNode 的时间缓存
+  }
+  function bindScenePlayer() {
+    const sc = currentSceneId();
+    if (!sc || sc === sceneBoundId) return;
+    // 场景变了：旧绑定失效（即使旧节点此刻还 isValid，它也属于上个场景）
+    releaseSceneBind();
+    // 新场景已 _activate，但角色节点可能在同帧晚一点挂上，排一个宏任务再解析一次
+    setTimeout(() => {
+      if (currentSceneId() !== sc) return;
+      const n = resolvePlayerNode();
+      if (n && nodeInScene(n)) { sceneBoundNode = n; sceneBoundId = sc; }
+    }, 0);
+  }
+  function bindPlayerNode() {
+    if (sceneSubBound || typeof cc === 'undefined' || !cc.director || !cc.Director) return;
+    const ev = cc.Director.EVENT_AFTER_SCENE_LAUNCH;
+    if (!ev || typeof cc.director.on !== 'function') return;
+    sceneLaunchCb = function (sc) {
+      // 只解绑、不写 sceneBoundId：bindScenePlayer 靠 sceneBoundId 判「已绑定」，
+      // 这里先写上新场景 id 会让它直接 return，节点永远绑不上。
+      if (sc) { sceneBoundNode = null; sceneBoundId = null; setTimeout(bindScenePlayer, 0); }
+    };
+    try {
+      cc.director.on(ev, sceneLaunchCb);
+      sceneSubBound = true;
+      bindScenePlayer();
+      console.log('[AF] 节点生命周期绑定已挂载（scene-launched 一次性绑定 + 失效解绑）');
+    } catch (e) { sceneSubBound = false; sceneLaunchCb = null; }
+  }
+  function resolveBoundPlayerNode() {
+    if (!sceneBoundNode || !sceneBoundId) return null;
+    try { if (!sceneBoundNode.isValid) { releaseSceneBind(); return null; } } catch (e) { releaseSceneBind(); return null; }
+    if (currentSceneId() !== sceneBoundId) { releaseSceneBind(); return null; }
+    return sceneBoundNode;
   }
 
   function getPlayerItem(node) {
@@ -788,6 +845,7 @@
 
   function startPosSync() {
     if (posTimer) return;
+    try { bindPlayerNode(); } catch (e) { /* 绑定失败不影响主流程，回退解析链照常工作 */ }
     posTimer = setInterval(() => {
       const pos = readPlayerPos();
       if (pos && connected && !hostedAgentOnline) {
@@ -1064,8 +1122,13 @@
     // 取不到会抛 checkEnableState，一旦冒泡，本函数后面的位置收敛全部不执行——
     // 表现为「服务端在动、画面纹丝不动」。抛错时退化为纯位置收敛。
     try { item.changeDir(dir, false); } catch (e) { /* ignore */ }
-    // 立即停止走路状态机的位置更新，避免与 tween 竞争（方向动画仅播一帧）
-    try { item.changeDir(0, false); } catch (e) { /* ignore */ }
+    // 不能用 changeDir(0) 收尾：它在原版走 e==DirType.INVAIL 分支 -> intoState(STAND)，
+    // RoleStateStand 随即播 idle 帧，把刚播下的 walk 帧覆盖掉（切帧只活一帧）。
+    // 这里只把 moveDir 置回 INVAIL(0)：RoleStateMove.updateMove 以 getMoveDir()!=0 为闸，
+    // 闸一关状态机就不再自驱位移，位置仍由下方 tween 驱动，A/C/D 断言口径零变动。
+    // 注意 moveDir 是普通实例属性（setMoveDir 内 `this.moveDir = e`），直接赋值不会触发
+    // updateMoveVector/updateAnimation，也就不会重播动画把方向帧改掉。
+    try { item.moveDir = 0; } catch (e) { /* ignore */ }
     agentMoveTarget = { x: msg.x, y: msg.y, scene: msg.scene };
     agentArriveIndex = (typeof msg.seg === 'number') ? msg.seg : null;
     agentArriveSent = false;
