@@ -1122,6 +1122,1407 @@
         "out": "assets/generated/311-招牌挂件.png",
         "at": "2026-10-01T13:23:00.569Z"
       }
+    },
+    {
+      "id": 400001,
+      "name": "送灯人",
+      "size": "512x768",
+      "prompt": "A kind gentle elderly village woman character portrait holding a softly glowing paper lantern, warm kindly smile, wearing simple patched farmer clothes, cozy hand-painted pixel art character sprite, soft warm amber night-sky gradient background, single centered character, suitable as a game villager card portrait",
+      "status": "done",
+      "note": "village-life 人设卡面首批 400001 起（--direct 直存不抠图）",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_V6fXyZ2vXBvSsyIiOMbdgMUrM6vXETOp",
+        "colors": 0,
+        "out": "assets/personalities/400001-送灯人.png",
+        "at": "2026-11-20T14:22:57.445Z"
+      }
+    },
+    {
+      "id": 400001,
+      "name": "守灶婆",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, kind warm-hearted, honest friendly gaze, mild generous aura, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing embroidered festival vest and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ldjVyseLKyh9gLUtF9UbiCrj3ZeKzZwt",
+        "colors": 0,
+        "out": "assets/personalities/400001-守灶婆.png",
+        "at": "2026-11-20T14:51:21.797Z"
+      }
+    },
+    {
+      "id": 400002,
+      "name": "敲钟人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a steaming soup pot and a wooden ladle; holding a festival lantern with red ribbons, wearing worn apron over roughspun clothes and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_na6KSphS0XQ9FvgVbKdHfU8B6feUSAr2",
+        "colors": 0,
+        "out": "assets/personalities/400002-敲钟人.png",
+        "at": "2026-11-20T14:51:31.301Z"
+      }
+    },
+    {
+      "id": 400003,
+      "name": "老把式",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, kind warm-hearted, honest friendly gaze, mild generous aura, carrying a bundle of split firewood on the back; carrying a carved wooden stool and toolbox, wearing homespun wrapped robe and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_pkk9XeWSoOjxJIHOJ6PnCWDeZjgUO2Ie",
+        "colors": 0,
+        "out": "assets/personalities/400003-老把式.png",
+        "at": "2026-11-20T14:51:40.652Z"
+      }
+    },
+    {
+      "id": 400004,
+      "name": "麦浪",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, kind warm-hearted, honest friendly gaze, mild generous aura, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_gpBZfZbKT14tFHRgFm92LDfWLPF7XgAW",
+        "colors": 0,
+        "out": "assets/personalities/400004-麦浪.png",
+        "at": "2026-11-20T14:51:50.190Z"
+      }
+    },
+    {
+      "id": 400005,
+      "name": "热心肠掌柜",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing patched simple linen tunic and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_OTwneYc3aiuTBL4pixQ8fayuP5oZrb5o",
+        "colors": 0,
+        "out": "assets/personalities/400005-热心肠掌柜.png",
+        "at": "2026-11-20T14:52:00.546Z"
+      }
+    },
+    {
+      "id": 400006,
+      "name": "围炉客",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a steaming soup pot and a wooden ladle; holding a festival lantern with red ribbons, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_eyuj8nozvMntr4306dpceGndZ9Jzvb7y",
+        "colors": 0,
+        "out": "assets/personalities/400006-围炉客.png",
+        "at": "2026-11-20T14:52:09.797Z"
+      }
+    },
+    {
+      "id": 400007,
+      "name": "铁口",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, kind warm-hearted, honest friendly gaze, mild generous aura, leaning on a garden hoe beside fresh soil rows; carrying a pickaxe and a miner lamp, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_7XOT8bw1NiJgTF9DnoGMd4WQILZKsws7",
+        "colors": 0,
+        "out": "assets/personalities/400007-铁口.png",
+        "at": "2026-11-20T14:52:19.261Z"
+      }
+    },
+    {
+      "id": 400008,
+      "name": "春播娘",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, kind warm-hearted, honest friendly gaze, mild generous aura, leaning on a garden hoe beside fresh soil rows; holding a bamboo fishing rod with a small catch basket, wearing patched simple linen tunic and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_fWxtvQD3uJsBEbXxehXxLPo4IO8ARKFG",
+        "colors": 0,
+        "out": "assets/personalities/400008-春播娘.png",
+        "at": "2026-11-20T14:52:28.305Z"
+      }
+    },
+    {
+      "id": 400009,
+      "name": "驮山汉",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, kind warm-hearted, honest friendly gaze, mild generous aura, carrying a bundle of split firewood on the back, wearing patched simple linen tunic and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_R2As049xGbjujfJEKi3hhJji5ca7OBre",
+        "colors": 0,
+        "out": "assets/personalities/400009-驮山汉.png",
+        "at": "2026-11-20T14:52:37.784Z"
+      }
+    },
+    {
+      "id": 400010,
+      "name": "溪翁",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a steaming soup pot and a wooden ladle; holding a bamboo fishing rod with a small catch basket, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_IRrE9UORlNKAeMpigUaPMQZDowSIq1nz",
+        "colors": 0,
+        "out": "assets/personalities/400010-溪翁.png",
+        "at": "2026-11-20T14:52:48.292Z"
+      }
+    },
+    {
+      "id": 400011,
+      "name": "聚宝管家",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, kind warm-hearted, honest friendly gaze, mild generous aura, carrying a carved wooden stool and toolbox; holding a festival lantern with red ribbons, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_lB7fzl3EWKaRxR5bMsw6XDGsnb9H5xBp",
+        "colors": 0,
+        "out": "assets/personalities/400011-聚宝管家.png",
+        "at": "2026-11-20T14:52:57.546Z"
+      }
+    },
+    {
+      "id": 400012,
+      "name": "白袍郎",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, kind warm-hearted, honest friendly gaze, mild generous aura, accompanying a few goats and chickens; holding a festival lantern with red ribbons, wearing embroidered festival vest and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_SV8XracXygC1HssarFJYtyMraba0RIKg",
+        "colors": 0,
+        "out": "assets/personalities/400012-白袍郎.png",
+        "at": "2026-11-20T14:53:08.061Z"
+      }
+    },
+    {
+      "id": 400013,
+      "name": "赤脚医生",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, kind warm-hearted, honest friendly gaze, mild generous aura, accompanying a few goats and chickens, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_KjshgZ0s90XytEllui53zmKn2j4ZSif8",
+        "colors": 0,
+        "out": "assets/personalities/400013-赤脚医生.png",
+        "at": "2026-11-20T14:53:17.099Z"
+      }
+    },
+    {
+      "id": 400014,
+      "name": "织云妇",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, kind warm-hearted, honest friendly gaze, mild generous aura, carrying a bundle of split firewood on the back; carrying a carved wooden stool and toolbox, wearing woolen cloak over patched coat and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_HrIkePx4VlbaLV3HcZ77zuwrbWbuAdBw",
+        "colors": 0,
+        "out": "assets/personalities/400014-织云妇.png",
+        "at": "2026-11-20T14:53:26.530Z"
+      }
+    },
+    {
+      "id": 400015,
+      "name": "传灯徒",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a steaming soup pot and a wooden ladle; carrying a bundle of split firewood on the back, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_3JhRReu3gjRUtQ8zZ8IQ0DexIXVToyFQ",
+        "colors": 0,
+        "out": "assets/personalities/400015-传灯徒.png",
+        "at": "2026-11-20T14:53:36.144Z"
+      }
+    },
+    {
+      "id": 400016,
+      "name": "打更人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a festival lantern with red ribbons, wearing worn apron over roughspun clothes and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_qBkvOghhAo5SRbgFXsUsktIVc0hrlxOt",
+        "colors": 0,
+        "out": "assets/personalities/400016-打更人.png",
+        "at": "2026-11-20T14:53:46.066Z"
+      }
+    },
+    {
+      "id": 400017,
+      "name": "锅勺仙人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, kind warm-hearted, honest friendly gaze, mild generous aura, holding a steaming soup pot and a wooden ladle; holding a festival lantern with red ribbons, wearing worn apron over roughspun clothes and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a warm peach morning light background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_svpNe5wELZFaT83e7J4D0GXrzUQP2nLJ",
+        "colors": 0,
+        "out": "assets/personalities/400017-锅勺仙人.png",
+        "at": "2026-11-20T14:53:56.113Z"
+      }
+    },
+    {
+      "id": 400018,
+      "name": "泥腿子",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, quiet modest and mild-mannered, humble kind presence, leaning on a garden hoe beside fresh soil rows; carrying a bundle of split firewood on the back, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_AMYgPcNhV95UcErd2vNqKGtRV9zPj0ie",
+        "colors": 0,
+        "out": "assets/personalities/400018-泥腿子.png",
+        "at": "2026-11-20T14:54:05.823Z"
+      }
+    },
+    {
+      "id": 400019,
+      "name": "含羞的铁匠",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, quiet modest and mild-mannered, humble kind presence, carrying a carved wooden stool and toolbox, wearing embroidered festival vest and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_niEVSzEQVQ3Zcp4TbO3iXU1rjKQpkYYp",
+        "colors": 0,
+        "out": "assets/personalities/400019-含羞的铁匠.png",
+        "at": "2026-11-20T14:54:15.073Z"
+      }
+    },
+    {
+      "id": 400020,
+      "name": "笑面獾",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, quiet modest and mild-mannered, humble kind presence, with a woven market basket and a brass coin purse; accompanying a few goats and chickens, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_KPEnDgN8lqMrpPfsBQSLw1b1UQ8oH0SE",
+        "colors": 0,
+        "out": "assets/personalities/400020-笑面獾.png",
+        "at": "2026-11-20T14:54:24.364Z"
+      }
+    },
+    {
+      "id": 400021,
+      "name": "棚下翁",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, quiet modest and mild-mannered, humble kind presence, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing homespun wrapped robe and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_hf1NzPAluxskIVg9n3EzASpH70nOuy14",
+        "colors": 0,
+        "out": "assets/personalities/400021-棚下翁.png",
+        "at": "2026-11-20T14:54:34.067Z"
+      }
+    },
+    {
+      "id": 400022,
+      "name": "洁癖妇",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, quiet modest and mild-mannered, humble kind presence, carrying a carved wooden stool and toolbox; holding a festival lantern with red ribbons, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ZnmdF5KMDKBT4hxjinAqCflhX27mMPks",
+        "colors": 0,
+        "out": "assets/personalities/400022-洁癖妇.png",
+        "at": "2026-11-20T14:54:43.850Z"
+      }
+    },
+    {
+      "id": 400023,
+      "name": "蔫算盘",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, quiet modest and mild-mannered, humble kind presence, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_kQ3Yvw23WGWmuTd2USNxfNeqqJpwVcaE",
+        "colors": 0,
+        "out": "assets/personalities/400023-蔫算盘.png",
+        "at": "2026-11-20T14:54:54.299Z"
+      }
+    },
+    {
+      "id": 400024,
+      "name": "话痨包打听",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, quiet modest and mild-mannered, humble kind presence, holding a bamboo fishing rod with a small catch basket; with a woven market basket and a brass coin purse, wearing faded practical jacket and trousers and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_MPMlOOXZe8ZrIsu3jDznC1Hf95OakRAO",
+        "colors": 0,
+        "out": "assets/personalities/400024-话痨包打听.png",
+        "at": "2026-11-20T14:55:04.206Z"
+      }
+    },
+    {
+      "id": 400025,
+      "name": "汤师傅",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, quiet modest and mild-mannered, humble kind presence, holding a steaming soup pot and a wooden ladle; leaning on a garden hoe beside fresh soil rows, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_orEvLEIVS2PS0PK92POAoFKlbO1oxxGD",
+        "colors": 0,
+        "out": "assets/personalities/400025-汤师傅.png",
+        "at": "2026-11-20T14:55:13.738Z"
+      }
+    },
+    {
+      "id": 400026,
+      "name": "看林人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, quiet modest and mild-mannered, humble kind presence, carrying a bundle of split firewood on the back, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_F12IkJBoZjPw6qnpsNZkFERwGdeBvzfG",
+        "colors": 0,
+        "out": "assets/personalities/400026-看林人.png",
+        "at": "2026-11-20T14:55:23.132Z"
+      }
+    },
+    {
+      "id": 400027,
+      "name": "天亮前的人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, quiet modest and mild-mannered, humble kind presence, leaning on a garden hoe beside fresh soil rows; resting a wood axe on felled logs, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ThQCrUo7E8hnCxFUPGivMXXTbBSthDfH",
+        "colors": 0,
+        "out": "assets/personalities/400027-天亮前的人.png",
+        "at": "2026-11-20T14:55:32.761Z"
+      }
+    },
+    {
+      "id": 400028,
+      "name": "洗衣妇人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, quiet modest and mild-mannered, humble kind presence, carrying a carved wooden stool and toolbox; accompanying a few goats and chickens, wearing worn apron over roughspun clothes and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_sMMRE2TXPE6bTDCC1emDgHJW11ZjIqLU",
+        "colors": 0,
+        "out": "assets/personalities/400028-洗衣妇人.png",
+        "at": "2026-11-20T14:55:42.161Z"
+      }
+    },
+    {
+      "id": 400029,
+      "name": "背篓郎",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, quiet modest and mild-mannered, humble kind presence, holding a bamboo fishing rod with a small catch basket, wearing worn apron over roughspun clothes and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_SXU9bXQzFKUQ6vPTbR66QaqxaD1eOeG4",
+        "colors": 0,
+        "out": "assets/personalities/400029-背篓郎.png",
+        "at": "2026-11-20T14:55:51.726Z"
+      }
+    },
+    {
+      "id": 400030,
+      "name": "暖灶叔",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, quiet modest and mild-mannered, humble kind presence, holding a steaming soup pot and a wooden ladle; accompanying a few goats and chickens, wearing homespun wrapped robe and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_VCJsZdQ2B5wOlX2FME4pP5pWAH6naPsJ",
+        "colors": 0,
+        "out": "assets/personalities/400030-暖灶叔.png",
+        "at": "2026-11-20T14:56:01.468Z"
+      }
+    },
+    {
+      "id": 400031,
+      "name": "二愣子好人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, quiet modest and mild-mannered, humble kind presence, resting a wood axe on felled logs; carrying a bundle of split firewood on the back, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_NBcaKM7odDbhj38mhWtN9fdNLb1G8op0",
+        "colors": 0,
+        "out": "assets/personalities/400031-二愣子好人.png",
+        "at": "2026-11-20T14:56:11.133Z"
+      }
+    },
+    {
+      "id": 400032,
+      "name": "老光棍猎户",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, quiet modest and mild-mannered, humble kind presence, resting a wood axe on felled logs, wearing woolen cloak over patched coat and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_E4YH15Iw71XEmQgWbbdOCk1ZG3T192Sv",
+        "colors": 0,
+        "out": "assets/personalities/400032-老光棍猎户.png",
+        "at": "2026-11-20T14:56:20.719Z"
+      }
+    },
+    {
+      "id": 400033,
+      "name": "替身先生",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, quiet modest and mild-mannered, humble kind presence, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing faded practical jacket and trousers and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_XtChwpASpPWwguYlDFDy6H9lI4XrOl1X",
+        "colors": 0,
+        "out": "assets/personalities/400033-替身先生.png",
+        "at": "2026-11-20T14:56:29.806Z"
+      }
+    },
+    {
+      "id": 400034,
+      "name": "软耳朵",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, quiet modest and mild-mannered, humble kind presence, leaning on a garden hoe beside fresh soil rows; with a woven market basket and a brass coin purse, wearing homespun wrapped robe and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_MHNccnLOI5x2lIAkKlsJunHVeQiG98Yi",
+        "colors": 0,
+        "out": "assets/personalities/400034-软耳朵.png",
+        "at": "2026-11-20T14:56:39.312Z"
+      }
+    },
+    {
+      "id": 400035,
+      "name": "本分人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, quiet modest and mild-mannered, humble kind presence, leaning on a garden hoe beside fresh soil rows; holding a bamboo fishing rod with a small catch basket, wearing embroidered festival vest and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a calm soft sage green haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_uFTPLF7XNyo9n8nFlCUwTCQ8WYF3tXkT",
+        "colors": 0,
+        "out": "assets/personalities/400035-本分人.png",
+        "at": "2026-11-20T14:56:49.078Z"
+      }
+    },
+    {
+      "id": 400036,
+      "name": "走哪算哪",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs, wearing homespun wrapped robe and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_sxQPRDrjxIGgbIhYGx7Gw8uLZZ5AdapX",
+        "colors": 0,
+        "out": "assets/personalities/400036-走哪算哪.png",
+        "at": "2026-11-20T14:56:58.418Z"
+      }
+    },
+    {
+      "id": 400037,
+      "name": "摇骰子的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_pPAptM1QJQKizFvL8mviBWORt0ISJwgz",
+        "colors": 0,
+        "out": "assets/personalities/400037-摇骰子的.png",
+        "at": "2026-11-20T14:57:08.287Z"
+      }
+    },
+    {
+      "id": 400038,
+      "name": "三句话不离本行",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, casual easygoing balanced, relaxed everyday expression, carrying a bundle of split firewood on the back; carrying a carved wooden stool and toolbox, wearing embroidered festival vest and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_3HfBXSzPnwfHDbIIDNPAnogoWF2QgbSN",
+        "colors": 0,
+        "out": "assets/personalities/400038-三句话不离本行.png",
+        "at": "2026-11-20T14:57:17.429Z"
+      }
+    },
+    {
+      "id": 400039,
+      "name": "候鸟脾气",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, casual easygoing balanced, relaxed everyday expression, accompanying a few goats and chickens, wearing embroidered festival vest and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_YIv3PdaPfkOEL4bWVVtPwzoAI5qmDJ07",
+        "colors": 0,
+        "out": "assets/personalities/400039-候鸟脾气.png",
+        "at": "2026-11-20T14:57:27.467Z"
+      }
+    },
+    {
+      "id": 400040,
+      "name": "缺根筋的快腿",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; resting a wood axe on felled logs, wearing faded practical jacket and trousers and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_naT2LKKaCSiu32qka09RFSb341mhsNjG",
+        "colors": 0,
+        "out": "assets/personalities/400040-缺根筋的快腿.png",
+        "at": "2026-11-20T14:57:37.214Z"
+      }
+    },
+    {
+      "id": 400041,
+      "name": "双面的粉",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing patched simple linen tunic and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_v1Lwrhs37bJnyC3FwFPtFLucZpGq5Nxf",
+        "colors": 0,
+        "out": "assets/personalities/400041-双面的粉.png",
+        "at": "2026-11-20T14:57:46.388Z"
+      }
+    },
+    {
+      "id": 400042,
+      "name": "装穷的富户",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, casual easygoing balanced, relaxed everyday expression, with a woven market basket and a brass coin purse; carrying a carved wooden stool and toolbox, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_m1EzwTT6v7xNR9IDti4RvEWdHV560s4V",
+        "colors": 0,
+        "out": "assets/personalities/400042-装穷的富户.png",
+        "at": "2026-11-20T14:57:55.921Z"
+      }
+    },
+    {
+      "id": 400043,
+      "name": "老顽童",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs; accompanying a few goats and chickens, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_pBUm7JwvEOrbZRrRZrGPimkkzog0CDfG",
+        "colors": 0,
+        "out": "assets/personalities/400043-老顽童.png",
+        "at": "2026-11-20T14:58:05.784Z"
+      }
+    },
+    {
+      "id": 400044,
+      "name": "稻草人心",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; holding a festival lantern with red ribbons, wearing embroidered festival vest and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_NOc85h5KTWALDCSS6n0xzDLRfjtdEDN3",
+        "colors": 0,
+        "out": "assets/personalities/400044-稻草人心.png",
+        "at": "2026-11-20T14:58:15.579Z"
+      }
+    },
+    {
+      "id": 400045,
+      "name": "话里有话",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing homespun wrapped robe and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_CJZ1S1WIw3LA7krs3R1Cyhfqlr5AOWyg",
+        "colors": 0,
+        "out": "assets/personalities/400045-话里有话.png",
+        "at": "2026-11-20T14:58:25.138Z"
+      }
+    },
+    {
+      "id": 400046,
+      "name": "影卫",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs; holding a bamboo fishing rod with a small catch basket, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_DHfKK2LY5cJ6HEYxeAUbGxd6zicjXyMc",
+        "colors": 0,
+        "out": "assets/personalities/400046-影卫.png",
+        "at": "2026-11-20T14:58:35.237Z"
+      }
+    },
+    {
+      "id": 400047,
+      "name": "一诺千金过路人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, casual easygoing balanced, relaxed everyday expression, holding a bamboo fishing rod with a small catch basket, wearing worn apron over roughspun clothes and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_iXIlUuHUgmkq1UxZrALcMZMPT6TZCW0M",
+        "colors": 0,
+        "out": "assets/personalities/400047-一诺千金过路人.png",
+        "at": "2026-11-20T14:58:44.609Z"
+      }
+    },
+    {
+      "id": 400048,
+      "name": "半壶酒郎",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing embroidered festival vest and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_6hDITCa6f0PUW0qbxeHFY7KLgj4u1WPR",
+        "colors": 0,
+        "out": "assets/personalities/400048-半壶酒郎.png",
+        "at": "2026-11-20T14:58:55.190Z"
+      }
+    },
+    {
+      "id": 400049,
+      "name": "呼噜王",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs; carrying a carved wooden stool and toolbox, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_txjvwhcChdy9Zo3gPyWtyntOGvi3xCv4",
+        "colors": 0,
+        "out": "assets/personalities/400049-呼噜王.png",
+        "at": "2026-11-20T14:59:04.731Z"
+      }
+    },
+    {
+      "id": 400050,
+      "name": "精到底的榆木脑",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, casual easygoing balanced, relaxed everyday expression, holding a bamboo fishing rod with a small catch basket; with a woven market basket and a brass coin purse, wearing homespun wrapped robe and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_YXIr1udFMBFXeUMtPeVS4W0fCctLVtdY",
+        "colors": 0,
+        "out": "assets/personalities/400050-精到底的榆木脑.png",
+        "at": "2026-11-20T14:59:14.597Z"
+      }
+    },
+    {
+      "id": 400051,
+      "name": "门缝先生",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_rPela1oMK3Mhu9teckM9AB3LW3FVQsAd",
+        "colors": 0,
+        "out": "assets/personalities/400051-门缝先生.png",
+        "at": "2026-11-20T14:59:25.054Z"
+      }
+    },
+    {
+      "id": 400052,
+      "name": "义气但记仇",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle; leaning on a garden hoe beside fresh soil rows, wearing faded practical jacket and trousers and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_mUndCikfnzTkz2k2xYIMHcAUdwdLlFmj",
+        "colors": 0,
+        "out": "assets/personalities/400052-义气但记仇.png",
+        "at": "2026-11-20T14:59:36.131Z"
+      }
+    },
+    {
+      "id": 400053,
+      "name": "守界碑的人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs; carrying a bundle of split firewood on the back, wearing patched simple linen tunic and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_13CiHUrTP0uh921gOcu7QME8aEQbzMgm",
+        "colors": 0,
+        "out": "assets/personalities/400053-守界碑的人.png",
+        "at": "2026-11-20T14:59:45.522Z"
+      }
+    },
+    {
+      "id": 400054,
+      "name": "戴旧毡帽的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, casual easygoing balanced, relaxed everyday expression, holding a bamboo fishing rod with a small catch basket, wearing patched simple linen tunic and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_qHevcFYKTOuSyeWcdC9wED7p5iSRp5jf",
+        "colors": 0,
+        "out": "assets/personalities/400054-戴旧毡帽的.png",
+        "at": "2026-11-20T14:59:54.678Z"
+      }
+    },
+    {
+      "id": 400055,
+      "name": "蹲坑的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_lx4rTObSjPzLEsko6u09Ntp8ioRNYn8o",
+        "colors": 0,
+        "out": "assets/personalities/400055-蹲坑的.png",
+        "at": "2026-11-20T15:00:04.089Z"
+      }
+    },
+    {
+      "id": 400056,
+      "name": "掰手腕的和事佬",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs; accompanying a few goats and chickens, wearing homespun wrapped robe and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Ko6I9Jn8DQEOucu84fXh4vXgW6KLYLXR",
+        "colors": 0,
+        "out": "assets/personalities/400056-掰手腕的和事佬.png",
+        "at": "2026-11-20T15:00:13.603Z"
+      }
+    },
+    {
+      "id": 400057,
+      "name": "看天吃饭的老农",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_XDhn8qO666xA1bH1zUTyW4aBa9EIC5Jw",
+        "colors": 0,
+        "out": "assets/personalities/400057-看天吃饭的老农.png",
+        "at": "2026-11-20T15:00:23.763Z"
+      }
+    },
+    {
+      "id": 400058,
+      "name": "借伞的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; holding a bamboo fishing rod with a small catch basket, wearing embroidered festival vest and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_gwrRArqs4ZZbrlelzHeR22JqNv3lXm7V",
+        "colors": 0,
+        "out": "assets/personalities/400058-借伞的.png",
+        "at": "2026-11-20T15:00:34.627Z"
+      }
+    },
+    {
+      "id": 400059,
+      "name": "传话的哑巴",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, casual easygoing balanced, relaxed everyday expression, resting a wood axe on felled logs; accompanying a few goats and chickens, wearing woolen cloak over patched coat and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_WEuPUwD9QMmOLqBtrqZNH67T4vmXzOqb",
+        "colors": 0,
+        "out": "assets/personalities/400059-传话的哑巴.png",
+        "at": "2026-11-20T15:00:44.539Z"
+      }
+    },
+    {
+      "id": 400060,
+      "name": "滚刀肉",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, casual easygoing balanced, relaxed everyday expression, carrying a bundle of split firewood on the back, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_kTh9CE94QN5GuSpECYI79GOFOz2MtBwX",
+        "colors": 0,
+        "out": "assets/personalities/400060-滚刀肉.png",
+        "at": "2026-11-20T15:00:54.586Z"
+      }
+    },
+    {
+      "id": 400061,
+      "name": "摊薄饼的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, casual easygoing balanced, relaxed everyday expression, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing homespun wrapped robe and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_aCS0Oi1p3UChSkcFFKsiBJVwoRHHxqgm",
+        "colors": 0,
+        "out": "assets/personalities/400061-摊薄饼的.png",
+        "at": "2026-11-20T15:01:04.355Z"
+      }
+    },
+    {
+      "id": 400062,
+      "name": "三不管地带爷",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; carrying a bundle of split firewood on the back, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_41K6eTmTeKreaIQUQIDYfXqOCcQdCiFh",
+        "colors": 0,
+        "out": "assets/personalities/400062-三不管地带爷.png",
+        "at": "2026-11-20T15:01:13.568Z"
+      }
+    },
+    {
+      "id": 400063,
+      "name": "心事重的宿鸭",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, casual easygoing balanced, relaxed everyday expression, leaning on a garden hoe beside fresh soil rows; accompanying a few goats and chickens, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a light airy blue sky-tinted background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_YqLZJxX9sh8VhcV26AoHqI3zbFx7NW9e",
+        "colors": 0,
+        "out": "assets/personalities/400063-心事重的宿鸭.png",
+        "at": "2026-11-20T15:01:23.768Z"
+      }
+    },
+    {
+      "id": 400064,
+      "name": "秤斤两",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, cool composed and guarded, calculating narrowed eyes, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing woolen cloak over patched coat and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_a6ltvIE12A4pH9WvYqUKf5jlDq1lWqkZ",
+        "colors": 0,
+        "out": "assets/personalities/400064-秤斤两.png",
+        "at": "2026-11-20T15:01:34.614Z"
+      }
+    },
+    {
+      "id": 400065,
+      "name": "檐下观",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, cool composed and guarded, calculating narrowed eyes, with a woven market basket and a brass coin purse; holding a festival lantern with red ribbons, wearing worn apron over roughspun clothes and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_m6OHu9HmDYhQ6HGEvAczuKdKAncGgXld",
+        "colors": 0,
+        "out": "assets/personalities/400065-檐下观.png",
+        "at": "2026-11-20T15:01:45.283Z"
+      }
+    },
+    {
+      "id": 400066,
+      "name": "刀口舔蜜",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, cool composed and guarded, calculating narrowed eyes, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_o12S1oFzYFpVWWScEQPIlKJHzlsU4NuR",
+        "colors": 0,
+        "out": "assets/personalities/400066-刀口舔蜜.png",
+        "at": "2026-11-20T15:01:54.549Z"
+      }
+    },
+    {
+      "id": 400067,
+      "name": "换帖的狐狸",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, cool composed and guarded, calculating narrowed eyes, carrying a bundle of split firewood on the back; accompanying a few goats and chickens, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_tsyxRyLjpM91GQCP3xr4oqUQ41RKRpEO",
+        "colors": 0,
+        "out": "assets/personalities/400067-换帖的狐狸.png",
+        "at": "2026-11-20T15:02:04.501Z"
+      }
+    },
+    {
+      "id": 400068,
+      "name": "长袖先生的账",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, cool composed and guarded, calculating narrowed eyes, with a woven market basket and a brass coin purse; carrying a carved wooden stool and toolbox, wearing embroidered festival vest and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_R8OEvPD3zrmi0nJ8bniV4U5wY5iU15om",
+        "colors": 0,
+        "out": "assets/personalities/400068-长袖先生的账.png",
+        "at": "2026-11-20T15:02:13.646Z"
+      }
+    },
+    {
+      "id": 400069,
+      "name": "挑瓜的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, cool composed and guarded, calculating narrowed eyes, holding a bamboo fishing rod with a small catch basket; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_IgLM6nucsW1kfg031gEzVIBtJQj7m9qc",
+        "colors": 0,
+        "out": "assets/personalities/400069-挑瓜的.png",
+        "at": "2026-11-20T15:02:22.684Z"
+      }
+    },
+    {
+      "id": 400070,
+      "name": "冷墙根",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, cool composed and guarded, calculating narrowed eyes, resting a wood axe on felled logs, wearing embroidered festival vest and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_pMOmvsru9vWoLQHTdEjj7iea7QeqHPoG",
+        "colors": 0,
+        "out": "assets/personalities/400070-冷墙根.png",
+        "at": "2026-11-20T15:02:31.840Z"
+      }
+    },
+    {
+      "id": 400071,
+      "name": "针尖儿",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, cool composed and guarded, calculating narrowed eyes, leaning on a garden hoe beside fresh soil rows; holding a bamboo fishing rod with a small catch basket, wearing homespun wrapped robe and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_8tYHLloSQ1Tl9mqLG8fpCeOA2sNDpejX",
+        "colors": 0,
+        "out": "assets/personalities/400071-针尖儿.png",
+        "at": "2026-11-20T15:02:41.695Z"
+      }
+    },
+    {
+      "id": 400072,
+      "name": "帽檐低的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, cool composed and guarded, calculating narrowed eyes, resting a wood axe on felled logs; with a woven market basket and a brass coin purse, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_N6bXmVAmQCu67j3A0ChDaLfHDaFwLHOA",
+        "colors": 0,
+        "out": "assets/personalities/400072-帽檐低的.png",
+        "at": "2026-11-20T15:02:51.074Z"
+      }
+    },
+    {
+      "id": 400073,
+      "name": "算到骨头里的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, cool composed and guarded, calculating narrowed eyes, holding a bamboo fishing rod with a small catch basket, wearing homespun wrapped robe and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_TR8VNZzzcVJpJZ9MNDMpcWB8EIpIJBjI",
+        "colors": 0,
+        "out": "assets/personalities/400073-算到骨头里的.png",
+        "at": "2026-11-20T15:03:00.514Z"
+      }
+    },
+    {
+      "id": 400074,
+      "name": "横从记性里来",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, cool composed and guarded, calculating narrowed eyes, holding a steaming soup pot and a wooden ladle; leaning on a garden hoe beside fresh soil rows, wearing patched simple linen tunic and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_WOHmH7iWLsAusXjV2XVP7qFsDUCKiOB8",
+        "colors": 0,
+        "out": "assets/personalities/400074-横从记性里来.png",
+        "at": "2026-11-20T15:03:10.405Z"
+      }
+    },
+    {
+      "id": 400075,
+      "name": "夜猫子的歌喉",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, cool composed and guarded, calculating narrowed eyes, holding a steaming soup pot and a wooden ladle; holding a bamboo fishing rod with a small catch basket, wearing patched simple linen tunic and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_t9fwAOLksgxkIlk6a6UYu80ivzv6XoBa",
+        "colors": 0,
+        "out": "assets/personalities/400075-夜猫子的歌喉.png",
+        "at": "2026-11-20T15:03:20.370Z"
+      }
+    },
+    {
+      "id": 400076,
+      "name": "替赌保人的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, cool composed and guarded, calculating narrowed eyes, resting a wood axe on felled logs; with a woven market basket and a brass coin purse, wearing faded practical jacket and trousers and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_IGlv0WY1iiZt5INUA7NAEBTJYixkhDNz",
+        "colors": 0,
+        "out": "assets/personalities/400076-替赌保人的.png",
+        "at": "2026-11-20T15:03:30.456Z"
+      }
+    },
+    {
+      "id": 400077,
+      "name": "半扇门背后",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, cool composed and guarded, calculating narrowed eyes, with a woven market basket and a brass coin purse; carrying a carved wooden stool and toolbox, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_6XdnpvecYQo4m9bzpMLSZr0BLfcuZgw5",
+        "colors": 0,
+        "out": "assets/personalities/400077-半扇门背后.png",
+        "at": "2026-11-20T15:03:39.846Z"
+      }
+    },
+    {
+      "id": 400078,
+      "name": "三日公子",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, cool composed and guarded, calculating narrowed eyes, carrying a bundle of split firewood on the back; accompanying a few goats and chickens, wearing patched simple linen tunic and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_t8BHrkCyjs1zSBTL12owikOKpoWIgBz2",
+        "colors": 0,
+        "out": "assets/personalities/400078-三日公子.png",
+        "at": "2026-11-20T15:03:49.109Z"
+      }
+    },
+    {
+      "id": 400079,
+      "name": "换字的先生",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, cool composed and guarded, calculating narrowed eyes, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_fzZ3W8dwHPIwjlXbJpQk9SInk8ldTTnv",
+        "colors": 0,
+        "out": "assets/personalities/400079-换字的先生.png",
+        "at": "2026-11-20T15:03:59.017Z"
+      }
+    },
+    {
+      "id": 400080,
+      "name": "菜市霸",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, cool composed and guarded, calculating narrowed eyes, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_8GkNdv3bMCQs9vtmyDbDe6FDNNszLgDo",
+        "colors": 0,
+        "out": "assets/personalities/400080-菜市霸.png",
+        "at": "2026-11-20T15:04:08.286Z"
+      }
+    },
+    {
+      "id": 400081,
+      "name": "浆糊脑好心办坏事",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, cool composed and guarded, calculating narrowed eyes, resting a wood axe on felled logs; carrying a bundle of split firewood on the back, wearing embroidered festival vest and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a grey-blue dusk haze background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_XE3I7b9G3sjLpQB3rwUzTU236dI1IyK8",
+        "colors": 0,
+        "out": "assets/personalities/400081-浆糊脑好心办坏事.png",
+        "at": "2026-11-20T15:04:17.685Z"
+      }
+    },
+    {
+      "id": 400082,
+      "name": "拨火棍",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, sly sharp-edged smug smirk, scheming glance, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing homespun wrapped robe and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_4uQG94sE7bXCixNardQD1jVgzFylfEIc",
+        "colors": 0,
+        "out": "assets/personalities/400082-拨火棍.png",
+        "at": "2026-11-20T15:04:27.005Z"
+      }
+    },
+    {
+      "id": 400083,
+      "name": "吊线的人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, sly sharp-edged smug smirk, scheming glance, with a woven market basket and a brass coin purse; holding a festival lantern with red ribbons, wearing woolen cloak over patched coat and long dark braided hair tied low. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_DJxN1O8XavkiVLgU5ixGs4FthSK3MUTe",
+        "colors": 0,
+        "out": "assets/personalities/400083-吊线的人.png",
+        "at": "2026-11-20T15:04:36.708Z"
+      }
+    },
+    {
+      "id": 400084,
+      "name": "坊间鬼",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, sly sharp-edged smug smirk, scheming glance, with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_VXKg2FqgoFS5zCgYvhX8AHRcRz5pHB3Z",
+        "colors": 0,
+        "out": "assets/personalities/400084-坊间鬼.png",
+        "at": "2026-11-20T15:04:46.537Z"
+      }
+    },
+    {
+      "id": 400085,
+      "name": "烂囤的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, sly sharp-edged smug smirk, scheming glance, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing embroidered festival vest and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_4rxU9ZcL6zVk4vFedQc5CcEElQ3emULj",
+        "colors": 0,
+        "out": "assets/personalities/400085-烂囤的.png",
+        "at": "2026-11-20T15:04:56.033Z"
+      }
+    },
+    {
+      "id": 400086,
+      "name": "翻脸的食客",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, sly sharp-edged smug smirk, scheming glance, holding a steaming soup pot and a wooden ladle; holding a festival lantern with red ribbons, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_CK1dwWUMetRIkOXaJxdWlYBzN8KgubGz",
+        "colors": 0,
+        "out": "assets/personalities/400086-翻脸的食客.png",
+        "at": "2026-11-20T15:05:05.438Z"
+      }
+    },
+    {
+      "id": 400087,
+      "name": "捏来的笑",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, sly sharp-edged smug smirk, scheming glance, with a woven market basket and a brass coin purse; carrying a carved wooden stool and toolbox, wearing woolen cloak over patched coat and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_oL3hmUOqcfLI0YvojHbKHKoDat2t52Ue",
+        "colors": 0,
+        "out": "assets/personalities/400087-捏来的笑.png",
+        "at": "2026-11-20T15:05:14.868Z"
+      }
+    },
+    {
+      "id": 400088,
+      "name": "高墙上的脚印",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a level-headed middle-aged woman, sly sharp-edged smug smirk, scheming glance, resting a wood axe on felled logs; carrying a carved wooden stool and toolbox, wearing embroidered festival vest and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_Y1ijvXJpuP5jFEYJhEZB3UJh6y7Dlr0J",
+        "colors": 0,
+        "out": "assets/personalities/400088-高墙上的脚印.png",
+        "at": "2026-11-20T15:05:23.875Z"
+      }
+    },
+    {
+      "id": 400089,
+      "name": "雪天的邻居",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, sly sharp-edged smug smirk, scheming glance, resting a wood axe on felled logs, wearing embroidered festival vest and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_g6sKXhvmHiCEni4HtAcGzCZhVM3LgIB6",
+        "colors": 0,
+        "out": "assets/personalities/400089-雪天的邻居.png",
+        "at": "2026-11-20T15:05:32.926Z"
+      }
+    },
+    {
+      "id": 400090,
+      "name": "旁观的拿铁",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, sly sharp-edged smug smirk, scheming glance, with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ANkTWpoPTofh85Zmjz56hloVfXy1sHov",
+        "colors": 0,
+        "out": "assets/personalities/400090-旁观的拿铁.png",
+        "at": "2026-11-20T15:05:42.672Z"
+      }
+    },
+    {
+      "id": 400091,
+      "name": "咬绳的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, sly sharp-edged smug smirk, scheming glance, resting a wood axe on felled logs; accompanying a few goats and chickens, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_z1iYpNl3lwZsXg1SQKSuqRIAyaRs1y92",
+        "colors": 0,
+        "out": "assets/personalities/400091-咬绳的.png",
+        "at": "2026-11-20T15:05:52.461Z"
+      }
+    },
+    {
+      "id": 400092,
+      "name": "歪嘴先生",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a thin observant aged craftsman woman, sly sharp-edged smug smirk, scheming glance, with a woven market basket and a brass coin purse; holding a festival lantern with red ribbons, wearing embroidered festival vest and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_s9F8WFKG8n15ffQydxfEB83UanBL3YJo",
+        "colors": 0,
+        "out": "assets/personalities/400092-歪嘴先生.png",
+        "at": "2026-11-20T15:06:02.461Z"
+      }
+    },
+    {
+      "id": 400093,
+      "name": "三更债主",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a wiry young farmhand man, sly sharp-edged smug smirk, scheming glance, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_UFCGebZXIjLdd30y2Y1PV3bfS6TLMsLp",
+        "colors": 0,
+        "out": "assets/personalities/400093-三更债主.png",
+        "at": "2026-11-20T15:06:12.221Z"
+      }
+    },
+    {
+      "id": 400094,
+      "name": "退潮才捡的",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly weathered village man, sly sharp-edged smug smirk, scheming glance, resting a wood axe on felled logs; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_OsriO7GoKfEt4fgAlUmtH03ufi12KbO7",
+        "colors": 0,
+        "out": "assets/personalities/400094-退潮才捡的.png",
+        "at": "2026-11-20T15:06:22.995Z"
+      }
+    },
+    {
+      "id": 400095,
+      "name": "退了休的灰狼",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of an elderly grandmotherly woman, sly sharp-edged smug smirk, scheming glance, carrying a bundle of split firewood on the back; accompanying a few goats and chickens, wearing homespun wrapped robe and hair bun pinned with a wooden stick. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_OdpwfrQZyExTbW9IH5lSTDmGSWoEYLgb",
+        "colors": 0,
+        "out": "assets/personalities/400095-退了休的灰狼.png",
+        "at": "2026-11-20T15:06:32.489Z"
+      }
+    },
+    {
+      "id": 400096,
+      "name": "倒叙的说书人",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, sly sharp-edged smug smirk, scheming glance, holding a steaming soup pot and a wooden ladle; with a woven market basket and a brass coin purse, wearing worn apron over roughspun clothes and cropped hair under a cloth wrap. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_tkXOIHs7p09ENGi71IhfeuCV1vrLwued",
+        "colors": 0,
+        "out": "assets/personalities/400096-倒叙的说书人.png",
+        "at": "2026-11-20T15:06:42.011Z"
+      }
+    },
+    {
+      "id": 400097,
+      "name": "织网缝衣的无赖",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a heavyset mature blacksmith-like man, sly sharp-edged smug smirk, scheming glance, with a woven market basket and a brass coin purse; carrying a carved wooden stool and toolbox, wearing patched simple linen tunic and silver short hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_ugxfxWSqS0WW3qvQbRmeb7xWndzft8B0",
+        "colors": 0,
+        "out": "assets/personalities/400097-织网缝衣的无赖.png",
+        "at": "2026-11-20T15:06:51.242Z"
+      }
+    },
+    {
+      "id": 400098,
+      "name": "白肉案的常在",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a sturdy middle-aged farmer man, sly sharp-edged smug smirk, scheming glance, holding a steaming soup pot and a wooden ladle; holding a bamboo fishing rod with a small catch basket, wearing faded practical jacket and trousers and balding head with a scarf. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a murky dusk violet background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_JghBslQ0QVukPxEPPaUEEpiJWghJbsRH",
+        "colors": 0,
+        "out": "assets/personalities/400098-白肉案的常在.png",
+        "at": "2026-11-20T15:07:00.868Z"
+      }
+    },
+    {
+      "id": 400099,
+      "name": "夜枭",
+      "size": "512x768",
+      "prompt": "A vivid cozy character card portrait of a cheerful young village woman, cold menacing with a hidden harmful smile, unsettling aura, carrying a pickaxe and a miner lamp; with a woven market basket and a brass coin purse, wearing homespun wrapped robe and spiky unruly hair. Hand-painted storybook pixel-art game asset style, cozy cute farming village atmosphere. Single centered character filling most of the frame, nothing else in the image except a dark cold midnight blue starry background. No text, no border, no watermark.",
+      "status": "done",
+      "source": {
+        "model": "agnes-image-2.5-flash",
+        "task": "task_nk6m0lV2UIPnsAfibomrM7ortZfYeiuS",
+        "colors": 0,
+        "out": "assets/personalities/400099-夜枭.png",
+        "at": "2026-11-20T15:07:09.966Z"
+      }
     }
   ],
   "note": "生图工具余额不足（2026-09-29）：首批 8 件按设计兜底改 CC0 直采（Kenney Tiny Farm），其余 52 件挂队列待余额恢复批量生成。；2026-09-29 52 件生图完成（agnes-image-2.5-flash + 16 色量化后处理，tools/art-gen.mjs）",

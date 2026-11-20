@@ -40,6 +40,7 @@ const gap = arg('--gap') ? Number(arg('--gap')) : 0; // 每件完成后间隔秒
 const ids = arg('--ids') ? arg('--ids').split(',').map(Number) : null; // 定向重生成（无视 status）
 const useWhiteBg = process.argv.includes('--white-bg');
 const useNoWhiteBg = process.argv.includes('--no-white-bg');
+const useDirect = process.argv.includes('--direct'); // 卡面直存：原图直存，不抠图/不缩放/不量化
 
 // v2 生图策略：绝对纯白底 + 只画指定单体（生图模型做不出透明，只认纯白底最稳；后处理 --white-bg 白->透明）
 function buildPrompt(q) {
@@ -58,8 +59,10 @@ function isRateLimited(msg) { return /429|rate.?limit/i.test(msg || ''); }
 
 const genDir = join(ROOT, 'assets', 'generated');
 const rawDir = join(ROOT, 'data', 'art', 'raw');
+const directDir = arg('--dir') || join(ROOT, 'assets', 'personalities'); // --direct 输出目录
 mkdirSync(genDir, { recursive: true });
 mkdirSync(rawDir, { recursive: true });
+if (useDirect) mkdirSync(directDir, { recursive: true });
 
 // ---------- manifest 读取 ----------
 const manifestPath = join(ROOT, 'data', 'art', 'manifest.json');
@@ -71,7 +74,10 @@ console.log(`[art-gen] model=${model} base=${base} 目标 ${items.length} 件（
 if (!items.length) { console.log('[art-gen] 目标为空，退出'); process.exit(0); }
 
 // ---------- 单件生成 ----------
-function apiSize(q) { return q.size === '32x48' ? '512x768' : q.size === '288x384' ? '512x768' : q.size === '384x288' ? '512x512' : '512x512'; }
+function apiSize(q) {
+  if (q.size === '512x768') return q.size; // --direct 卡面：按原尺寸请求（不做二次映射）
+  return q.size === '32x48' ? '512x768' : q.size === '288x384' ? '512x768' : q.size === '384x288' ? '512x512' : '512x512';
+}
 
 async function generateOne(q) {
   const resp = await fetch(base + '/images/generations', {
@@ -88,6 +94,13 @@ async function generateOne(q) {
   if (!im.ok) throw new Error('下载 HTTP ' + im.status);
   const rawPath = join(rawDir, q.id + '.png');
   writeFileSync(rawPath, Buffer.from(await im.arrayBuffer()));
+
+  if (useDirect) {
+    // 卡面直存：生成原图按原尺寸直拷输出目录，不抠图/不缩放/不量化
+    const outFile = join(directDir, `${q.id}-${q.name}.png`);
+    writeFileSync(outFile, readFileSync(rawPath));
+    return { out: 'assets/personalities/' + outFile.split('/').pop(), colors: 0, task: j.task_id };
+  }
 
   const [w, h] = q.size.split('x').map(Number);
   const out = join(genDir, `${q.id}-${q.name}.png`);
