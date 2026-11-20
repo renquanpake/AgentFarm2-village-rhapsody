@@ -25,7 +25,7 @@ export const WORLD_KEYS = new Set([
 export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attributeData', 'settingData', 'buffData', 'achvData', 'storage', 'afTasks', 'afOnboarding', 'afAgentMail', 'afAgentAsk', 'afTutorial']);
 export const GLOBAL_KEYS = new Set([
   'audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage', 'afStrayBucketRepaired',
-  'afDayAnchor', 'afLastGameDay', 'afLastStorm', 'afSaveVersion', 'afPlayerIdx',
+  'afDayAnchor', 'afLastGameDay', 'afLastStorm', 'afSaveVersion', 'afPlayerIdx', 'afCardAssign',
 ]);
 
 const SEED_PLAYER_UID = '100001';

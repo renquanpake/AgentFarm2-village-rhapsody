@@ -16,6 +16,7 @@ import { recapView } from '../world/agent-log.ts';
 import { agentMailOf, asksOf } from '../world/agent-mail.ts';
 import { seasonEventsView } from '../world/season-events.ts';
 import { currentGameDay, weatherOf } from '../world/calendar.ts';
+import { buildDailyHabits, loadPersonas } from '../world/habits.ts';
 import { municipalOf, municipalContext, villageNavOf, buildingTargetOf, type Building } from '../navigation/municipal.ts';
 import { chopReachable } from '../navigation/reloc.ts';
 
@@ -202,6 +203,18 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     // 公告（H 包）：最近 5 条
     const notices = recentNotices(state, 5);
 
+    // 人设习惯（village-life）：globals.afCardAssign[uid] -> 卡面；每游戏日重算，确定性可回放
+    const habits = (() => {
+      const wrap = state.globals.get('afCardAssign') as { val?: Record<string, number> } | null | undefined;
+      const id = wrap?.val?.[uid];
+      if (!id) return null;
+      const day = currentGameDay(state) || Number((pd.day as number) || 0) || 1;
+      const card = loadPersonas(app.dataDir).find(c => c.id === id) ?? null;
+      if (!card) return null;
+      const h = buildDailyHabits(card, day);
+      return { sentence: h.sentence, today: h.ranked.slice(0, 3).map(r => r.label) };
+    })();
+
     return {
       nick: app.accountNick(uid),
       uid,
@@ -223,6 +236,7 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     notices: notices.length ? notices : null,
     tasks,
     dmUnlocked: dmUnlockedList(state, uid),
+    habits,
     farm: {
       plots: worldPlots(state).map(p => ({ gx: p.x, gy: p.y, px: p.x * 100 + 50, py: p.y * 100 + 50, plantUID: p.plantUID })).slice(0, 12),
       mineSpots,
