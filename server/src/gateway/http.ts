@@ -29,6 +29,7 @@ import { metricsReport } from '../world/metrics.ts';
 import { recapView } from '../world/agent-log.ts';
 import { agentMailOf } from '../world/agent-mail.ts';
 import { SAVE_VERSION, saveVersionOf, migrationPlan } from '../persistence/save-version.ts';
+import { loadPersonas, buildDailyHabits, rememberCard, type PersonaCard } from '../world/habits.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 void __dirname;
@@ -298,6 +299,55 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
         : b.success && b.data.action === 'stop' ? app.managed.stop(a.uid)
         : { ok: false, msg: 'action 必须是 start 或 stop' };
       json(res, 200, result);
+      return;
+    }
+
+    // 人设卡面：查看当前卡 / 抽卡（随机）/ 重抽（一次性免费）
+    if (u.pathname === '/af/card') {
+      const a = app.accounts.findAccountByToken(String(u.searchParams.get('token') || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const wrap = app.state.globals.get('afCardAssign') as { val?: Record<string, number> } | null | undefined;
+      const id = wrap?.val?.[a.uid];
+      const cards = loadPersonas(app.dataDir);
+      const card = id ? cards.find(c => c.id === id) ?? null : null;
+      json(res, 200, {
+        ok: true,
+        hasCard: !!card,
+        card: card ? { name: card.name, tone: card.tone, hobbies: card.hobbies, scores: card.scores, total: card.total, note: card.note } : null,
+        redrawUsed: !!(app.state.playersDb.get(a.uid)?.get('afCardRedrawn') as unknown),
+        poolSize: cards.length,
+      });
+      return;
+    }
+    if (u.pathname === '/af/card/draw' && req.method === 'POST') {
+      const raw = await readJsonBody(req, 64);
+      const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const cards = loadPersonas(app.dataDir);
+      if (!cards.length) { json(res, 500, { ok: false, msg: '人设库未加载' }); return; }
+      // 已抽过且用了重抽则拒；否则允许重抽覆盖（免费一次由客户端控制第二次拒绝）
+      const wasSet = !!(app.state.globals.get('afCardAssign') as { val?: Record<string, number> } | null | undefined)?.val?.[a.uid];
+      const pick = cards[Math.floor(Math.random() * cards.length)];
+      rememberCard(app.state, a.uid, pick.id);
+      log.write('info', 'http', `[card] ${a.uid} 抽到「${pick.name}」(${pick.tone}, 总${pick.total})`);
+      json(res, 200, { ok: true, firstDraw: !wasSet, card: { name: pick.name, tone: pick.tone, hobbies: pick.hobbies, scores: pick.scores, total: pick.total, note: pick.note } });
+      return;
+    }
+    if (u.pathname === '/af/card/redraw' && req.method === 'POST') {
+      const raw = await readJsonBody(req, 64);
+      const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const used = !!(app.state.playersDb.get(a.uid)?.get('afCardRedrawn') as unknown);
+      if (used) { json(res, 403, { ok: false, msg: '免费重抽已用完' }); return; }
+      const cards = loadPersonas(app.dataDir);
+      if (!cards.length) { json(res, 500, { ok: false, msg: '人设库未加载' }); return; }
+      const pick = cards[Math.floor(Math.random() * cards.length)];
+      rememberCard(app.state, a.uid, pick.id);
+      // 标记重抽已用于（玩家私有桶，不进事件溯源；只标记一次）
+      if (!app.state.playersDb.has(a.uid)) app.state.playersDb.set(a.uid, new Map());
+      app.state.playersDb.get(a.uid)!.set('afCardRedrawn', { val: true } as never);
+      log.write('info', 'http', `[card] ${a.uid} 重抽到「${pick.name}」(免费重抽已消耗)`);
+      json(res, 200, { ok: true, card: { name: pick.name, tone: pick.tone, hobbies: pick.hobbies, scores: pick.scores, total: pick.total, note: pick.note } });
       return;
     }
 

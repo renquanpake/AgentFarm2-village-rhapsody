@@ -2270,6 +2270,30 @@
         animation: af-msg-in var(--af-d-mid) var(--af-m-slide);
       }
       #af-agent-mail-list .af-q { color: var(--af-c-text-dim); border-left: 2px solid var(--af-c-edge); padding-left: var(--af-s-2); margin-bottom: 3px; }
+      /* ---------- 人设卡面（village-life） ---------- */
+      #af-card-btn { top: 92px !important; }
+      #af-card-panel {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100001;
+        width: 340px; max-width: 94vw; display: none; flex-direction: column;
+        background: linear-gradient(180deg, var(--af-c-glass-solid), var(--af-c-glass-bg-deep));
+        border: 1px solid var(--af-c-edge); border-top: 2px solid var(--af-c-gold);
+        border-radius: var(--af-msg-radius); backdrop-filter: blur(8px);
+        box-shadow: 0 12px 40px var(--af-c-black-70); overflow: hidden;
+        font-family: var(--af-font-px); font-size: var(--af-font-size-sm); color: var(--af-c-text);
+      }
+      #af-card-panel .hd { display:flex; align-items:center; gap:var(--af-s-2); padding:var(--af-s-3) var(--af-s-4); border-bottom:1px solid var(--af-c-edge); background:var(--af-c-black-35); }
+      #af-card-panel .hd b { color:var(--af-c-gold); font-size:var(--af-font-size-md); }
+      #af-card-panel .hd .x { cursor:pointer; color:var(--af-c-text-dim); padding:0 var(--af-s-1); }
+      #af-card-panel .bd { padding:var(--af-s-4); line-height:1.65; max-height:70vh; overflow-y:auto; }
+      #af-card-panel .card-name { font-size:var(--af-font-size-lg); color:var(--af-c-gold); margin-bottom:4px; }
+      #af-card-panel .card-tone { display:inline-block; font-size:10px; padding:1px 6px; border-radius:3px; margin-right:6px; }
+      #af-card-panel .card-hobby { color:var(--af-c-text-dim); font-size:11px; margin:6px 0; }
+      #af-card-panel .card-note { color:var(--af-c-light-soft); font-size:11px; margin:8px 0; padding:6px 8px; background:var(--af-c-black-20); border-radius:4px; }
+      #af-card-panel .card-score { font-size:11px; color:var(--af-c-text-dim); }
+      #af-card-panel .btn-row { display:flex; gap:8px; margin-top:12px; }
+      #af-card-panel .btn-row div { cursor:pointer; padding:5px 14px; border-radius:4px; font-size:12px; }
+      #af-card-panel .btn-draw { background:var(--af-c-moss); color:#fff; }
+      #af-card-panel .btn-redraw { background:var(--af-c-glass-panel); color:var(--af-c-text-dim); border:1px solid var(--af-c-edge); }
     `;
     document.head.appendChild(css);
     const btn = document.createElement('div');
@@ -2287,6 +2311,76 @@
     document.body.appendChild(btn);
     document.body.appendChild(intBtn);
     document.body.appendChild(resBtn);
+    // 人设卡面按钮 + 面板（village-life 最小可见集）
+    const cardBtn = document.createElement('div');
+    cardBtn.id = 'af-card-btn';
+    cardBtn.textContent = '人设卡';
+    cardBtn.title = '查看你的人设卡 / 抽卡';
+    document.body.appendChild(cardBtn);
+
+    // --- card panel markup ---
+    const cardPanel = document.createElement('div');
+    cardPanel.id = 'af-card-panel';
+    cardPanel.innerHTML = `<div class="hd"><b>人设卡面</b><span class="x" id="af-card-x">✕</span></div>
+      <div class="bd" id="af-card-bd">加载中…</div>`;
+    document.body.appendChild(cardPanel);
+    cardBtn.addEventListener('click', () => { loadCardInfo(); cardPanel.style.display = 'flex'; });
+    document.getElementById('af-card-x').addEventListener('click', () => { cardPanel.style.display = 'none'; });
+
+    async function loadCardInfo() {
+      const bd = document.getElementById('af-card-bd');
+      if (!bd) return;
+      bd.textContent = '加载中…';
+      try {
+        const token = localStorage.getItem('af_token') || '';
+        const r = await fetch('/af/card?token=' + encodeURIComponent(token));
+        const j = await r.json();
+        if (!j.ok || !j.hasCard) {
+          bd.innerHTML = '<p style="color:var(--af-c-text-dim);font-size:12px">还没抽到卡。点下面「抽卡」随机获取。</p>' +
+            '<div class="btn-row"><div class="btn-draw" id="af-card-draw-btn">抽卡</div></div>';
+          document.getElementById('af-card-draw-btn')?.addEventListener('click', doDraw);
+          return;
+        }
+        const c = j.card;
+        const toneColors = { '暖光':'#e8a030','暖心':'#c08050','温吞':'#7a9a6a','随和':'#6a8aaa','阴冷':'#5a6a8a','乖戾':'#8a5a6a','寒渊':'#4a3a5a' };
+        const toneBg = toneColors[c.tone] || '#555';
+        let scoreHtml = '';
+        for (const [k, v] of Object.entries(c.scores)) {
+          const bar = Math.abs(v) * 3; // -30..30 mapped to px width
+          const col = v >= 0 ? 'var(--af-c-success)' : 'var(--af-c-danger)';
+          scoreHtml += `<span style="display:inline-block;margin-right:8px;font-size:10px">${k} `;
+          scoreHtml += `<span style="display:inline-block;width:${bar}px;height:4px;background:${col};vertical-align:middle;border-radius:2px"></span></span>`;
+        }
+        bd.innerHTML = `
+          <div class="card-name">${c.name}</div>
+          <span class="card-tone" style="background:${toneBg};color:#fff">${c.tone}</span>
+          <span class="card-score">总分 ${c.total > 0 ? '+' : ''}${c.total}</span>
+          <div class="card-hobby">爱好：${(c.hobbies||[]).join(' · ')}</div>
+          <div class="card-score">${scoreHtml}</div>
+          <div class="card-note">${c.note}</div>
+          <div class="btn-row">
+            <div class="btn-redraw" id="af-card-redraw-btn">${j.redrawUsed ? '已用完' : '重抽一次'}</div>
+          </div>`;
+        const rb = document.getElementById('af-card-redraw-btn');
+        if (rb && !j.redrawUsed) rb.addEventListener('click', doRedraw);
+      } catch (e) { bd.textContent = '加载失败'; }
+    }
+
+    async function doDraw() {
+      try {
+        const token = localStorage.getItem('af_token') || '';
+        await fetch('/af/card/draw', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({token}) });
+        loadCardInfo();
+      } catch {}
+    }
+    async function doRedraw() {
+      try {
+        const token = localStorage.getItem('af_token') || '';
+        const r = await fetch('/af/card/redraw', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({token}) });
+        if (!r.ok) { const j = await r.json(); alert(j.msg || '重抽失败'); return; }
+        loadCardInfo();
+      } catch {}
+    }
 
     // 托管状态更新（agent_status 推送 / 轮询兜底）
     let agentOnline = false, agentNick = '', agentActivity = '', agentWaiting = false;

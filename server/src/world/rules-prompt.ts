@@ -70,7 +70,7 @@ function pricesSection(app: App, limit: number): string {
   }
   // 价格语义只写一遍（放【条款】，「收」列在那里定义）：价目段头重复解释会吃掉 ~40 token，
   // 而 full 档预算零余量，多一句就把 NPC 名册裁掉。
-  return `【价目】id=名称(口径见条款)： ${lines.join('；')}`;
+  return `【价目】(口径见条款): ${lines.join('；')}`;
 }
 
 function landmarksSection(app: App, limit: number): string {
@@ -86,7 +86,7 @@ function landmarksSection(app: App, limit: number): string {
       out.push(`${clip(lm.name, 12)}@(${lm.x * 100 + 50},${lm.y * 100 + 50})`);
     }
   }
-  return `【地标】村景像素:${out.join('、')}`;
+  return `【地标】${out.join('、')}`;
 }
 
 function buildingsSection(app: App, limit: number): string {
@@ -166,7 +166,8 @@ function termsSection(): string {
   return [
     '【条款】数值以本段权威数据为准，改数据即改规则。',
     '坐标=像素(格*100+50，格15→1550)；格操作需先站相邻格。',
-    '买入=商店实付；价目「收」=NPC 收购参考=市场基价六折，NPC 不回购；卖货 act trade place sell 挂单(卖方实收 90%)；消耗 act recycle 回炉(废资价五折，保底出口)。',
+    '买入=商店实付；价目「收」=NPC收购参考=市场基价六折；卖货 act trade place sell(实收90%)；act recycle 回炉(废资价五折)。',
+    '社交约束：认领过期可收他人作物；送礼≤99；不主动破坏他人财物。',
     '以上资料未写明的，回答不知道。',
   ].join('\n');
 }
