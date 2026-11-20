@@ -6,6 +6,7 @@ import type { App } from '../app.ts';
 import type { Account } from '../types.ts';
 import { AccountStore } from '../persistence/accounts.ts';
 import { log } from '../logging.ts';
+import { PORT } from '../config.ts';
 import { routeForAgent } from './router.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -69,7 +70,7 @@ export class ManagedAgentManager {
       path.join(REPO_ROOT, 'tools', 'game-agent.mjs'),
       '--token', token,
       '--rounds', '999999',
-      '--ws', `ws://127.0.0.1:${process.env.PORT || 8080}/agent`,   // 跟随服务端端口（曾写死 8080 -> 隔离端口下静默连不上）
+      '--ws', `ws://127.0.0.1:${PORT}/agent`,   // 跟随服务端端口（曾写死 8080 -> 隔离端口下静默连不上）
       '--notes', path.join(this.app.dataDir, 'agent-notes', username),
     ], {
       cwd: REPO_ROOT,

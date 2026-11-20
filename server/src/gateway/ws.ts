@@ -6,6 +6,7 @@ import type { App } from '../app.ts';
 import type { WorldState } from '../persistence/state.ts';
 import { bucketOf, type AgentRoute } from '../persistence/state.ts';
 import { parseGameMsg, parseAgentMsg } from './protocol.ts';
+import { log } from '../logging.ts';
 import {
   pairOf, favBetween, addFav, socialNear, giftFavGain,
   dmUnlocked, dmUnlock, dmUnlockedList, announceDmUnlock, pushDmUnlockedLists,
@@ -454,7 +455,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
           send({ t: 'welcome', uid, ci: true, players: Array.from(state.online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })) });
           const myAgent = app.agentSockets.has(uid);
           send({ t: 'agent_status', online: myAgent, nick: myAgent ? nick : null });
-          console.log(`[join:ci] ${uid} (${nick}) 旁路观察，在线:${state.online.size}`);
+          log.write('info', 'ws', `[join:ci] ${uid} (${nick}) 旁路观察，在线:${state.online.size}`);
           break;
         }
         // 单点登录：同一 uid 重复上线时踢掉旧连接
@@ -473,7 +474,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         const myAgent = app.agentSockets.has(uid);
         send({ t: 'agent_status', online: myAgent, nick: myAgent ? nick : null });
         for (const [k, p] of state.online) if (k !== uid) sendTo(p, { t: 'player_join', p: { uid, nick } });
-        console.log(`[join] ${uid} (${nick}) 在线:${state.online.size}`);
+        log.write('info', 'ws', `[join] ${uid} (${nick}) 在线:${state.online.size}`);
         // P4 教程第 1 步（认识你的小人与镜头）：玩家进入世界即视为已看引导（客户端同时会 act onboarding）
         tutorialAct(state, uid, 'onboarding', true, tutStepsOf(app));
         break;
@@ -500,7 +501,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
           const key = String(item[0]);
           const value = item[1];
           if (typeof value === 'string' && value.length > 512 * 1024) {
-            console.log(`[save] 跳过超大值 key=${key} (${value.length}B)`);
+            log.write('info', 'ws', `[save] 跳过超大值 key=${key} (${value.length}B)`);
             continue;
           }
           let val: unknown;
@@ -513,7 +514,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
             b && b[0] === 'player' ? state.playersDb.get(uid)?.get(name) : state.world.get(name));
           if (!verdict.allow) {
             guarded++;
-            console.log(`[save] 拒写 ${key}（${verdict.reason}${verdict.detail ? '：' + verdict.detail : ''}）`);
+            log.write('info', 'ws', `[save] 拒写 ${key}（${verdict.reason}${verdict.detail ? '：' + verdict.detail : ''}）`);
             // 背包超限时保留服务端现值继续下发，保证客户端与服务端账本一致
             if (verdict.value !== null) kvOut.push([key, JSON.stringify(verdict.value)]);
             continue;
@@ -524,7 +525,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
             const tp = guardTeleport(uid, val);
             if (!tp.allow) {
               guarded++;
-              console.warn(`[save] 瞬移拦截 ${key}（${tp.detail}）`);
+              log.write('warn', 'ws', `[save] 瞬移拦截 ${key}（${tp.detail}）`);
               val = tp.value;
             }
           }
@@ -586,7 +587,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         win.push(now);
         (ws as { _chatWin?: number[] })._chatWin = win;
         const text = String(msg.text || '').slice(0, 200);
-        console.log(`[chat] ${p.nick}: ${text}`);
+        log.write('info', 'ws', `[chat] ${p.nick}: ${text}`);
         app.chatLog.push({ nick: p.nick, text, at: Date.now() });
         while (app.chatLog.length > 50) app.chatLog.shift();
         // 事件溯源：聊天入事件流（M1 导演镜头 / 画报日报的数据源）
@@ -620,7 +621,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         app.log.append('task.progress', uid!, { uid: uid!, type: 'talk', n: 1 });
         app.log.append('task.progress', uid!, { uid: target, type: 'talk', n: 1 });
         send({ t: 'social_result', social: 'talk', ok: true, msg: firstMeet ? `首次见面，已解锁私聊！好感 +2（现 ${fav}）` : `已对话，${pB.nick} 对你的好感 +2（现 ${fav}）` });
-        console.log(`[social] ${p.nick} 对话 ${pB.nick}`);
+        log.write('info', 'ws', `[social] ${p.nick} 对话 ${pB.nick}`);
         break;
       }
       case 'social_give': {
@@ -681,7 +682,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         for (const [k, o] of state.online) if (k !== uid) sendTo(o, { t: 'move', uid, scene: p.scene, x: tx, y: ty });
         send({ t: 'social_tp_apply', x: tx, y: ty });
         send({ t: 'social_result', social: 'tp', ok: true, msg: `✨ 传送到伴侣 ${pB.nick} 身边` });
-        console.log(`[social] ${p.nick} 传送到伴侣 ${pB.nick} 身边`);
+        log.write('info', 'ws', `[social] ${p.nick} 传送到伴侣 ${pB.nick} 身边`);
         break;
       }
       case 'task_list': {
@@ -779,7 +780,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         if (s && s.size) {
           for (const w of s) if (w.readyState === 1) w.send(JSON.stringify({ t: 'agent_resume' }));
           publishAgentActivityGlobal(app, uid!, '恢复行动，继续原计划');
-          console.log(`[agent-resume] 玩家 ${uid} 要求 Agent 恢复行动`);
+          log.write('info', 'ws', `[agent-resume] 玩家 ${uid} 要求 Agent 恢复行动`);
         }
         break;
       }
@@ -817,7 +818,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
       dropScenePeer(state, uid);
       app.narrative.liveDirector.clearWatch(uid); // M1：断开时清观战
       for (const [k, p] of state.online) sendTo(p, { t: 'player_leave', uid });
-      console.log(`[leave] ${uid} 在线:${state.online.size}`);
+      log.write('info', 'ws', `[leave] ${uid} 在线:${state.online.size}`);
     }
   });
 }
@@ -837,7 +838,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
   const token = url.searchParams.get('token');
   const acc = app.accounts.findAccountByToken(token);
   if (!acc || !acc.agentToken || token !== acc.agentToken) {
-    console.log('[agent] 拒绝: 无效接入码');
+    log.write('warn', 'ws', '[agent] 拒绝: 无效接入码');
     ws.close(4001, 'bad agent token');
     return;
   }
@@ -845,7 +846,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
   const nick = acc.nick || uid;
   const username = app.accounts.usernameOf(acc);
   app.state.ensurePlayerData(uid);
-  console.log(`[agent] 接入: ${nick} (${uid})`);
+  log.write('info', 'ws', `[agent] 接入: ${nick} (${uid})`);
   if (!app.agentSockets.has(uid)) app.agentSockets.set(uid, new Set());
   metricsSessionStart(app, uid); // N8：Agent 托管也算一次会话
   app.agentSockets.get(uid)!.add(ws);
@@ -960,7 +961,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
             app.chatLog.push({ nick: nick + '(托管)', text, at: Date.now(), isAgent: true });
             while (app.chatLog.length > 50) app.chatLog.shift();
             for (const [, o] of state.online) sendTo(o, { t: 'chat', uid, nick: nick + '(托管)', text, isAgent: true });
-            console.log(`[agent-chat] ${nick}: ${text}`);
+            log.write('info', 'ws', `[agent-chat] ${nick}: ${text}`);
             publish('正在说话');
             result = { ok: true, sent: text };
           } else if (action === 'tasks') {
@@ -1110,7 +1111,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                   + `本次收到字段：${got.length ? got.join(',') : '无'}（坐标字段名是 x 与 y）`,
               }; continue;
             }
-            console.log(`[agent-move_to] ${nick} 目标 ${building ? `「${building.name}」` : `(${msg.x},${msg.y})`} 当前 (${apos.x},${apos.y}) 场景 ${curScene}->${targetScene} near=${ring || building?.name || '-'}`);
+            log.write('info', 'ws', `[agent-move_to] ${nick} 目标 ${building ? `「${building.name}」` : `(${msg.x},${msg.y})`} 当前 (${apos.x},${apos.y}) 场景 ${curScene}->${targetScene} near=${ring || building?.name || '-'}`);
             if (state.agentMoves.has(uid)) { result = { ok: false, msg: '上一个移动还没走完，请稍等' }; continue; }
             if (targetScene === curScene) {
               // 同场景：A* 逐格路径（现状主流程）
@@ -1142,7 +1143,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
                 if (alt && (alt[0] !== sx || alt[1] !== sy)) {
                   const p2 = astarClearance(nav, sx, sy, alt[0], alt[1], { wallHug: msg.wallHug === true }) ?? bfsPath(app.tables, sx, sy, alt[0], alt[1]);
                   if (p2 && p2.length >= 2) {
-                    console.log(`[agent-move_to] 目标 ${gx0},${gy0} 不可直达，吸附到可站格 ${alt[0]},${alt[1]}`);
+                    log.write('info', 'ws', `[agent-move_to] 目标 ${gx0},${gy0} 不可直达，吸附到可站格 ${alt[0]},${alt[1]}`);
                     path = p2; gx = alt[0]; gy = alt[1];
                   }
                 }
@@ -1175,7 +1176,7 @@ export function agentConn(app: App, ws: WebSocket, url: URL): void {
               state.agentRoutes.set(uid, route);
               startNavTask(app, state, uid, apos, route, (out) => {
                 send({ t: 'result', action, seq: msg.seq, ...(out as Record<string, unknown>) });
-                console.log(`[agent-move_to] ${nick} 任务结束: ${JSON.stringify(out)}`);
+                log.write('info', 'ws', `[agent-move_to] ${nick} 任务结束: ${JSON.stringify(out)}`);
               });
               // L3 市政指引（roads-landmarks §4）：路线主路名（roadOf 反查，取路径上占比最高路段）
               let road: string | null = null;
@@ -1229,7 +1230,7 @@ responseType = 'move_started';
             state.agentRoutes.set(uid, route2);
             startNavTask(app, state, uid, apos, route2, (out) => {
               send({ t: 'result', action, seq: msg.seq, ...(out as Record<string, unknown>) });
-              console.log(`[agent-move_to] ${nick} 跨场景任务结束: ${JSON.stringify(out)}`);
+              log.write('info', 'ws', `[agent-move_to] ${nick} 跨场景任务结束: ${JSON.stringify(out)}`);
             });
             result = {
               ok: true,
@@ -1289,7 +1290,7 @@ responseType = 'move_started';
                     lastOp.rulesHash = rules.rulesHash;
                   }
                   send({ t: 'result', action: 'talk', seq: msg.seq, ok: true, npcId, dialogue: reply, msg: `${npc.name}：${reply}`, rulesHash: rules.rulesHash });
-                } catch (e) { console.warn(`[talk] NPC 对话失败（已降级为 tagline）：${e instanceof Error ? e.message : String(e)}`); }
+                } catch (e) { log.write('warn', 'ws', `[talk] NPC 对话失败（已降级为 tagline）`, { err: e instanceof Error ? e.message : String(e) }); }
               })();
             }
             // 无 persona / 无认知栈时同步给一句 tagline，不让玩家的搭话落空（dialogue=null 像哑巴）
@@ -1768,7 +1769,7 @@ responseType = 'move_started';
   ws.on('close', () => {
     const s = app.agentSockets.get(uid);
     if (s) { s.delete(ws); if (!s.size) { app.agentSockets.delete(uid); metricsSessionEnd(app, uid); } }
-    console.log(`[agent] 断开: ${nick}`);
+    log.write('info', 'ws', `[agent] 断开: ${nick}`);
     for (const [k, p] of state.online) if (k === uid) sendTo(p, { t: 'agent_status', online: false });
   });
 

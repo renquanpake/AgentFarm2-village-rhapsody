@@ -38,7 +38,7 @@ const wsHeartbeatTimer = setInterval(() => {
     ws.isAlive = false;
     try { ws.ping(); pinged++; } catch { /* ignore */ }
   }
-  if (process.env.AF_DEBUG) console.log(`[hb] pinged=${pinged} dead=${dead}`);
+  if (process.env.AF_DEBUG) log.write('info', 'server', `[hb] pinged=${pinged} dead=${dead}`);
 }, WS_HEARTBEAT_MS);
 if (wsHeartbeatTimer.unref) wsHeartbeatTimer.unref();
 
@@ -69,17 +69,19 @@ process.on('unhandledRejection', e => {
 });
 
 server.listen(PORT, () => {
-  console.log('========================================');
-  console.log(`  AgentFarm2 服务器就绪（TS 七模块）`);
-  console.log(`  本地地址: http://127.0.0.1:${PORT}/`);
-  console.log(`  存档位: ${app.state.currentSlot}`);
-  console.log('========================================');
+  log.write('info', 'server', [
+    '========================================',
+    `  AgentFarm2 服务器就绪（TS 七模块）`,
+    `  本地地址: http://127.0.0.1:${PORT}/`,
+    `  存档位: ${app.state.currentSlot}`,
+    '========================================',
+  ].join('\n'));
   // 洒水器自动浇水：每 5 分钟检查一次
   setInterval(() => {
     const { watered, updates } = sprinklerAutoWater(app.state, app.tables);
     if (watered > 0) {
       app.log.append('crop.autowatered', null, { updates });
-      console.log(`[sprinkler] 自动浇水 ${watered} 株作物`);
+      log.write('info', 'server', `[sprinkler] 自动浇水 ${watered} 株作物`);
     }
   }, 5 * 60 * 1000);
   // DM 自动解锁：每 15s 检查同场景共处是否满 10 分钟
@@ -92,14 +94,14 @@ server.listen(PORT, () => {
       try {
         if (existsSync(BACKUP_SCRIPT)) {
           spawn(process.execPath, [BACKUP_SCRIPT], { stdio: ['ignore', 'pipe', 'pipe'] })
-            .on('close', (code) => { if (code !== 0 && process.env.AF_DEBUG) console.warn('[backup] exit', code); });
+            .on('close', (code) => { if (code !== 0 && process.env.AF_DEBUG) log.write('warn', 'server', '[backup] exit', { code }); });
         }
       } catch { /* ignore */ }
     }, 10 * 60 * 1000);
   }
   // 本地备份（设计 M6.3）：存档 + 事件库 每日备份到 data/backups/，保留 30 天
   const localBackup = () => {
-    try { runLocalBackup(DATA_DIR, SAVES_DIR, app.state.currentSlot, app.db); } catch (e) { console.warn('[backup] 本地备份失败：', (e as Error).message); }
+    try { runLocalBackup(DATA_DIR, SAVES_DIR, app.state.currentSlot, app.db); } catch (e) { log.write('warn', 'server', '[backup] 本地备份失败', { err: (e as Error).message }); }
   };
   if (needsBackup(`${DATA_DIR}/backups`, 24 * 3600 * 1000)) localBackup();
   setInterval(() => {
@@ -111,7 +113,7 @@ server.listen(PORT, () => {
     setInterval(() => {
       try {
         const n = runMerchantCycle(app);
-        if (n > 0) console.log(`[merchant] 决策周期：${n} 家商人挂出意向单`);
+        if (n > 0) log.write('info', 'server', `[merchant] 决策周期：${n} 家商人挂出意向单`);
       } catch { /* 看门狗兜底，不杀服 */ }
     }, hourMs);
   }
@@ -121,7 +123,7 @@ server.listen(PORT, () => {
     setInterval(() => {
       try {
         const rep = economyReport(app);
-        if (rep.alerts.length) for (const a of rep.alerts) console.warn(`[economy] ${a}`);
+        if (rep.alerts.length) for (const a of rep.alerts) log.write('warn', 'server', `[economy] ${a}`);
       } catch { /* 看门狗兜底 */ }
     }, dayMs);
   }
@@ -130,7 +132,7 @@ server.listen(PORT, () => {
     try {
       const r = advanceGameDay(app);
       if (r.advanced) {
-        console.log(`[calendar] 游戏日推进至 ${r.day}（${r.events} 事件）`);
+        log.write('info', 'server', `[calendar] 游戏日推进至 ${r.day}（${r.events} 事件）`);
         // B11：节日日结算 + 装饰赛快照（节日日每 1/4 游戏日刷新一次分）
         settleFestival(app);
         if (activeFestival(app)) snapshotFestivalDecor(app);
@@ -156,7 +158,7 @@ server.listen(PORT, () => {
           app.log.append('animal.produced', p.owner, { uid: p.owner, uId: p.uId, itemId: p.itemId, quality: p.quality, qty: p.quality === 'gold' ? 2 : 1 });
           const an = worldAnimals(app.state).find(a => a.uId === p.uId);
           const nm = an ? ANIMALS[an.animalId]?.name : '动物';
-          console.log(`[livestock] ${p.owner} 的${nm} 产出（${p.quality}）`);
+          log.write('info', 'server', `[livestock] ${p.owner} 的${nm} 产出（${p.quality}）`);
         }
       } catch { /* 看门狗兜底 */ }
     }, qDayMs);

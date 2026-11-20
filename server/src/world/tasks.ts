@@ -8,6 +8,7 @@
 import type { WorldState } from '../persistence/state.ts';
 import type { Tables } from './tables.ts';
 import { knapAdd } from './farm.ts';
+import { log } from '../logging.ts';
 
 export interface TaskDef {
   id: string;
@@ -258,9 +259,9 @@ export function taskCount(state: WorldState, tables: Tables, uid: string, type: 
     if (p && p.ws.readyState === 1) {
       for (const m of [...msgs, ...(completed ? [completed] : [])]) p.ws.send(JSON.stringify({ t: 'task_done', msg: m }));
     }
-    for (const m of msgs) console.log(`[task] ${uid} ${m}`);
+    for (const m of msgs) log.write('info', 'tasks', `[task] ${uid} ${m}`);
   } catch (e) {
-    console.warn('[task] count err:', (e as Error).message);
+    log.write('warn', 'tasks', '[task] count err:', { err: (e as Error).message });
   }
 }
 

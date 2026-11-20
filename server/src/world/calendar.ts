@@ -92,6 +92,7 @@ export function markGameDaySeen(state: WorldState, day: number): void {
 
 // ---------- 日切换执行器：天气效应 + 保险赔付 + 事件流 ----------
 import type { App } from '../app.ts';
+import { log } from '../logging.ts';
 import { worldPlants, knapAdd } from './farm.ts';
 import { triggerSeasonEvents } from './season-events.ts';
 import { CROP_BY_PLANT_ID } from './tables.ts';
@@ -189,7 +190,7 @@ export function runGameDay(app: App, d: number, now = Date.now()): number {
       events++;
     }
   } catch (err) {
-    console.warn('[season-event] 触发失败：', (err as Error).message);
+    log.write('warn', 'calendar', '[season-event] 触发失败', { err: (err as Error).message });
   }
 
   state.persist();

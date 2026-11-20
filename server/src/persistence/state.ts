@@ -6,6 +6,7 @@ import type {
   BucketKind, OnlinePlayer, AgentPos, SaveDoc, SpawnDef, SocialPair,
 } from '../types.ts';
 import { slotPaths } from '../config.ts';
+import { log } from '../logging.ts';
 import { runMigrations, saveVersionOf, SAVE_VERSION, SAVE_VERSION_KEY } from './save-version.ts';
 export { SAVE_VERSION, SAVE_VERSION_KEY, saveVersionOf };
 
@@ -179,7 +180,7 @@ export class WorldState {
         if (!uid) {
           if (WORLD_KEYS.has(name)) this.world.set(name, d.val);
           else if (GLOBAL_KEYS.has(name)) this.globals.set(name, d.val);
-          else console.warn(`[import] 未注册的无主键 ${name}，已丢弃（登记 WORLD_KEYS/GLOBAL_KEYS 或补迁移）`);
+          else log.write('warn', 'state', `[import] 未注册的无主键 ${name}，已丢弃（登记 WORLD_KEYS/GLOBAL_KEYS 或补迁移）`);
           continue;
         }
         if (!this.playersDb.has(uid)) this.playersDb.set(uid, new Map());
@@ -195,7 +196,7 @@ export class WorldState {
     if (fd) for (const sc of (fd.plotDatas || [])) for (const pl of (sc.plots || [])) { pl.x += this.farmLeft; pl.y += this.farmLeft; }
     this.globals.set(MIGRATED_KEY, { val: 1 });
     this.persist();
-    console.log(`[migrate] 世界坐标已迁移（植物/农田 +${this.farmLeft} 格）`);
+    log.write('info', 'state', `[migrate] 世界坐标已迁移（植物/农田 +${this.farmLeft} 格）`);
   }
 
   /**
@@ -233,7 +234,7 @@ export class WorldState {
     }
     this.globals.set(PLANT_BUCKET_KEY, { val: 1 });
     this.persist();
-    console.log(`[migrate] 玩家作物桶归位 VILLAGE_MAP：${moved} 株`);
+    log.write('info', 'state', `[migrate] 玩家作物桶归位 VILLAGE_MAP：${moved} 株`);
   }
 
   /**
@@ -257,7 +258,7 @@ export class WorldState {
     this.playersDb.delete('');
     this.globals.set(STRAY_BUCKET_KEY, { val: 1 });
     this.persist();
-    if (moved) console.log(`[migrate] 幽灵桶数据归位 ${moved} 项（未注册键曾致重启丢失）`);
+      if (moved) log.write('info', 'state', `[migrate] 幽灵桶数据归位 ${moved} 项（未注册键曾致重启丢失）`);
   }
 
   /** 出生点表：新玩家按加入顺序分配到村扩展区宅基地 */
@@ -288,7 +289,7 @@ export class WorldState {
         this.spawnCount = 1;
         this.globals.set('afSpawnCount', { val: 1 });
         this.playerIdx.set(uid, 1);
-        console.log('[spawn] 首位玩家保留原版家门口 (scene1)');
+        log.write('info', 'state', '[spawn] 首位玩家保留原版家门口 (scene1)');
       } else {
         this.spawnCount++;
         this.globals.set('afSpawnCount', { val: this.spawnCount });
@@ -300,14 +301,14 @@ export class WorldState {
             pd.posSceneType = this.spawns.scene || 2;
             pd.playerPos = { x: h.door.x, y: h.door.y, z: 0 };
             pd.playerPlace = 1;
-            console.log(`[spawn] 玩家 ${uid} (#${this.spawnCount}) 出生在 ${h.type} 门口 (${h.door.x},${h.door.y})`);
+            log.write('info', 'state', `[spawn] 玩家 ${uid} (#${this.spawnCount}) 出生在 ${h.type} 门口 (${h.door.x},${h.door.y})`);
           }
         }
       }
       // 出生落盘走防抖（2026-10-03）：同步 persist 会把整份 world.json（>1MB）写进事件循环，
       // 批量注册（灰度/压测）时表现为客户端 ECONNRESET —— 实测 30 并发必现、12 并发正常
       this.schedulePersist();
-      console.log(`[hero] 新玩家 ${uid} 继承主角初始档`);
+      log.write('info', 'state', `[hero] 新玩家 ${uid} 继承主角初始档`);
     }
     const pd = pm.get('playerData') as { houseId?: number } | undefined;
     if (pd && pd.houseId && !this.houseAssign.has(uid)) this.houseAssign.set(uid, pd.houseId);
@@ -342,7 +343,7 @@ export class WorldState {
     if (this.persistTimer) return;
     this.persistTimer = setTimeout(() => {
       this.persistTimer = null;
-      try { this.persist(); } catch (e) { console.log('[persist] 落盘失败', (e as Error)?.message); }
+      try { this.persist(); } catch (e) { log.write('info', 'state', '[persist] 落盘失败', { err: (e as Error)?.message }); }
     }, 500);
   }
 

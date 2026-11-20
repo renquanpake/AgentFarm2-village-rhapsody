@@ -3,6 +3,7 @@
 import { copyFileSync, mkdirSync, readdirSync, rmSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
+import { log } from '../logging.ts';
 
 export const BACKUP_RETENTION_DAYS = 30;
 
@@ -30,7 +31,7 @@ export function runLocalBackup(dataDir: string, savesDir: string, slot: number, 
     }
   }
   pruneOldBackups(path.join(dataDir, 'backups'));
-  console.log(`[backup] slot${slot} 已备份到 ${dest}（${files.length} 个文件）`);
+  log.write('info', 'backup', `[backup] slot${slot} 已备份到 ${dest}（${files.length} 个文件）`);
   return { dir: dest, files };
 }
 
@@ -50,7 +51,7 @@ export function pruneOldBackups(backupsRoot: string): number {
       } catch { /* ignore */ }
     }
   }
-  if (pruned > 0) console.log(`[backup] 已清理 ${pruned} 个超过 ${BACKUP_RETENTION_DAYS} 天的备份`);
+  if (pruned > 0) log.write('info', 'backup', `[backup] 已清理 ${pruned} 个超过 ${BACKUP_RETENTION_DAYS} 天的备份`);
   return pruned;
 }
 

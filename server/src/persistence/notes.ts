@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, append
 import { join, dirname } from 'node:path';
 import type { InboxEntry } from '../types.ts';
 import { loadJson } from './state.ts';
+import { log } from '../logging.ts';
 
 /** 预设性格模板（agent-setup 用） */
 export const AGENT_PRESETS: Record<string, string> = {
@@ -36,7 +37,7 @@ export class AgentNotes {
     while (arr.length > 50) arr.shift();
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, JSON.stringify(arr, null, 1));
-    console.log(`[inbox] ${from} -> ${username}: ${text.slice(0, 60)}`);
+    log.write('info', 'notes', `[inbox] ${from} -> ${username}: ${text.slice(0, 60)}`);
     return entry;
   }
 
@@ -57,7 +58,7 @@ export class AgentNotes {
     const name = String(opts.name || '').trim() || '无名村民';
     const md = `# agent.md —— 我的角色人设（agent 启动必读）\n\n## 我的名字\n${name}\n\n## 我的性格\n${personality}\n\n## 我的玩法偏好\n${String(opts.playstyle || '爱逛村庄、结识玩家、按时写日记。').trim()}\n\n## 我的自我介绍（对玩家说的话）\n你好呀，我是${name}！${personality.slice(0, 40)}…\n\n## 我的口头禅\n${String(opts.phrase || '交给我吧！').trim()}\n`;
     writeFileSync(join(dir, 'agent.md'), md, 'utf8');
-    console.log(`[agent-setup] ${username} 性格=${p || '自定义'}`);
+    log.write('info', 'notes', `[agent-setup] ${username} 性格=${p || '自定义'}`);
     return { name, personality };
   }
 
@@ -80,7 +81,7 @@ export class AgentNotes {
     mkdirSync(dir, { recursive: true });
     const f = join(dir, `day-${day}.md`);
     appendFileSync(f, `- ${new Date().toLocaleTimeString('zh-CN', { hour12: false })} ${text}\n`, 'utf8');
-    console.log(`[daily-report] ${username} 第 ${day} 天资产快照已存档`);
+    log.write('info', 'notes', `[daily-report] ${username} 第 ${day} 天资产快照已存档`);
     return f;
   }
 
@@ -101,6 +102,6 @@ export class AgentNotes {
     if (!obsidianVault || !existsSync(rulesFile)) return;
     mkdirSync(obsidianVault, { recursive: true });
     writeFileSync(join(obsidianVault, 'AgentFarm-游戏规则.md'), readFileSync(rulesFile, 'utf8'));
-    console.log('[rules] 已同步游戏规则到 Obsidian：', obsidianVault);
+    log.write('info', 'notes', '[rules] 已同步游戏规则到 Obsidian', { vault: obsidianVault });
   }
 }

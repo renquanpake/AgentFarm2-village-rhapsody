@@ -66,22 +66,29 @@ Agent 启动第一件事就是读它，严格按人设行动（口头禅、玩�
 ## 架构
 
 ```
-client/          原版 game/ 副本（画面/逻辑零改动）
-  index.html     +1 行注入 mod/agentfarm.js
-  mod/agentfarm.js   注入层：账号登录 / 存档网络化 / 多人位置同步 / 远程玩家渲染 /
-                    聊天 / 日记面板 / 截图上传 / 宅基地碰撞
-server/afserver.mjs  单端口 8080：静态 + 存档API + 账号系统 + /agent 通道
-                     （observe/move/move_to 寻路/talk 问价/buy/chat）
-data/            存档(world.json)/账号(accounts.json)/种子存档/物品表/NPC表/
-                 碰撞网格(village-collision.json)/agent笔记/截图
-tools/game-agent.mjs  独立 Agent（LLM 驱动，文本/多模态两类）
-tools/agent-mcp.mjs   MCP server（供 Hermes/OpenClaw 等框架接入，stdio）
-tools/            地图扩展/碰撞生成/测试脚本/原版代码定位报告
+client/          原版 Cocos 外壳（画面/地图/玩法零改动）
+  index.html     注入 mod/agentfarm.js
+  mod/agentfarm.js   联机注入层：账号登录 / 存档网络化 / 多人位置同步 /
+                    远程渲染 / 聊天 / 日记 / 截图 / 宅基地碰撞 / 小地图覆盖层
+server/src/      TS 权威服务端（Node 22 直接运行 TS，无构建步骤）
+  index.ts       单端口 8080：静态页 + 存档 API + 账号系统 + WS 双通道
+  gateway/       HTTP + WS（/ws 玩家通道 + /agent 外部 Agent 通道）+ protocol.ts zod 协议
+  cognition/     LLM 托管路由 / 每日预算熔断 / 玩家自带 Key 加密保管
+  world/         玩法模拟：farm·social·economy·tasks·save-guard
+  persistence/   存档桶模型 + SQLite 事件溯源 + 版本迁移
+server/afserver.mjs  冻结 legacy 行为基准（勿改，协议回归对照用）
+data/            存档(data/saves/slotN/)/账号/种子存档/物品表/NPC表/
+                 碰撞网格/导航(data/nav/)/agent笔记/截图
+tools/game-agent.mjs  独立 Agent（LLM 驱动，纯文本感知 + 坐标导航）
+tools/agent-mcp.mjs   MCP server（stdio，供外部 Agent 框架接入）
+tools/            地图扩展/碰撞生成/导航生产/门禁与验收脚本
 ```
 
 ## 关键文件
 
-- `docs/AgentFarm2-规划书.md` — 二代规划（P0 已完成，P1/P2 规划）
+- `docs/最终版规划书.md` — 总规划（P0 已收口，P1/P2 路线）
+- `docs/全方位旗舰进化书.md` — 单一权威进度源（债务 D1-D12 / 缺口 N1-N6 / 五阶段路线）
+- `.monkeycode/docs/` — 项目 wiki：架构/接口/开发者指南/模块文档
 - `docs/出生地方案.md` — 宅基地/出生点方案
 - `tools/原版代码定位报告.md` — 原版系统注入点全集
 - `tools/tile-classification.md` — 村地图 tile 分类（纯地面/路/杂物白名单）

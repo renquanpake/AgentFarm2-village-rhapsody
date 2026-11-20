@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { getDecryptedKey, recordUsage } from '../persistence/keyvault.ts';
 import { budgetStatus, budgetTripMessage, invalidateBudgetCache, type BudgetStatus } from './llm-budget.ts';
+import { log } from '../logging.ts';
 
 export type TaskType = 'perceive' | 'score' | 'extract' | 'embed' | 'plan' | 'dialogue' | 'write' | 'draw-prompt' | (string & {});
 
@@ -114,7 +115,7 @@ export function meteredRoute(
   // N12：预算检查放在缓存命中之后 —— 命中缓存不花钱，不该被熔断拦（否则降级质量无谓下降）
   const budget = hit ? { ...budgetStatus(db, accountUid), tripped: false, warn: false, justWarned: false } : budgetStatus(db, accountUid);
   if (budget.justWarned) {
-    console.warn(`[llm-budget] 账号 ${accountUid} 今日用量已达软提醒线：${budget.used}/${budget.limit} tokens（${Math.round(budget.ratio * 100)}%）`);
+    log.write('warn', 'llm', `[llm-budget] 账号 ${accountUid} 今日用量已达软提醒线：${budget.used}/${budget.limit} tokens（${Math.round(budget.ratio * 100)}%）`);
   }
   return {
     call,

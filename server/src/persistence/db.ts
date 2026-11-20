@@ -3,6 +3,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { log } from '../logging.ts';
 
 export interface Migration {
   version: number;
@@ -215,7 +216,7 @@ export function applyMigrations(db: DatabaseSync): number {
       for (const s of m.sql) db.exec(s);
       db.prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(m.version, m.name, Date.now());
       db.exec('COMMIT');
-      console.log(`[db] migration v${m.version} (${m.name}) 已应用`);
+      log.write('info', 'db', `[db] migration v${m.version} (${m.name}) 已应用`);
     } catch (e) {
       db.exec('ROLLBACK');
       throw new Error(`migration v${m.version} 失败：${(e as Error).message}`);

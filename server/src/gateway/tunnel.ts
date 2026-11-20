@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { App } from '../app.ts';
+import { log } from '../logging.ts';
 
 const SERVER_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -64,15 +65,15 @@ export async function startTunnel(app: App, port: number): Promise<void> {
     app.tunnelUrl = cfUrl;
     app.tunnelProc = proc;
     app.roomCodes.set(roomCode, cfUrl);
-    console.log('[tunnel] cloudflared 隧道成功！');
-    console.log(`[tunnel] 公网地址: ${cfUrl}`);
-    console.log(`[tunnel] 房间码: ${roomCode}`);
-    console.log('[tunnel] 朋友浏览器打开公网地址即可加入（快速隧道地址每次重启会变，记得发给朋友）');
+    log.write('info', 'tunnel', '[tunnel] cloudflared 隧道成功！');
+    log.write('info', 'tunnel', `[tunnel] 公网地址: ${cfUrl}`);
+    log.write('info', 'tunnel', `[tunnel] 房间码: ${roomCode}`);
+    log.write('info', 'tunnel', '[tunnel] 朋友浏览器打开公网地址即可加入（快速隧道地址每次重启会变，记得发给朋友）');
     proc.on('exit', () => {
       if (app.tunnelUrl && app.tunnelUrl.includes('.trycloudflare.com')) {
         app.tunnelUrl = null;
         app.roomCode = null;
-        console.log('[tunnel] cloudflared 进程退出，隧道已断');
+        log.write('info', 'tunnel', '[tunnel] cloudflared 进程退出，隧道已断');
       }
     });
     return;
@@ -83,21 +84,21 @@ export async function startTunnel(app: App, port: number): Promise<void> {
     const info = await lt({ port, subdomain: 'afarm-' + genRoomCode() });
     app.tunnelUrl = info.url;
     app.roomCodes.set(roomCode, info.url);
-    console.log('[tunnel] localtunnel 兜底穿透成功（稳定性一般）');
-    console.log(`[tunnel] 朋友输入房间码 ${roomCode} 即可加入`);
+    log.write('info', 'tunnel', '[tunnel] localtunnel 兜底穿透成功（稳定性一般）');
+    log.write('info', 'tunnel', `[tunnel] 朋友输入房间码 ${roomCode} 即可加入`);
     info.on('close', () => {
       app.tunnelUrl = null;
       app.roomCode = null;
-      console.log('[tunnel] 隧道已关闭');
+      log.write('info', 'tunnel', '[tunnel] 隧道已关闭');
     });
     return;
   } catch (e) {
-    console.log(`[tunnel] localtunnel 兜底也失败: ${(e as Error).message}`);
+    log.write('info', 'tunnel', `[tunnel] localtunnel 兜底也失败: ${(e as Error).message}`);
   }
   // 3) 局域网模式
   app.tunnelUrl = null;
   app.roomCodes.set(roomCode, '');
-  console.log(`[tunnel] 仍在局域网模式，朋友可通过 IP:${port} 加入`);
+  log.write('info', 'tunnel', `[tunnel] 仍在局域网模式，朋友可通过 IP:${port} 加入`);
 }
 
 /** 清理隧道进程（进程退出/信号时调用） */

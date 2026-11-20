@@ -111,13 +111,13 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
         }
         const a = r.account!;
         app.state.ensurePlayerData(a.uid); // 分配主角档 + 宅基地
-        console.log(`[account] 注册 ${uname} -> ${a.uid}`);
+        log.write('info', 'http', `[account] 注册 ${uname} -> ${a.uid}`);
         json(res, 200, { ok: true, token: a.token, uid: a.uid, nick: uname });
       } else {
         const r = app.accounts.login(uname, pw);
         if (!r.ok) { text(res, 401, 'bad login'); return; }
         const a = r.account!;
-        console.log(`[account] 登录 ${uname} -> ${a.uid}`);
+        log.write('info', 'http', `[account] 登录 ${uname} -> ${a.uid}`);
         json(res, 200, { ok: true, token: a.token, uid: a.uid, nick: a.nick || uname });
       }
       return;
@@ -154,7 +154,7 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
           app.provider = resolveProvider({}, rec); // 以文件配置为准
           fs.mkdirSync(path.dirname(PROVIDER_FILE), { recursive: true });
           fs.writeFileSync(PROVIDER_FILE, JSON.stringify(rec, null, 1));
-          console.log(`[provider] ${a.nick || a.uid} 更新模型配置: ${next.url} / ${next.model}${verifiedAt ? '（已验证）' : ''}`);
+          log.write('info', 'http', `[provider] ${a.nick || a.uid} 更新模型配置: ${next.url} / ${next.model}${verifiedAt ? '（已验证）' : ''}`);
         };
         // test=1（接入引导的「测试连接」）：先探活，探通才落盘，失败不回写坏配置
         if ((raw as { test?: unknown }).test === true) {
@@ -354,7 +354,7 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       if (newSlot < 1 || newSlot > 3) { json(res, 400, { ok: false, msg: 'slot must be 1-3' }); return; }
       if (newSlot === app.state.currentSlot) { json(res, 200, { ok: true, msg: 'already on slot ' + newSlot }); return; }
       app.state.persist();
-      console.log(`[slot] 切换存档: ${app.state.currentSlot} -> ${newSlot}`);
+      log.write('info', 'http', `[slot] 切换存档: ${app.state.currentSlot} -> ${newSlot}`);
       // 踢掉所有在线玩家连接，强制重连（重连时按新档重新 join）
       for (const [, p] of app.state.online) {
         try { p.ws.send(JSON.stringify({ t: 'kicked', msg: '存档切换中，请刷新页面重新进入' })); } catch { /* ignore */ }
@@ -364,7 +364,7 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       app.state.online.clear();
       // 新 state 自带干净的 agentPos/agentMoves（slot 级），agent 连接保留在新 state 上继续服务
       app.switchSlot(newSlot);
-      console.log(`[slot] 已切换到存档${newSlot}，世界数据已重载`);
+      log.write('info', 'http', `[slot] 已切换到存档${newSlot}，世界数据已重载`);
       json(res, 200, { ok: true, slot: newSlot });
       return;
     }
@@ -506,7 +506,7 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
     if (u.pathname === '/af/room') {
       const fwdProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
       const proto = (fwdProto === 'https' || fwdProto === 'http') ? fwdProto : ((req.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http');
-      const host = req.headers.host || `127.0.0.1:${process.env.PORT || 8080}`;
+      const host = req.headers.host || `127.0.0.1:${PORT}`;
       const tok = u.searchParams.get('token');
       const isAdmin = !!process.env.AF_ADMIN_TOKEN && tok === process.env.AF_ADMIN_TOKEN;
       const authed = isAdmin || !!app.accounts.findAccountByToken(tok);

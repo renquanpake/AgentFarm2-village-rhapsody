@@ -246,5 +246,5 @@
    "notes": "医院"
   }
  ],
- "note": "27 场景全量编号（主包 Gscene_config 提取）；village 为扩展村景（133x117），其余为原生 TMX 尺寸。"
+ "note": "27 场景全量编号（主包 Gscene_config 提取）；village 为扩展村景（189x173，P3 +28 环后），其余为原生 TMX 尺寸。"
 }

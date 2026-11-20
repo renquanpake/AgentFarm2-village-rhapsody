@@ -13,6 +13,7 @@ import {
 import { recordGossip, isSignificant } from './gossip.ts';
 import { publishNotice } from './notices.ts';
 import { taskCount } from './tasks.ts';
+import { log } from '../logging.ts';
 
 export interface SocialActionResult {
   ok: boolean;
@@ -73,7 +74,7 @@ export function socialGive(app: App, state: WorldState, uid: string, rawTarget: 
     recordGossip(state, Date.now(), 'gift', `${fromNick} 大手笔送了 ${toNick} ${it.name}×${num}`);
     publishNotice(state, Date.now(), 'generic', `村口传闻：${fromNick} 给 ${toNick} 送了 ${it.name}×${num}`);
   }
-  console.log(`[social] ${fromNick} 送礼 ${toNick} ${it.name}x${num}`);
+  log.write('info', 'social', `[social] ${fromNick} 送礼 ${toNick} ${it.name}x${num}`);
   return {
     ok: true,
     msg: `送礼成功，${toNick} 对你的好感 +${g}（现 ${fav}）`,
@@ -102,6 +103,6 @@ export function socialBind(app: App, state: WorldState, uid: string, rawTarget: 
   const fromNick = nickOf(app, state, uid, '玩家');
   for (const [, o] of state.online) o.ws.send(JSON.stringify({ t: 'chat', uid: 'sys', nick: '系统', text: `${fromNick} 与 ${pB.nick} 结为「${def.name}」！` }));
   pB.ws.send(JSON.stringify({ t: 'social_in', social: 'bind', from: uid, nick: fromNick, relation: type, relName: def.name }));
-  console.log(`[social] ${fromNick} 与 ${pB.nick} 结为 ${def.name}`);
+  log.write('info', 'social', `[social] ${fromNick} 与 ${pB.nick} 结为 ${def.name}`);
   return { ok: true, msg: `已与 ${pB.nick} 结为「${def.name}」`, detail: { social: 'bind', target, relation: type, relName: def.name } };
 }

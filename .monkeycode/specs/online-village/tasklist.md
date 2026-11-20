@@ -83,7 +83,7 @@ Updated: 2026-10-02
 - [x] D1 drift 验证进自动门：nightly 的 `--matrix` 曾是 nav-replay 未识别旗标（静默落默认分支），现显式解析 + CI 门6 跑 `--smoke --drift`
 - [x] CI 门3 自足化：ws-test 不再依赖 gitignore 的 `data/accounts.json`，改为自备账号（register/login + `/af/agent-token`）
 - [x] N8 留存/漏斗/时长度量（`world/metrics.ts` + `/af/metrics`，世界桶 metricData）
-- [x] N9 内容扩容（`data/task-chains.json` 6 链 31 阶 + `data/season-events.json` 16 事件 + `data/onboarding.json` 第一小时 10 环）
+- [x] N9 内容扩容（`data/task-chains.json` 26 链 126 阶 + `data/season-events.json` 16 事件 + `data/onboarding.json` 第一小时 10 环）
 - [x] N10 经济数值表（`data/economy-tables.json` + `Tables.basePriceOf` + 种子 6 折 + `/af/economy-design`）
 - [x] N11 存档版本化（SAVE_VERSION=5 + 迁移注册表 + `tools/migration-rehearse.mjs` 16 存档位重演）
 - [x] C/D 包事件化与哈希扩容（`claim.*`/`lease.*` 四事件 + apply 分支 + structuredHash 收 claims/lease；域级回放对比一致）

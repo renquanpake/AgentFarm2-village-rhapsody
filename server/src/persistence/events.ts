@@ -1,6 +1,7 @@
 // persistence/events.ts —— 事件日志服务：append / since / 快照 / 哈希（事件即事实源）
 import { DatabaseSync, StatementSync } from 'node:sqlite';
 import { z } from 'zod';
+import { log } from '../logging.ts';
 
 export interface GameEvent {
   seq: number;
@@ -129,7 +130,7 @@ export class EventLog {
     }
     // 实时管线（导演镜头等）：同步触发订阅
     for (const fn of this.listeners) {
-      try { fn(ev); } catch (e) { console.warn('[events] listener 异常（已隔离）：', (e as Error)?.message); }
+      try { fn(ev); } catch (e) { log.write('warn', 'events', '[events] listener 异常（已隔离）', { err: (e as Error)?.message }); }
     }
     return ev;
   }
