@@ -51,10 +51,8 @@
 ### P1-7 PORT 环境变量两处内联回退
 - `gateway/http.ts:509` 与 `cognition/managed.ts:72` 各写 `process.env.PORT || 8080`，未复用 config.ts 已导出常量。
 
-### P1-8 data/npcs_new.json 0 字节空文件留在仓库
-
-### P1-9 data/world.json.bak 约 68 MB 仍在仓库
-- 是否含历史事故现场证据待定，留用户决定。
+### [x] P1-8 data/npcs_new.json 0 字节空文件留在仓库（2026-11-20 收口：git rm 清除，零引用）
+### [x] P1-9 data/world.json.bak 约 68 MB 仍在仓库（2026-11-20 用户裁决收口：git rm 清除，零引用）
 
 ## P2（中优先级）
 
@@ -82,5 +80,5 @@
 ## 本轮不做（ponytail 决定 + 假设清单）
 
 - P0 撤销项不阻塞流程，仅作为 P1-1 的校正说明保留。
-- `world.json.bak` 不自动清理，可能含历史事故现场证据，待用户明确指示。
+- `world.json.bak` 与 `npcs_new.json` 已按用户裁决清除（2026-11-20，收口记录见 P1-8/P1-9）。
 - 多代历史快照统一由 P1-3 一次性重写处理，不逐个打补丁。
