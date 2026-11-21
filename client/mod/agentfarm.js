@@ -4282,4 +4282,169 @@
       svRange.addEventListener('input', () => { setVol('sfx', Number(svRange.value)); svVal.textContent = Math.round(Number(svRange.value) * 100) + '%'; });
     })();
   } catch (e) { console.warn('[AF] 紧凑 UI 入口注入失败：', e && e.message); }
+
+  // ---------- 五件套余项（open-work.md §五，最后三件）：POI 图鉴 / 大地图 / 驿站快传 ----------
+  // 数据面与协议事实：http.ts 的 /af/mapdoc 返回 {ok, mapdoc:text, stats}（全文本分节文档，非 scenes/pois 结构）；
+  // /af/mapgrid 需 token，landmarks 为场景 2 格坐标（服务端像素口径 = 格×100+50，见 ws.ts act move_to）；
+  // 快传复用 Agent 行动通道 {t:'act',action:'move_to'}：服务端 A* 规划逐航点，客户端 mod 自动走位。
+  try {
+    if (document.getElementById('af-poi-btn')) { /* 防重复注入 */ }
+    else {
+      const mapEsc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+      // --- U-POI POI 图鉴（/af/mapdoc 全文本村庄图，按节渲染；公开端点免 token） ---
+      const poiBtn = document.createElement('div');
+      poiBtn.id = 'af-poi-btn'; poiBtn.textContent = '📖 图鉴';
+      poiBtn.title = '查看全村 POI 文本地图（自动生成）';
+      poiBtn.style.cssText = 'position:fixed;right:10px;top:434px;z-index:99990;cursor:pointer;' +
+        'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+        'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      document.body.appendChild(poiBtn);
+      const poiPanel = document.createElement('div');
+      poiPanel.id = 'af-poi-panel';
+      poiPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:420px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+      poiPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">POI 图鉴 · 全村文本地图</b><span id="af-poi-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-poi-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+      document.body.appendChild(poiPanel);
+      async function loadPoiGuide() {
+        const bd = document.getElementById('af-poi-bd');
+        if (!bd) return;
+        bd.textContent = '加载中…';
+        try {
+          const r = await fetch(SERVER + '/af/mapdoc');
+          const j = await r.json();
+          if (!j.ok || !j.mapdoc) { bd.innerHTML = '<p style="color:var(--af-c-text-dim)">暂无POI数据</p>'; return; }
+          const st = j.stats || {};
+          let html = '<div style="display:flex;gap:10px;margin-bottom:8px;font-size:11px;color:var(--af-c-text-dim)">' +
+            '<span>阻挡簇 ' + (st.blocked != null ? st.blocked : '-') + '</span>' +
+            '<span>水域簇 ' + (st.water != null ? st.water : '-') + '</span>' +
+            '<span>主干路 ' + (st.roads != null ? st.roads : '-') + '</span></div>';
+          for (const raw of String(j.mapdoc).split('\n')) {
+            const t = raw.trim();
+            if (!t) continue;
+            if (t.startsWith('## ')) html += '<div style="margin:10px 0 4px;color:var(--af-c-gold);font-size:12px">' + mapEsc(t.slice(3)) + '</div>';
+            else if (t.startsWith('# ')) html += '<div style="margin:10px 0 4px;color:var(--af-c-text);font-weight:600">' + mapEsc(t.slice(2)) + '</div>';
+            else if (t.startsWith('- ')) html += '<div style="margin:2px 0;font-size:11px;color:var(--af-c-light-soft)">' + mapEsc(t) + '</div>';
+            else html += '<div style="margin:2px 0;font-size:11px;color:var(--af-c-text-dim)">' + mapEsc(t) + '</div>';
+          }
+          bd.innerHTML = html;
+        } catch (e) { bd.textContent = '加载失败'; }
+      }
+      poiBtn.addEventListener('click', () => { loadPoiGuide(); poiPanel.style.display = 'flex'; });
+      document.getElementById('af-poi-x').addEventListener('click', () => { poiPanel.style.display = 'none'; });
+
+      // --- U-BIGMAP 大地图（当前场景/坐标 + 附近地标按距排序 + 9×9 周边方格） ---
+      const bigmapBtn = document.createElement('div');
+      bigmapBtn.id = 'af-bigmap-btn'; bigmapBtn.textContent = '🗺 大地图';
+      bigmapBtn.title = '查看当前位置、附近地标与周边格子';
+      bigmapBtn.style.cssText = 'position:fixed;right:10px;top:472px;z-index:99990;cursor:pointer;' +
+        'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+        'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      document.body.appendChild(bigmapBtn);
+      const bigmapPanel = document.createElement('div');
+      bigmapPanel.id = 'af-bigmap-panel';
+      bigmapPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:380px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+      bigmapPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">大地图 · 当前位置</b><span id="af-bigmap-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-bigmap-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+      document.body.appendChild(bigmapPanel);
+      async function loadBigMap() {
+        const bd = document.getElementById('af-bigmap-bd');
+        if (!bd) return;
+        bd.textContent = '加载中…';
+        try {
+          const pos = readPlayerPos();
+          const r = await fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token));
+          const g = await r.json();
+          if (!g || !g.W || !Array.isArray(g.landmarks)) { bd.innerHTML = '<p style="color:var(--af-c-text-dim)">地图数据不可用</p>'; return; }
+          const W = g.W, H = g.H;
+          if (!pos) { bd.innerHTML = '<p style="color:var(--af-c-text-dim)">游戏角色未就绪，位置未知。</p>'; return; }
+          const BIGMAP_SCENE_CN = { 1: '家门口', 2: '村景', 102: '富翁家' };
+          // 玩家坐标为 pnlTiledMap 局部像素（y 向上、原点左下）；换算回格坐标（与 landmarks 同空间）
+          const gx = Math.max(0, Math.min(W - 1, Math.round(pos.x / 100)));
+          const gy = Math.max(0, Math.min(H - 1, Math.round((H * 100 - pos.y) / 100)));
+          let html = '<div style="margin-bottom:6px"><b>当前场景</b>：' + (BIGMAP_SCENE_CN[pos.scene] != null ? BIGMAP_SCENE_CN[pos.scene] : '场景 ' + pos.scene) + '</div>';
+          html += '<div style="font-size:11px;color:var(--af-c-text-dim)">位置：像素 (' + pos.x + ', ' + pos.y + ') · 格 (' + gx + ', ' + gy + ')</div>';
+          const near = g.landmarks.filter(l => l && Number.isFinite(l.x) && Number.isFinite(l.y))
+            .map(l => ({ n: l.name || l.id, d: Math.hypot(gx - l.x, gy - l.y) }))
+            .sort((a, b) => a.d - b.d).slice(0, 6);
+          if (near.length) {
+            html += '<div style="margin:10px 0 4px;font-size:11px;color:var(--af-c-text-dim)">附近地标（按距离）</div>';
+            html += near.map(l =>
+              '<div style="font-size:11px;margin-bottom:2px">' + mapEsc(l.n) + ' <span style="color:var(--af-c-text-dim)">· ' + Math.round(l.d) + ' 格</span></div>').join('');
+          }
+          // 9×9 周边方格：水=天蓝 / 阻挡=深木 / 越界留空 / 你=金描边中心格
+          let cells = '';
+          for (let dy = 4; dy >= -4; dy--) {
+            for (let dx = -4; dx <= 4; dx++) {
+              const cx = gx + dx, cy = gy + dy;
+              let bg = 'rgba(255,255,255,.05)';
+              if (cx >= 0 && cy >= 0 && cx < W && cy < H) {
+                const i = cy * W + cx;
+                if (g.water && g.water[i]) bg = 'var(--af-c-sky)';
+                else if (g.blocked && g.blocked[i]) bg = 'var(--af-c-wood-dark)';
+              } else bg = 'transparent';
+              const ring = (dx === 0 && dy === 0) ? ';box-shadow:inset 0 0 0 2px var(--af-c-gold)' : '';
+              cells += '<div style="width:14px;height:14px;margin:1px;border-radius:2px;background:' + bg + ring + '"></div>';
+            }
+          }
+          html += '<div style="display:flex;flex-wrap:wrap;width:146px;margin-top:10px">' + cells + '</div>';
+          html += '<div style="display:flex;gap:10px;margin-top:6px;font-size:10px;color:var(--af-c-text-dim)">' +
+            '<span>天蓝 = 水</span><span style="color:var(--af-c-wood-dark)">深木 = 阻挡</span><span style="color:var(--af-c-gold)">金框 = 你</span></div>';
+          if (pos.scene !== 2) html += '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">地标与方格均按村景坐标系显示</div>';
+          bd.innerHTML = html;
+        } catch (e) { bd.textContent = '加载失败'; }
+      }
+      bigmapBtn.addEventListener('click', () => { loadBigMap(); bigmapPanel.style.display = 'flex'; });
+      document.getElementById('af-bigmap-x').addEventListener('click', () => { bigmapPanel.style.display = 'none'; });
+
+      // --- U-RELAY 驿站快传（mapgrid 地标列表，点击即服务端寻路直达） ---
+      const relayBtn = document.createElement('div');
+      relayBtn.id = 'af-relay-btn'; relayBtn.textContent = '🐎 快传';
+      relayBtn.title = '选择村落地标，快速前往';
+      relayBtn.style.cssText = 'position:fixed;right:10px;top:510px;z-index:99990;cursor:pointer;' +
+        'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+        'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      document.body.appendChild(relayBtn);
+      const relayPanel = document.createElement('div');
+      relayPanel.id = 'af-relay-panel';
+      relayPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:340px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+      relayPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">驿站快传</b><span id="af-relay-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-relay-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+      document.body.appendChild(relayPanel);
+      async function loadRelay() {
+        const bd = document.getElementById('af-relay-bd');
+        if (!bd) return;
+        bd.textContent = '加载中…';
+        try {
+          const r = await fetch(SERVER + '/af/mapgrid?token=' + encodeURIComponent(token));
+          const j = await r.json();
+          const landmarks = ((j && Array.isArray(j.landmarks)) ? j.landmarks : [])
+            .filter(l => l && l.name && Number.isFinite(l.x) && Number.isFinite(l.y)).slice(0, 10);
+          if (!landmarks.length) { bd.innerHTML = '<p style="color:var(--af-c-text-dim)">无可传送目的地</p>'; return; }
+          let html = '<div style="font-size:11px;color:var(--af-c-text-dim);margin-bottom:6px">选择目的地（村落地标，服务端寻路直达）</div>';
+          html += landmarks.map((l, i) =>
+            '<div data-relay="' + i + '" style="cursor:pointer;padding:6px 8px;margin-bottom:3px;border-radius:4px;font-size:12px;border:1px solid var(--af-c-edge)">📍 ' + mapEsc(l.name) +
+            ' <span style="font-size:10px;color:var(--af-c-text-dim)">格 ' + l.x + ',' + l.y + '</span></div>').join('');
+          bd.innerHTML = html;
+          bd.querySelectorAll('[data-relay]').forEach(el => {
+            el.addEventListener('mouseover', () => { el.style.background = 'var(--af-c-glass-panel)'; });
+            el.addEventListener('mouseout', () => { el.style.background = ''; });
+            el.addEventListener('click', () => {
+              const l = landmarks[Number(el.dataset.relay)];
+              if (!l) return;
+              if (connected && ws) {
+                try {
+                  // 地标格坐标转服务端像素口径（格×100+50），经 Agent 行动通道触发 A* 寻路（跨场景自动解门户）
+                  ws.send(JSON.stringify({ t: 'act', action: 'move_to', scene: 2, x: l.x * 100 + 50, y: l.y * 100 + 50 }));
+                } catch (e) { /* ignore */ }
+                toast('正在传送到 ' + (l.name || '目标'), 'info');
+                relayPanel.style.display = 'none';
+              } else {
+                toast('未连接服务器，无法传送', 'err');
+              }
+            });
+          });
+        } catch (e) { bd.textContent = '加载失败'; }
+      }
+      relayBtn.addEventListener('click', () => { loadRelay(); relayPanel.style.display = 'flex'; });
+      document.getElementById('af-relay-x').addEventListener('click', () => { relayPanel.style.display = 'none'; });
+    }
+  } catch (e) { console.warn('[AF] 五件套余项面板注入失败：', e && e.message); }
 })();
