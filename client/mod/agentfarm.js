@@ -550,6 +550,9 @@
       let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
       switch (msg.t) {
         case 'welcome': {
+          // 进村信号：天气/氛围特效只在此后显示（启动页/登录页不叠雨层）
+          window.__AF_INWORLD__ = true;
+          if (typeof window.__AF_REFRESH_TODAY__ === 'function') setTimeout(window.__AF_REFRESH_TODAY__, 0);
           // 服务端权威的自身坐标（P1 断言基线：agent_move 到达前 serverPos() 也必须有值）
           (msg.players || []).forEach(p => { if (p.uid === uid) lastServerPos = { x: p.x, y: p.y, scene: p.scene }; });
           // 其他在线玩家
