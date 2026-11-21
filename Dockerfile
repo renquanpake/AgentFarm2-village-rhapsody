@@ -16,11 +16,16 @@ COPY server/src ./src
 COPY data /seed-data
 COPY assets/personalities ./assets/personalities
 COPY assets/generated ./assets/generated
+# 客户端整包（383MB 原版资源）：单服务直接出网页，浏览器同源连 /ws
+COPY client ./client
 
 # 构建期硬断言：种子数据缺文件直接红，避免运行期静默空世界
 RUN test -f /seed-data/seed-villagedb.json \
  && test -f /seed-data/village-farm.json \
- && test -f /seed-data/nav/nav-2.json
+ && test -f /seed-data/nav/nav-2.json \
+ && test -f /app/client/index.html \
+ && test -f /app/client/main.88891.js \
+ && test -f /app/client/mod/agentfarm.js
 
 ENV NODE_ENV=production \
     PORT=8080 \

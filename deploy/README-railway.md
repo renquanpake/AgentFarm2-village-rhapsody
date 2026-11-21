@@ -58,8 +58,8 @@ AF_DEV_ENDPOINTS=0                 # 生产关调试发币发物端点
 
 - 服务 Running 后先看健康检查：`curl -i https://<service-name>.up.railway.app/healthz` 应返回 `200 ok`
 - Railway 的 healthcheckPath 已配成 `/healthz`（不依赖静态客户端，构建成功后一定可探活）
-- 本镜像只跑后端：`/` 不提供完整游戏页（客户端 383MB 资源走 GitHub Pages/CDN）
-- 注册→进村→小地图三件套通即收工：先登录客户端，`SERVER` 指向这个 Railway 域名
+- 镜像内含客户端整包（383MB 原版资源），`/` 直接出游戏页；浏览器同源自动连本服务的 `/ws`，无需配 SERVER
+- 注册→进村→小地图三件套通即收工（首次加载资源较多，耐心等 20-60 秒）
 
 ---
 
@@ -69,7 +69,7 @@ AF_DEV_ENDPOINTS=0                 # 生产关调试发币发物端点
 |---|---|
 | 0.5 GB 内存紧张（Node + SQLite + 子进程） | 单存档位、关掉不必要的 agent 子进程（测试期不托管大脑） |
 | 重启丢 /data 外的配置 | 配置全走 env，不落盘 |
-| 客户端静态页怎么发 | GitHub Pages 主路径（详见 `docs/上线部署方案.md`），Railway 只跑服务端 |
+| 客户端静态页怎么发 | 已随镜像托管，`/` 直接出页；若后续拆 CDN，再把 `client/` 挪出去 |
 | assets/personalities 48MB | COPY 进镜像层不占运行时内存；若构建慢可拆为单独 volume 或按需拉 |
 | 免费档只有 1 个服务、3 个项目 | 单房版本刚好一个服务，无需扩展 |
 

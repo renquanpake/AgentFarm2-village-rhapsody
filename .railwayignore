@@ -1,5 +1,5 @@
-# railway up 上传上下文瘦身（Dockerfile 只用到 server/、data/、assets/personalities、assets/generated）
-client/
+# railway up 上传上下文瘦身（客户端整包要进镜像，仅排除截图）
+client/_shots/
 data/saves/
 data/art/raw/
 data/accounts.json

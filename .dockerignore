@@ -13,9 +13,7 @@ tools/
 drive-inbox/
 .monkeycode/
 
-# 客户端整包 383MB（assets）：Railway 只跑服务端，客户端走 GitHub Pages/CDN
-client/assets/
-client/src/
+# 客户端随镜像一起托管（单服务出网页）；只排除截图目录
 client/_shots/
 client/_shots.html
 
