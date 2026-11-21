@@ -61,6 +61,17 @@ AF_DEV_ENDPOINTS=0                 # 生产关调试发币发物端点
 - 镜像内含客户端整包（383MB 原版资源），`/` 直接出游戏页；浏览器同源自动连本服务的 `/ws`，无需配 SERVER
 - 注册→进村→小地图三件套通即收工（首次加载资源较多，耐心等 20-60 秒）
 
+## 后续发布（已实测）
+
+```bash
+# 先推 GitHub，再用 Railway API 触发按最新提交部署
+git push origin master
+railway api 'mutation($s:String!,$e:String!){serviceInstanceDeploy(serviceId:$s, environmentId:$e, latestCommit:true)}' \
+  --var s=<serviceId> --var e=<environmentId>
+```
+
+不要用 `railway up` 发布：客户端整包 380MB 会撞 Cloudflare 的 413 上传上限。
+
 ---
 
 ## 已知坑与对策
