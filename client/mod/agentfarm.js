@@ -4463,7 +4463,7 @@
       if (document.getElementById('af-wxdm-btn')) return; // 防重复注入
       const css = document.createElement('style');
       css.textContent = `
-        #af-wxdm-btn { position: fixed; right: 10px; top: 560px; z-index: 99990; cursor: pointer;
+        #af-wxdm-btn { position: fixed; right: 10px; top: 590px; z-index: 99990; cursor: pointer;
           background: var(--af-c-glass-panel); color: var(--af-c-gold);
           border: 1px solid var(--af-c-moss); border-radius: 6px;
           padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
