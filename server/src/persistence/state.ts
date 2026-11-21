@@ -5,7 +5,7 @@ import type WebSocket from 'ws';
 import type {
   BucketKind, OnlinePlayer, AgentPos, SaveDoc, SpawnDef, SocialPair,
 } from '../types.ts';
-import { slotPaths } from '../config.ts';
+import { slotPaths, DATA_DIR } from '../config.ts';
 import { log } from '../logging.ts';
 import { runMigrations, saveVersionOf, SAVE_VERSION, SAVE_VERSION_KEY } from './save-version.ts';
 export { SAVE_VERSION, SAVE_VERSION_KEY, saveVersionOf };
@@ -26,6 +26,7 @@ export const PLAYER_KEYS = new Set(['playerData', 'knapData', 'taskData', 'attri
 export const GLOBAL_KEYS = new Set([
   'audioData', 'gameData', 'afSpawnCount', 'afCoordMigrated', 'afPlantBucketVillage', 'afStrayBucketRepaired',
   'afDayAnchor', 'afLastGameDay', 'afLastStorm', 'afSaveVersion', 'afPlayerIdx', 'afCardAssign',
+  'afPersonaDrift',
 ]);
 
 const SEED_PLAYER_UID = '100001';
@@ -117,6 +118,7 @@ export class WorldState {
   slotDir: string;
   saveFile: string;
   slotMetaFile: string;
+  dataDir: string;                       // 数据目录常量（DATA_DIR）；人设库等读卡用，不落盘
   private farmLeft: number;
   private spawns: SpawnDef | null;
   private growDayMs: number;
@@ -139,6 +141,7 @@ export class WorldState {
     this.slotDir = p.slotDir;
     this.saveFile = p.saveFile;
     this.slotMetaFile = p.metaFile;
+    this.dataDir = DATA_DIR;
     this.noPersist = opts.noPersist === true;
 
     if (opts.init === false) return; // 快照重建：字段由调用方填充，不碰文件/迁移

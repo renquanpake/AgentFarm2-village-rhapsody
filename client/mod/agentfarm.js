@@ -942,6 +942,10 @@
         startTutorial();
         const srv = (window.__AF_SERVER_SHORT__ = SERVER.replace(/^https?:\/\//, ''));
         window.__AF_CHAT_ADD__('系统', '欢迎来到村庄！房间：' + srv + '。点右下角 📮 可配置模型/托管 Agent；💬 聊天；按回车发言。');
+        // 新人引导：2 秒后提示抽人设卡（性格影响 AI 分身行为）；已抽过则跳过
+        setTimeout(() => {
+          if (!window._afHasDrawnCard) toast('新人先抽一张人设卡：点右上角「人设卡」按钮，抽到的性格会影响 AI 分身的行为', 'info');
+        }, 2000);
       }
     } catch (e) {}
   }
@@ -1114,9 +1118,68 @@
     hostedAgentOnline = false;
     if (agentStopTimer) { clearTimeout(agentStopTimer); agentStopTimer = null; }
     try { if (item && item.isValid) item.changeDir(0, false); } catch (e) {}
+    stopVirtualKeyWalk();
   }
+
+  // --- 虚拟按键注入：模拟方向键走原版 PlayerMoudle 完整管线 ---
+  // 为什么用虚拟按键而非直接 changeDir：changeDir 只触发原版走路动画状态机，
+  // 不经过 输入→碰撞→动画→相机 的原生管线，agent 走动观感与玩家按键不一致
+  //（不撞墙反应、相机不跟随、动画帧不同步）。改为向 window 派发合成 Arrow 键事件，
+  // 让原版 PlayerMoudle 像处理真实按键一样自驱，位移/碰撞/动画/相机全部走原生路径。
+  let _afVkDir = null;        // null=未注入；'up'|'down'|'left'|'right'=当前按住方向
+  let _afVkStepTimer = null;   // 下一帧位置复检定时器（逐格走向目标）
+  function _afVkArrowKey(dir) {
+    return dir === 'up' ? 'ArrowUp' : dir === 'down' ? 'ArrowDown'
+      : dir === 'left' ? 'ArrowLeft' : 'ArrowRight';
+  }
+  function injectVirtualKey(dir) {
+    if (!_afVkDir || _afVkDir !== dir) {
+      releaseVirtualKey();
+      _afVkDir = dir;
+      const key = _afVkArrowKey(dir);
+      try { window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); } catch (e) {}
+      // 单帧按下后自动松开：一帧走一步，符合原版按键节奏；若期间方向已变则不覆盖新方向
+      setTimeout(() => {
+        if (_afVkDir === dir) {
+          try { window.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true })); } catch (e) {}
+          _afVkDir = null;
+        }
+      }, 80);
+    }
+  }
+  function releaseVirtualKey() {
+    if (_afVkDir) {
+      try { window.dispatchEvent(new KeyboardEvent('keyup', { key: _afVkArrowKey(_afVkDir), bubbles: true })); } catch (e) {}
+      _afVkDir = null;
+    }
+  }
+  function stopVirtualKeyWalk() {
+    if (_afVkStepTimer) { clearTimeout(_afVkStepTimer); _afVkStepTimer = null; }
+    releaseVirtualKey();
+  }
+  /** 用虚拟按键逐格走向目标像素坐标；到达或无法注入时回调 onArrive，返回是否已启动注入 */
+  function walkToViaVirtualKey(targetPx, targetPy, onArrive) {
+    const pn = window._afPlayerNode || resolvePlayerNode();
+    if (!pn) { if (onArrive) onArrive(); return false; }
+    let cx = 0, cy = 0;
+    try {
+      const p = (typeof pn.getPosition === 'function') ? pn.getPosition() : (pn.position || pn);
+      cx = p.x; cy = p.y;
+    } catch (e) { cx = pn.x || 0; cy = pn.y || 0; }
+    const dx = targetPx - cx, dy = targetPy - cy;
+    let dir = null;
+    if (Math.abs(dx) > Math.abs(dy)) dir = dx > 50 ? 'right' : dx < -50 ? 'left' : null;
+    else dir = dy > 50 ? 'down' : dy < -50 ? 'up' : null;
+    if (!dir) { if (onArrive) onArrive(); return false; } // 已贴近目标
+    injectVirtualKey(dir);
+    clearTimeout(_afVkStepTimer);
+    _afVkStepTimer = setTimeout(() => walkToViaVirtualKey(targetPx, targetPy, onArrive), 120);
+    return true;
+  }
+
   function applyAgentMoveMsg(item, msg) {
     stopAgentTweens();
+    stopVirtualKeyWalk(); // 新航点到达前取消上一段尚未走完的虚拟键步进，避免两条 walk 链并发
     const mods = window.__AF_MODS__;
     const node = item.node || null;
     if (!node || !node.isValid) return;
@@ -1141,21 +1204,7 @@
         }
       } catch (e) { console.warn('[AF] 跨场景传送失败:', e.message); }
     }
-    const p = node.getPosition(), dx = msg.x - p.x, dy = msg.y - p.y;
-    const dist = Math.hypot(dx, dy);
-    // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。
-    const dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 5 : 2) : (dy >= 0 ? 10 : 11);
-    // 走路状态机必须在 try 内调用：新手教程等状态下 changeDir 内部 stateClass[state]
-    // 取不到会抛 checkEnableState，一旦冒泡，本函数后面的位置收敛全部不执行——
-    // 表现为「服务端在动、画面纹丝不动」。抛错时退化为纯位置收敛。
-    try { item.changeDir(dir, false); } catch (e) { /* ignore */ }
-    // 不能用 changeDir(0) 收尾：它在原版走 e==DirType.INVAIL 分支 -> intoState(STAND)，
-    // RoleStateStand 随即播 idle 帧，把刚播下的 walk 帧覆盖掉（切帧只活一帧）。
-    // 这里只把 moveDir 置回 INVAIL(0)：RoleStateMove.updateMove 以 getMoveDir()!=0 为闸，
-    // 闸一关状态机就不再自驱位移，位置仍由下方 tween 驱动，A/C/D 断言口径零变动。
-    // 注意 moveDir 是普通实例属性（setMoveDir 内 `this.moveDir = e`），直接赋值不会触发
-    // updateMoveVector/updateAnimation，也就不会重播动画把方向帧改掉。
-    try { item.moveDir = 0; } catch (e) { /* ignore */ }
+    // D1 执行确认闭环状态（agent_arrive 协议）：与移动方式无关，保留以维持服务端校验/重规划
     agentMoveTarget = { x: msg.x, y: msg.y, scene: msg.scene };
     agentArriveIndex = (typeof msg.seg === 'number') ? msg.seg : null;
     agentArriveSent = false;
@@ -1164,25 +1213,41 @@
     if (agentStopTimer) clearTimeout(agentStopTimer);
     // 兜底：完成事件丢失则恢复本地同步（跨场景段含传送+加载，给更宽窗口）
     agentStopTimer = setTimeout(() => { clearAgentMoveState(item); }, isCrossScene ? 20000 : 12000);
-    // 始终 tween 到目标位置：走路状态机只负责转向，不保证精确到达。
-    // 跨场景段延迟 1s 等场景切换完成后再重新解析节点并 tween。
-    if (dist > 1) {
-      const walkSpeed = 500;
-      const duration = Math.max(0.2, Math.min(dist / walkSpeed, 2.0));
-      const delay = isCrossScene ? 1000 : 0;
-      setTimeout(() => {
-        const n2 = resolvePlayerNode();
-        if (!n2 || !n2.isValid) return;
-        const item2 = getPlayerItem(n2);
-        const tween = cc.tween(n2)
-          .to(duration, { position: new cc.Vec2(msg.x, msg.y) })
-          .call(() => {
-            try { if (item2 && item2.isValid) item2.changeDir(0, false); } catch (e) { /* ignore */ }
-            trySendArrive();
-          })
-          .start();
-        agentMoveTweens.push(tween);
-      }, delay);
+    // 物理移动核心：虚拟按键注入驱动原版 input→collision→animation→camera 管线，
+    // 使 agent 走动观感与玩家按键一致；失败时回退 changeDir+tween 保证航点必达。
+    const engaged = walkToViaVirtualKey(msg.x, msg.y, () => { trySendArrive(); });
+    if (!engaged) {
+      // 回退：节点缺失时合成键无法被原版 PlayerMoudle 拾取，走老路径 changeDir + tween
+      const p = node.getPosition(), dx = msg.x - p.x, dy = msg.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      // 原版 DirType：LEFT=2 RIGHT=5 UP=10 DOWN=11。
+      const dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 5 : 2) : (dy >= 0 ? 10 : 11);
+      // 走路状态机必须在 try 内调用：新手教程等状态下 changeDir 内部 stateClass[state]
+      // 取不到会抛 checkEnableState，一旦冒泡，位置收敛全部不执行——表现为「服务端在动、画面纹丝不动」。
+      try { item.changeDir(dir, false); } catch (e) { /* ignore */ }
+      // 不能用 changeDir(0) 收尾：它在原版走 e==DirType.INVAIL 分支 -> intoState(STAND)，
+      // RoleStateStand 随即播 idle 帧，把刚播下的 walk 帧覆盖掉。这里只把 moveDir 置回 INVAIL(0)：
+      // RoleStateMove.updateMove 以 getMoveDir()!=0 为闸，闸一关状态机不再自驱位移，位置由 tween 驱动。
+      try { item.moveDir = 0; } catch (e) { /* ignore */ }
+      // 始终 tween 到目标位置：跨场景段延迟 1s 等场景切换完成后再重新解析节点并 tween。
+      if (dist > 1) {
+        const walkSpeed = 500;
+        const duration = Math.max(0.2, Math.min(dist / walkSpeed, 2.0));
+        const delay = isCrossScene ? 1000 : 0;
+        setTimeout(() => {
+          const n2 = resolvePlayerNode();
+          if (!n2 || !n2.isValid) return;
+          const item2 = getPlayerItem(n2);
+          const tween = cc.tween(n2)
+            .to(duration, { position: new cc.Vec2(msg.x, msg.y) })
+            .call(() => {
+              try { if (item2 && item2.isValid) item2.changeDir(0, false); } catch (e) { /* ignore */ }
+              trySendArrive();
+            })
+            .start();
+          agentMoveTweens.push(tween);
+        }, delay);
+      }
     }
   }
 
@@ -2345,6 +2410,157 @@
     rosterBtn.addEventListener('click', loadRoster);
     document.getElementById('af-roster-x').addEventListener('click', () => rosterPanel.style.display = 'none');
 
+    // --- U1 行情牌浮动按钮 + 面板（open-work §五 U1） ---
+    const marketBtn = document.createElement('div');
+    marketBtn.id = 'af-market-btn';
+    marketBtn.textContent = '行情';
+    marketBtn.title = '查看订单簿行情与最近成交';
+    marketBtn.style.cssText = 'position:fixed;right:10px;top:130px;z-index:99990;cursor:pointer;' +
+      'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+    document.body.appendChild(marketBtn);
+
+    const marketPanel = document.createElement('div');
+    marketPanel.id = 'af-market-panel';
+    marketPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:360px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+    marketPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">订单簿行情</b><span id="af-market-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div>' +
+      '<div id="af-market-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">' +
+      '<select id="af-market-item" style="margin-bottom:6px;padding:4px;background:var(--af-c-glass-panel);color:var(--af-c-text);border:1px solid var(--af-c-edge);border-radius:4px;font:12px var(--af-font-px)">' +
+        '<option value="36">小麦 (36)</option><option value="37">玉米 (37)</option><option value="38">土豆 (38)</option><option value="96">胡萝卜 (96)</option><option value="28">猪肉 (28)</option><option value="19">鱼肉 (19)</option>' +
+      '</select>' +
+      '<div id="af-market-quote" style="font-size:11px;color:var(--af-c-text-dim);margin:6px 0">加载中…</div>' +
+      '<div id="af-market-book" style="font-size:11px;color:var(--af-c-text-dim);max-height:200px;overflow-y:auto;border-top:1px dashed var(--af-c-edge);padding-top:6px">暂无挂单</div>' +
+      '<p style="font-size:11px;color:var(--af-c-text-dim);margin-top:8px;border-left:2px solid var(--af-c-gold);padding-left:6px">要挂单 / 撤单，请通过指挥消息告诉你的 Agent 下单。</p>' +
+      '</div>';
+    document.body.appendChild(marketPanel);
+    marketBtn.addEventListener('click', () => { loadMarket(); marketPanel.style.display = 'flex'; });
+    document.getElementById('af-market-x').addEventListener('click', () => { marketPanel.style.display = 'none'; });
+    document.getElementById('af-market-item').addEventListener('change', (e) => { loadMarket(Number(e.target.value)); });
+
+    async function loadMarket(itemId) {
+      const bd = document.getElementById('af-market-bd');
+      if (!bd) return;
+      const sel = document.getElementById('af-market-item');
+      const id = itemId || (sel ? Number(sel.value) : 36);
+      const quote = document.getElementById('af-market-quote');
+      const book = document.getElementById('af-market-book');
+      if (quote) quote.textContent = '加载中…';
+      try {
+        const token = localStorage.getItem('af_token') || '';
+        const r = await fetch('/af/market/' + id + '?token=' + encodeURIComponent(token));
+        const j = await r.json();
+        if (!j.ok) { if (quote) quote.textContent = '加载失败'; return; }
+        const bids = (j.book && j.book.bids) || [];
+        const asks = (j.book && j.book.asks) || [];
+        const fills = (j.fills || []).slice(-10).reverse();
+        const bestBid = bids.length ? bids[0].price : null;
+        const bestAsk = asks.length ? asks[0].price : null;
+        if (quote) {
+          quote.innerHTML = '<b>买一</b>：' + (bestBid != null ? bestBid : '—') + '　<b>卖一</b>：' + (bestAsk != null ? bestAsk : '—') +
+            '　<b>基价</b>：' + (j.basePrice != null ? j.basePrice : '—');
+        }
+        if (book) {
+          if (!fills.length && !bids.length && !asks.length) {
+            book.innerHTML = '<span style="color:var(--af-c-text-dim)">暂无挂单与成交</span>';
+          } else {
+            let h = '';
+            if (bids.length) {
+              h += '<div style="margin-bottom:4px"><b style="color:var(--af-c-success)">买盘</b></div>';
+              h += bids.slice(0, 5).map(l => '<div>@' + l.price + ' × ' + l.qty + '</div>').join('');
+            }
+            if (asks.length) {
+              h += '<div style="margin:4px 0"><b style="color:var(--af-c-danger)">卖盘</b></div>';
+              h += asks.slice(0, 5).map(l => '<div>@' + l.price + ' × ' + l.qty + '</div>').join('');
+            }
+            if (fills.length) {
+              h += '<div style="margin:4px 0 2px"><b>最近成交</b></div>';
+              h += fills.map(f => '<div>@' + f.price + ' × ' + f.qty + ' <span style="color:var(--af-c-text-dim)">' + (f.taker || '') + '/' + (f.maker || '') + '</span></div>').join('');
+            }
+            book.innerHTML = h;
+          }
+        }
+      } catch (e) { if (quote) quote.textContent = '加载失败'; }
+    }
+
+    // --- U3 公告板浮动按钮 + 面板（open-work §五 U3） ---
+    const noticeBtn = document.createElement('div');
+    noticeBtn.id = 'af-notice-btn';
+    noticeBtn.textContent = '公告';
+    noticeBtn.title = '查看全服公告';
+    noticeBtn.style.cssText = 'position:fixed;right:10px;top:168px;z-index:99990;cursor:pointer;' +
+      'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+    document.body.appendChild(noticeBtn);
+
+    const noticePanel = document.createElement('div');
+    noticePanel.id = 'af-notice-panel';
+    noticePanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:380px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+    noticePanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">全服公告</b><span id="af-notice-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-notice-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+    document.body.appendChild(noticePanel);
+    noticeBtn.addEventListener('click', () => { loadNotices(); noticePanel.style.display = 'flex'; });
+    document.getElementById('af-notice-x').addEventListener('click', () => { noticePanel.style.display = 'none'; });
+
+    async function loadNotices() {
+      const bd = document.getElementById('af-notice-bd');
+      if (!bd) return;
+      bd.textContent = '加载中…';
+      try {
+        const token = localStorage.getItem('af_token') || '';
+        const r = await fetch('/af/notices?since=0&token=' + encodeURIComponent(token));
+        const j = await r.json();
+        if (!j.ok || !j.notices || !j.notices.length) {
+          bd.innerHTML = '<p style="color:var(--af-c-text-dim);font-size:12px">暂无公告。</p>';
+          return;
+        }
+        const kindLabel = ({festival:'节日',storm:'风暴',lease:'租约',regrow:'复生',system:'系统',generic:'通识'}) || {};
+        bd.innerHTML = j.notices.map(n => {
+          const k = kindLabel[n.kind] || n.kind || '';
+          return '<div style="margin-bottom:8px;border-left:2px solid var(--af-c-gold);padding-left:8px">' +
+            '<span style="font-size:10px;color:var(--af-c-text-dim)">#' + n.seq + ' · ' + k + '</span>' +
+            '<div>' + (n.text || '') + '</div></div>';
+        }).join('');
+      } catch (e) { bd.textContent = '加载失败'; }
+    }
+
+    // --- U4 NPC 日程浮动按钮 + 面板（open-work §五 U4） ---
+    const npcBtn = document.createElement('div');
+    npcBtn.id = 'af-npc-btn';
+    npcBtn.textContent = '日程';
+    npcBtn.title = '查看全村 NPC 当前活动';
+    npcBtn.style.cssText = 'position:fixed;right:10px;top:206px;z-index:99990;cursor:pointer;' +
+      'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+    document.body.appendChild(npcBtn);
+
+    const npcPanel = document.createElement('div');
+    npcPanel.id = 'af-npc-panel';
+    npcPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:340px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+    npcPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">NPC 日程</b><span id="af-npc-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-npc-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+    document.body.appendChild(npcPanel);
+    npcBtn.addEventListener('click', () => { loadNpcSchedule(); npcPanel.style.display = 'flex'; });
+    document.getElementById('af-npc-x').addEventListener('click', () => { npcPanel.style.display = 'none'; });
+
+    async function loadNpcSchedule() {
+      const bd = document.getElementById('af-npc-bd');
+      if (!bd) return;
+      bd.textContent = '加载中…';
+      try {
+        const r = await fetch('/af/npc-schedule');
+        const j = await r.json();
+        if (!j.ok) { bd.textContent = '加载失败'; return; }
+        let html = '<div style="margin-bottom:8px"><b>当前时段</b>：第 ' + (j.day != null ? j.day : '?') + ' 日 ' + (j.hour != null ? j.hour : '?') + ' 时' +
+          (j.weather ? ' · ' + j.weather : '') + (j.festival ? ' · ' + j.festival : '') + '</div>';
+        if (j.npcs && j.npcs.length) {
+          html += j.npcs.slice(0, 12).map(n =>
+            '<div style="margin-bottom:4px;font-size:11px"><b>' + (n.name || n.id) + '</b>：' + (n.activity || n.scene || '') + '</div>'
+          ).join('');
+        } else {
+          html += '<div style="font-size:11px;color:var(--af-c-text-dim)">暂无 NPC 活动数据</div>';
+        }
+        bd.innerHTML = html;
+      } catch (e) { bd.textContent = '加载失败'; }
+    }
+
     async function loadRoster() {
       const bd = document.getElementById('af-roster-bd');
       if (!bd) return;
@@ -2376,6 +2592,8 @@
         const token = localStorage.getItem('af_token') || '';
         const r = await fetch('/af/card?token=' + encodeURIComponent(token));
         const j = await r.json();
+        // 已持有卡（含本次会话内刚抽）即标记，避免欢迎引导重复弹抽卡提示
+        if (j.ok && j.hasCard) window._afHasDrawnCard = true;
         if (!j.ok || !j.hasCard) {
           bd.innerHTML = '<p style="color:var(--af-c-text-dim);font-size:12px">还没抽到卡。点下面「抽卡」随机获取。</p>' +
             '<div class="btn-row"><div class="btn-draw" id="af-card-draw-btn">抽卡</div></div>';
@@ -3889,4 +4107,179 @@
 
   // ★ 区域名兜底定时器：每 500ms 强制覆盖，防止原版代码在 mod 之前写入旧名
   setInterval(() => { try { injectAreaName(); } catch (e) {} }, 500);
+
+  // ---------- U6/U7/U9 + 五件套（帮助/设置）：紧凑入口按钮 + 小浮层（open-work.md §五） ----------
+  // 服务端有家底、玩家零入口的五处 UI；右侧栈式按钮（244 起排，避让现有 roster@160/npc@206/map-layers@190）。
+  // /af/delegates 与 mapgrid 的 claims 字段均不存在（http.ts 已核），两处按欠账表给占位文案；
+  // 日报卡走现成的 /af/economy + /af/metrics，字段以服务端实际返回为准。
+  try {
+    (function () {
+      if (document.getElementById('af-delegate-btn')) return; // 防重复注入
+      const css = document.createElement('style');
+      css.textContent = `
+        #af-delegate-btn, #af-claim-btn, #af-report-btn, #af-help-btn, #af-settings-btn { position: fixed; right: 10px; z-index: 99990; cursor: pointer;
+          background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
+          padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+        #af-delegate-btn { top: 244px; }
+        #af-claim-btn { top: 282px; }
+        #af-report-btn { top: 320px; }
+        #af-help-btn { top: 358px; }
+        #af-settings-btn { top: 396px; }
+        #af-delegate-btn:hover, #af-claim-btn:hover, #af-report-btn:hover, #af-help-btn:hover, #af-settings-btn:hover { background: var(--af-c-glass-solid); }
+        .af-pop { position: fixed; right: 10px; z-index: 100001; display: none; flex-direction: column; width: 252px; max-width: 92vw; max-height: 64vh;
+          background: linear-gradient(180deg, var(--af-c-glass-solid), var(--af-c-glass-bg-deep));
+          border: 1px solid var(--af-c-edge); border-top: 2px solid var(--af-c-amber);
+          border-radius: var(--af-msg-radius); backdrop-filter: blur(8px); box-shadow: 0 12px 40px var(--af-c-black-70);
+          overflow: hidden; font-family: var(--af-font-px); font-size: var(--af-font-size-sm); color: var(--af-c-text); }
+        .af-pop .hd { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid var(--af-c-edge); background: var(--af-c-black-35); }
+        .af-pop .hd b { color: var(--af-c-gold); font-size: var(--af-font-size-md); letter-spacing: .5px; }
+        .af-pop .hd .x { cursor: pointer; color: var(--af-c-text-dim); padding: 0 5px; font-size: var(--af-font-size-md); }
+        .af-pop .hd .x:hover { color: var(--af-c-danger); }
+        .af-pop .bd { padding: 10px 12px; line-height: 1.65; max-height: calc(64vh - 36px); overflow-y: auto; scrollbar-width: thin; }
+      `;
+      document.head.appendChild(css);
+
+      let popOpen = null;
+      function closePops() { if (popOpen) { popOpen.style.display = 'none'; popOpen = null; } }
+      function togglePop(panel, top) {
+        if (panel.style.display === 'flex') { closePops(); return; }
+        closePops();
+        panel.style.display = 'flex';
+        panel.style.top = (top + 38) + 'px';
+        popOpen = panel;
+      }
+      function mkBtn(id, text, handler) {
+        const b = document.createElement('div');
+        b.id = id; b.textContent = text; b.title = text;
+        try { (window.AFUNI && window.AFUNI.on) ? window.AFUNI.on(b, handler, { cls: false }) : b.addEventListener('click', handler); } catch (e) { b.addEventListener('click', handler); }
+        document.body.appendChild(b);
+        return b;
+      }
+      function mkPanel(id, title, bdHtml, top) {
+        const p = document.createElement('div');
+        p.id = id; p.className = 'af-pop';
+        p.innerHTML = '<div class="hd"><b>' + title + '</b><span class="x">✕</span></div><div class="bd">' + bdHtml + '</div>';
+        p.querySelector('.x').addEventListener('click', closePops);
+        p.style.top = (top + 38) + 'px';
+        document.body.appendChild(p);
+        return p;
+      }
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePops(); });
+      document.addEventListener('pointerdown', (e) => {
+        if (!popOpen || popOpen.contains(e.target)) return;
+        const t = e.target;
+        if (t && t.closest && t.closest('#af-delegate-btn,#af-claim-btn,#af-report-btn,#af-help-btn,#af-settings-btn')) return;
+        closePops();
+      });
+
+      // --- U6 委托栏：/af/delegates 路由不存在，占位（接入时替换此段为拉取渲染） ---
+      const delegatePanel = mkPanel('af-delegate-panel', '📥 委托栏',
+        '<div style="color:var(--af-c-text-dim);font-size:12px">委托栏功能随 Agent 夜间活动解锁</div>' +
+        '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">挂单 / 接取 / 结算目前走 Agent 通道，玩家端入口待开放。</div>', 244);
+      mkBtn('af-delegate-btn', '📥 委托', () => togglePop(delegatePanel, 244));
+
+      // --- U7 认领查看：/af/mapgrid 响应不含 claims，租约数据无 HTTP 面，占位 ---
+      const claimPanel = mkPanel('af-claim-panel', '🚩 认领',
+        '<div style="color:var(--af-c-text-dim);font-size:12px">认领信息通过 Agent 查看</div>' +
+        '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">资源租约与占用互斥由服务端裁决，玩家面板待开放。</div>', 282);
+      mkBtn('af-claim-btn', '🚩 认领', () => togglePop(claimPanel, 282));
+
+      // --- U9 Agent 日报卡：/af/economy（经济概况）+ /af/metrics（活跃统计），字段以服务端实际返回为准 ---
+      const reportPanel = mkPanel('af-report-panel', '🕐 日报', '<div id="af-report-bd" style="font-size:12px">加载中…</div>', 320);
+      async function loadReportCard() {
+        const bd = document.getElementById('af-report-bd');
+        if (!bd) return;
+        bd.textContent = '加载中…';
+        let tk = '', srv = '';
+        try { tk = localStorage.getItem('af_token') || ''; srv = ((window.__AF_SERVER__ || localStorage.getItem('af_server') || '')).replace(/\/+$/, ''); } catch (e) {}
+        const getJson = (path) => fetch(srv + path + '?token=' + encodeURIComponent(tk))
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error('bad http'))))
+          .catch(() => null);
+        try {
+          const [ecoR, metR] = await Promise.all([getJson('/af/economy'), getJson('/af/metrics')]);
+          let html = '';
+          if (ecoR && ecoR.ok) {
+            html += '<div style="margin-bottom:8px"><b>经济概况</b></div>';
+            html += '<div style="font-size:11px;color:var(--af-c-text-dim)">流通：' + Number(ecoR.moneySupply || 0).toLocaleString() +
+              ' · 通胀指数：' + (ecoR.inflationIndex == null ? '—' : Number(ecoR.inflationIndex).toFixed(2)) + '</div>';
+          }
+          if (metR && metR.players) {
+            html += '<div style="margin:10px 0 4px"><b>活跃统计</b></div>';
+            html += '<div style="font-size:11px;color:var(--af-c-text-dim)">在线（今日活跃）：' + Number(metR.players.activeToday || 0) +
+              ' · 注册总数：' + Number(metR.players.total || 0) + '</div>';
+            html += '<div style="font-size:11px;color:var(--af-c-text-dim)">累计游玩：' + Number(Number(metR.players.totalPlayHours || 0).toFixed(1)) + ' 小时</div>';
+          }
+          bd.innerHTML = html || '<div style="color:var(--af-c-text-dim)">暂无数据</div>';
+        } catch (e) { bd.textContent = '加载失败'; }
+      }
+      mkBtn('af-report-btn', '🕐 日报', () => { togglePop(reportPanel, 320); loadReportCard(); });
+
+      // --- 五件套 · 帮助面板（按钮 + ? 键，文本输入中不触发） ---
+      const HELP_HTML = `
+<div style="font-size:12px;line-height:1.8">
+  <b>快捷操作</b><br>
+  Enter → 聊天输入<br>
+  双击任意键 → 取消托管<br>
+  WASD/方向键 → 移动角色<br>
+  数字键 1-3 → 切换存档位<br>
+  ? → 此帮助面板<br><br>
+  <b>斜杠命令</b><br>
+  /give [玩家ID] [物品ID] [数量]<br>
+  /fav [玩家ID]<br>
+  /bind [玩家ID]<br>
+  /task → 任务书<br>
+  /help → 此面板<br><br>
+  <b>入口按钮</b><br>
+  📖 日记 · 📮 指挥 · ⏸打断 ▶恢复<br>
+  🤖 状态 · 📜 任务书 · 💬 私聊<br>
+  🗺 人设卡 · 📋 人物志 · 📈 行情<br>
+  📋 公告 · 🕐 日程 · 🤖 人物志
+</div>`;
+      const helpPanel = mkPanel('af-help-panel', '❓ 帮助', HELP_HTML, 358);
+      mkBtn('af-help-btn', '❓ 帮助', () => togglePop(helpPanel, 358));
+      window.addEventListener('keydown', (e) => {
+        if (e.key !== '?') return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        togglePop(helpPanel, 358);
+      });
+
+      // --- 五件套 · 设置面板：名牌显隐落盘 af.showNameplates；音量双写 af.musicVol/af.sfxVol（规格键）
+      //     并经 AFAUD.setVolume 实时生效（模块自有键 af.audio.bgmVol/sfxVol）；图层开关复用小地图现有按钮 ---
+      const settingsBody =
+        '<div style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">' +
+        '<input type="checkbox" id="af-set-np"> 名牌显隐</label></div>' +
+        '<div style="margin-bottom:10px"><div style="font-size:12px;margin-bottom:4px">音乐（BGM）<span id="af-set-mval" style="float:right;color:var(--af-c-text-dim)"></span></div>' +
+        '<input type="range" id="af-set-mvol" min="0" max="1" step="0.05" style="width:100%"></div>' +
+        '<div style="margin-bottom:10px"><div style="font-size:12px;margin-bottom:4px">音效（SFX）<span id="af-set-sval" style="float:right;color:var(--af-c-text-dim)"></span></div>' +
+        '<input type="range" id="af-set-svol" min="0" max="1" step="0.05" style="width:100%"></div>' +
+        '<div style="border-top:1px dashed var(--af-c-edge);padding-top:8px;font-size:11px;color:var(--af-c-text-dim)">' +
+        '小地图图层开关见右上角「路网」「地标」按钮（状态持久化）。</div>';
+      const settingsPanel = mkPanel('af-settings-panel', '⚙ 设置', settingsBody, 396);
+      mkBtn('af-settings-btn', '⚙ 设置', () => togglePop(settingsPanel, 396));
+
+      const VOL_KEY = { bgm: 'af.musicVol', sfx: 'af.sfxVol };
+      function volNum(x) { const n = Number(x); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; }
+      function getVol(w) {
+        try { const n = volNum(localStorage.getItem(VOL_KEY[w])); if (n !== null) return n; } catch (e) {}
+        try { const av = window.AFAUD && window.AFAUD.volume && volNum(window.AFAUD.volume[w]); if (av !== null) return av; } catch (e) {}
+        try { const n = volNum(localStorage.getItem('af.audio.' + w + 'Vol')); if (n !== null) return n; } catch (e) {}
+        return w === 'bgm' ? 0.5 : 0.8;
+      }
+      function setVol(w, v) {
+        const n = volNum(v); if (n === null) return;
+        try { localStorage.setItem(VOL_KEY[w], String(n)); } catch (e) {}
+        try { if (window.AFAUD && window.AFAUD.setVolume) window.AFAUD.setVolume(w, n); } catch (e) {}
+      }
+      const npChk = settingsPanel.querySelector('#af-set-np');
+      try { npChk.checked = localStorage.getItem('af.showNameplates') !== '0'; } catch (e) {}
+      npChk.addEventListener('change', () => { try { localStorage.setItem('af.showNameplates', npChk.checked ? '1' : '0'); } catch (e) {} });
+      const mvRange = settingsPanel.querySelector('#af-set-mvol'), mvVal = settingsPanel.querySelector('#af-set-mval');
+      const svRange = settingsPanel.querySelector('#af-set-svol'), svVal = settingsPanel.querySelector('#af-set-sval');
+      function syncSlider(range, valEl, w) { range.value = String(getVol(w)); valEl.textContent = Math.round(getVol(w) * 100) + '%'; }
+      syncSlider(mvRange, mvVal, 'bgm'); syncSlider(svRange, svVal, 'sfx');
+      mvRange.addEventListener('input', () => { setVol('bgm', Number(mvRange.value)); mvVal.textContent = Math.round(Number(mvRange.value) * 100) + '%'; });
+      svRange.addEventListener('input', () => { setVol('sfx', Number(svRange.value)); svVal.textContent = Math.round(Number(svRange.value) * 100) + '%'; });
+    })();
+  } catch (e) { console.warn('[AF] 紧凑 UI 入口注入失败：', e && e.message); }
 })();

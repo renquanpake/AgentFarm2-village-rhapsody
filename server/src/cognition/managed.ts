@@ -36,6 +36,11 @@ export class ManagedAgentManager {
 
   start(acc: Account): { ok: boolean; msg?: string; detail?: string; source?: string } {
     const app = this.app;
+    // 双击取消后本次会话拒绝自动重启：需玩家手动重新点击「启动托管」
+    const dismissed = app.state.playersDb.get(acc.uid)?.get('afDismissed') as { val?: boolean } | undefined;
+    if (dismissed?.val) {
+      return { ok: false, msg: '本次托管已被双击取消，请重新点击「启动托管」' };
+    }
     // M7：优先玩家自带 Key（解密到进程内存注入；服务端零池化密钥），回落全局 provider
     let p: Provider = app.provider;
     let source = 'global-provider';

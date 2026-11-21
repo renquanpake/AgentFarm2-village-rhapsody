@@ -13,6 +13,7 @@ import { rulesPrompt } from '../world/rules-prompt.ts';
 import { plannerSystemPrompt } from '../world/dialogue-prompt.ts';
 import { weatherOf, festivalOf } from '../world/calendar.ts';
 import { loadPersonas, buildDailyHabits } from '../world/habits.ts';
+import { log } from '../logging.ts';
 
 export class CognitionService {
   memory: MemoryStore;
@@ -64,7 +65,7 @@ export class CognitionService {
   }
 
   /** 睡眠周期触发（每游戏日 1 次；由外部定时器/日历事件调用） */
-  runNightlySleep(agent: string, gameDay: number): void {
+  async runNightlySleep(agent: string, gameDay: number): Promise<void> {
     const app = this.app;
     if (!app.state.playersDb.has(agent)) app.state.playersDb.set(agent, new Map());
     const pm = app.state.playersDb.get(agent)!;
@@ -97,6 +98,18 @@ export class CognitionService {
     if (!res) return; // 本游戏日已睡过（限每日 1 次）
     pd.lastSleepDay = gameDay; // 落档防重入，否则 guard 恒不触发
     app.state.persist();
+    // LLM 次日计划（与规则路径叠加；失败静默——规则兜底已成功落盘）
+    try {
+      const llmCount = await this.planDailyLlm(agent, {
+        persona: String(pd.personality || ''),
+        weather,
+        festival,
+        memorySummary,
+        topActions,
+        habits: habitSentence,
+      });
+      if (llmCount > 0) log.write('info', 'cognition', `[sleep] ${agent} LLM 计划 ${llmCount} 条`);
+    } catch { /* 规则兜底已成功，LLM 失败静默 */ }
   }
 
   /** 每事件认知更新（log.listen 钩子；幂等、轻量） */

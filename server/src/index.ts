@@ -20,6 +20,7 @@ import { produceFromAnimals, worldAnimals } from './world/livestock.ts';
 import { ANIMALS } from './world/livestock.ts';
 import { currentGameDay } from './world/calendar.ts';
 import { settleFestival, snapshotFestivalDecor, activeFestival } from './world/festival.ts';
+import { publishNightActivity } from './world/night-events.ts';
 
 const app = new App();
 const server = http.createServer(createHttpHandler(app));
@@ -136,6 +137,8 @@ server.listen(PORT, () => {
         // B11：节日日结算 + 装饰赛快照（节日日每 1/4 游戏日刷新一次分）
         settleFestival(app);
         if (activeFestival(app)) snapshotFestivalDecor(app);
+        // §三 夜间自发社交活动：入夜发布当日活动公告（确定性伪随机，同日同结果）
+        publishNightActivity(app, r.day);
       }
     } catch { /* 看门狗兜底 */ }
   }, Math.min(30_000, Math.floor(app.growDayMs / 4)));
