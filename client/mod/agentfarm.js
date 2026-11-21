@@ -939,6 +939,8 @@
       // 欢迎语 + P4 教程步骤条（真正进入世界后才挂，避免登录页就弹引导）
       if (inWorld && !welcomeDone) {
         welcomeDone = true;
+        window.__AF_INWORLD__ = true;
+        if (typeof window.__AF_REFRESH_TODAY__ === 'function') setTimeout(window.__AF_REFRESH_TODAY__, 0);
         startTutorial();
         const srv = (window.__AF_SERVER_SHORT__ = SERVER.replace(/^https?:\/\//, ''));
         window.__AF_CHAT_ADD__('系统', '欢迎来到村庄！房间：' + srv + '。点右下角 📮 可配置模型/托管 Agent；💬 聊天；按回车发言。');
@@ -2776,9 +2778,11 @@
             if (window.__AF_HUD__ && window.__AF_HUD__.setClock) {
               window.__AF_HUD__.setClock('📅 第' + t.day + '日 · ' + (SEASON_CN[t.season] || t.season) + ' · ' + (WX[t.weather] || t.weather) + (t.festival ? ' · ' + t.festival : ''));
             }
-            if (window.__AF_WEATHER_FX__) window.__AF_WEATHER_FX__(t.weather);
+            // 天气/氛围只在真正进村后显示：否则下雨特效会盖在启动页/加载页上
+            const inWorld = !!window.__AF_INWORLD__;
+            if (window.__AF_WEATHER_FX__) window.__AF_WEATHER_FX__(inWorld ? t.weather : '');
             // M4 氛围 + M5 音频：日历驱动（hour 服务端游戏时钟；season/weather LUT；BGM 昼夜按 19:00/05:00）
-            try {
+            if (inWorld) try {
               if (window.AFATMO && window.AFATMO.update) {
                 const hour = Number.isFinite(d.hour) ? d.hour : new Date().getHours();
                 window.AFATMO.update(hour, t.season, t.weather);
@@ -2796,6 +2800,7 @@
           })
           .catch(() => { vd.style.display = 'none'; });
       }
+      window.__AF_REFRESH_TODAY__ = pollVillageToday;
       pollVillageToday();
       setInterval(pollVillageToday, 60000);
       // B8 天气全屏特效层（同轮询数据驱动；CSS 动画，pointer-events:none 不挡操作）
@@ -4261,7 +4266,7 @@
       const settingsPanel = mkPanel('af-settings-panel', '⚙ 设置', settingsBody, 462);
       mkBtn('af-settings-btn', '⚙ 设置', () => togglePop(settingsPanel, 462));
 
-      const VOL_KEY = { bgm: 'af.musicVol', sfx: 'af.sfxVol };
+      const VOL_KEY = { bgm: 'af.musicVol', sfx: 'af.sfxVol' };
       function volNum(x) { const n = Number(x); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; }
       function getVol(w) {
         try { const n = volNum(localStorage.getItem(VOL_KEY[w])); if (n !== null) return n; } catch (e) {}
