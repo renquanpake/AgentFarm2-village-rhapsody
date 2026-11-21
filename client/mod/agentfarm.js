@@ -3492,6 +3492,13 @@
       })
       .catch(() => {});
   }
+  // Canvas 2D 不解析 CSS 变量：绘制地图前把 token 解析成真实色值（回落 = tokens.css 设计值）
+  function cssColor(name, fallback) {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
+    } catch (e) { return fallback; }
+  }
   function injectVillageMap() {
     try {
       const scene = cc.director && cc.director.getScene();
@@ -3527,13 +3534,13 @@
             const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
             if (inOrig) continue;
             const i = y * g.W + x;
-            if (g.water[i]) fill(x, y, 'var(--af-c-sky)');
-            else if (g.blocked && g.blocked[i]) fill(x, y, 'var(--af-c-wood)');
+            if (g.water[i]) fill(x, y, cssColor('--af-c-sky', '#8fb0d8'));
+            else if (g.blocked && g.blocked[i]) fill(x, y, cssColor('--af-c-wood', '#7a6a4a'));
           }
           for (const h of (g.houses || [])) {
             const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
             if (inOrig) continue;
-            ctx.strokeStyle = 'var(--af-c-wood-dark)';
+            ctx.strokeStyle = cssColor('--af-c-wood-dark', '#8a5a2a');
             ctx.lineWidth = Math.max(1, Math.round(cw / 220));
             ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
           }
@@ -3587,14 +3594,14 @@
       const inOrig = x >= g.LEFT && x < g.LEFT + g.origW && y >= g.TOP && y < g.TOP + g.origH;
       if (inOrig) continue; // 原版区透明，透底
       const i = y * g.W + x;
-      if (g.water[i]) fill(x, y, 'var(--af-c-sky)');
-      else if (g.blocked && g.blocked[i]) fill(x, y, 'var(--af-c-wood)');
+      if (g.water[i]) fill(x, y, cssColor('--af-c-sky', '#8fb0d8'));
+      else if (g.blocked && g.blocked[i]) fill(x, y, cssColor('--af-c-wood', '#7a6a4a'));
     }
     // 宅基地描边（只在扩展区画）
     for (const h of (g.houses || [])) {
       const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
       if (inOrig) continue;
-      ctx.strokeStyle = 'var(--af-c-wood-dark)';
+      ctx.strokeStyle = cssColor('--af-c-wood-dark', '#8a5a2a');
       ctx.lineWidth = Math.max(1, Math.round(cw / 220));
       ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
     }
@@ -3638,7 +3645,7 @@
     rc.lineCap = 'round'; rc.lineJoin = 'round';
     for (const r of (g.roads || [])) {
       if (!Array.isArray(r.line) || r.line.length < 2) continue;
-      rc.strokeStyle = 'var(--af-c-gold)';
+      rc.strokeStyle = cssColor('--af-c-gold', '#ffd97a');
       rc.lineWidth = Math.max(1, Math.round((r.width || 1) * sx * 0.75));
       rc.beginPath();
       for (let i = 0; i < r.line.length; i++) {
@@ -3654,8 +3661,8 @@
     for (const L of (g.landmarks || [])) {
       if (!Number.isFinite(L.x) || !Number.isFinite(L.y)) continue;
       const px = (L.x + 0.5) * sx, py = (L.y + 0.5) * sy;
-      lc.fillStyle = 'var(--af-c-amber)';
-      lc.strokeStyle = 'var(--af-c-amber)';
+      lc.fillStyle = cssColor('--af-c-amber', '#e0a63c');
+      lc.strokeStyle = cssColor('--af-c-amber', '#e0a63c');
       lc.lineWidth = 1;
       lc.beginPath();
       switch (L.type) {
