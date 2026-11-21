@@ -1,0 +1,20 @@
+# railway up 上传上下文瘦身（Dockerfile 只用到 server/、data/、assets/personalities、assets/generated）
+client/
+data/saves/
+data/art/raw/
+data/accounts.json
+data/accounts.json.bak
+data/agent-provider.json
+data/backups/
+data/agent-notes/
+data/dm-logs/
+data/screenshots/
+node_modules/
+server/node_modules/
+tools/
+docs/
+deploy/
+drive-inbox/
+_*.png
+_*.jpg
+_*.txt
