@@ -1,12 +1,36 @@
 # 排除大文件/凭据，加快 Docker build。
-# 注意：Dockerfile COPY 的路径必须保留在 context 里，
-# data/ 与 client/ 与 server/ 都是 Dockerfile 引用的，不能排除。
+# Dockerfile COPY 的路径必须保留在 context 里：server/src、data/、assets/personalities、assets/generated。
 .git
-# 仅排除依赖与示例目录；server/src 是 Dockerfile 要 COPY 的源码，必须保留
 server/examples/
 server/node_modules/
 *.md
 联机教程.md
+启动游戏.bat
 deploy/
+docs/
 fly.toml
 tools/
+drive-inbox/
+.monkeycode/
+
+# 客户端整包 383MB（assets）：Railway 只跑服务端，客户端走 GitHub Pages/CDN
+client/assets/
+client/src/
+client/_shots/
+client/_shots.html
+
+# 运行时数据绝不进镜像（存档含玩家数据、账号含凭据、art/raw 是未量化原图）
+data/saves/
+data/accounts.json
+data/accounts.json.bak
+data/agent-provider.json
+data/backups/
+data/agent-notes/
+data/dm-logs/
+data/screenshots/
+data/art/raw/
+
+# 会话期调试截图/日志
+_*.png
+_*.jpg
+_*.txt

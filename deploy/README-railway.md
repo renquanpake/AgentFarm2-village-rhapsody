@@ -39,8 +39,10 @@ git push railway master
 
 ## 第 3 步：配环境变量（在 dashboard → Variables）
 
+镜像已经内置以下缺省值，正常无需手动配（要改再在 dashboard 覆盖）：
+
 ```
-PORT=8080                          # Railway 自动注入，别覆盖
+PORT=8080                          # Railway 运行时会自动注入，别覆盖
 AF_NO_TUNNEL=1
 AF_NO_GIT=1
 AF_DATA_DIR=/data
@@ -50,12 +52,14 @@ AF_DEV_ENDPOINTS=0                 # 生产关调试发币发物端点
 ```
 
 **Persistent Volume**：dashboard → Storage → New Volume，挂到 `/data`（0.5 GB 上限够用）。存档会跨重启保留。
+挂载后 `/data` 是空卷也没关系：容器启动命令会自动把镜像内的 `data/` 静态数据铺进去（`cp -an` 不覆盖已有存档）。
 
 ## 第 4 步：上线验收
 
-- 服务 Running 后访问 Railway 给的 `https://<service-name>.up.railway.app`
-- 客户端 mod 里 `SERVER` 改成这个地址（详见 `client/mod/agentfarm.js` 顶部 `SERVER` 常量）
-- 注册→进村→小地图三件套通即收工
+- 服务 Running 后先看健康检查：`curl -i https://<service-name>.up.railway.app/healthz` 应返回 `200 ok`
+- Railway 的 healthcheckPath 已配成 `/healthz`（不依赖静态客户端，构建成功后一定可探活）
+- 本镜像只跑后端：`/` 不提供完整游戏页（客户端 383MB 资源走 GitHub Pages/CDN）
+- 注册→进村→小地图三件套通即收工：先登录客户端，`SERVER` 指向这个 Railway 域名
 
 ---
 

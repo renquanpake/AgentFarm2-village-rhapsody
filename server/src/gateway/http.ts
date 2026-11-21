@@ -88,6 +88,12 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
+    // 容器/反代健康检查（Railway 等平台的 healthcheckPath）：不依赖静态客户端，永远 200
+    if (u.pathname === '/healthz') {
+      text(res, 200, 'ok');
+      return;
+    }
+
     // ---------- 账号 ----------
     if (u.pathname === '/af/register' || u.pathname === '/af/login') {
       const rawBody = await readJsonBody(req, 1024);

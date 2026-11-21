@@ -16,6 +16,7 @@ const lines = fs.readFileSync(SRC, 'utf8').split('\n');
 
 // 公开白名单：设计上必须无 token（登录前通道 / T1 文本无障碍面 / 静态资产）
 const PUBLIC = {
+  '/healthz': '容器/反代健康检查（Railway healthcheckPath，刻意公开）',
   '/af/register': '登录前：注册（AF_REGISTER_INVITE + AF_MAX_PLAYERS 锁房门）',
   '/af/login': '登录前：换 token',
   '/af/join-room': '登录前：房间码换服务器地址',
@@ -27,6 +28,7 @@ const PUBLIC = {
   '/af/npc-schedule': 'T1 NPC 日程文本面',
   '/af/art-manifest': 'CC0/生图资产清单（公开只读）',
   '/af/art/{id}': '资产 PNG（公开只读）',
+  '/af/card-image': '人设卡面 PNG（公开只读；文件名白名单 + 路径穿越拦截）',
   '/af/mapgrid': '小地图网格/道路/地标（客户端渲染数据源，刻意公开）',
   '/af/tutorial': 'P4 新手教程 7 步文案（公开只读；带 token 时附该玩家进度）',
 };
