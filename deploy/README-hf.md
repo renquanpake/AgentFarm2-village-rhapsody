@@ -35,7 +35,7 @@ git remote add hf https://huggingface.co/spaces/<用户名>/agentfarm2
 git push hf master --force
 ```
 
-HF 会自动构建 `deploy/Dockerfile.hf`，跑起来后访问 `https://<用户名>-agentfarm2.hf.space`。
+HF 会自动构建项目根目录的 `Dockerfile`，跑起来后访问 `https://<用户名>-agentfarm2.hf.space`。
 
 ## 4. 必做：防休眠（HF 规则 48h 无访问就睡）
 

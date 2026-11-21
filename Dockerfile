@@ -1,43 +1,38 @@
-# AgentFarm2 服务端容器镜像
-# 配置 .json 进镜像 /app/data（不可变层）；运行时 ./data:/data（compose）或
-# Fly volume 挂载，CMD 启动前把配置拷到卷（只补缺失，不覆盖运行时存档/账号）。
-# 前端静态 + API + WS 全走 8080，Caddy/nginx 反代 + 自动 HTTPS 即可。
-
-FROM node:20-alpine
+# Hugging Face Spaces 部署镜像（免费 CPU 档，无需信用卡）
+# 构建上下文 = 仓库根目录（HF Space 自动以仓库为上下文构建）
+FROM node:22-slim
 
 WORKDIR /app
 
-# ---------- 依赖（layer 缓存，代码改动不重装）----------
-COPY server/package.json ./
-RUN npm install --production
+# 系统依赖（sqlite 是 Node 内置；netcat 供 keepalive 诊断用，可选）
+RUN apt-get update -qq && apt-get install -y -qq curl tini && rm -rf /var/lib/apt/lists/*
 
-# ---------- 服务端 + 工具 ----------
-COPY server/afserver.mjs .
-COPY tools/ ./tools/
+# 服务端依赖（不含 devDeps）
+COPY server/package*.json ./
+RUN npm install --omit=dev --no-audit --no-fund
 
-# ---------- 前端静态资源（容器内提供，反代直连即可）----------
-COPY client/ ./client/
+# 代码与数据（含 48MB 人设卡面立绘 assets/personalities/）
+COPY server/src ./src
+COPY data ./data
+COPY assets/personalities ./assets/personalities
 
-# ---------- 配置层（放 /app/data，避开 /data 卷挂载遮蔽）----------
-COPY data/items.json /app/data/items.json
-COPY data/npcs.json /app/data/npcs.json
-COPY data/village-collision.json /app/data/village-collision.json
-COPY data/village-farm.json /app/data/village-farm.json
-COPY data/spawn-points.json /app/data/spawn-points.json
-COPY data/mine-spots.json /app/data/mine-spots.json
-COPY data/agent-personalities.json /app/data/agent-personalities.json
-COPY data/seed-villagedb.json /app/data/seed-villagedb.json
+# 客户端静态页（GitHub Pages 直发是主路径；HF 内托管作兜底，两者皆存）
+COPY client/mod ./client/mod
+COPY client/index.html ./client/index.html
 
-ENV PORT=8080 \
-    AF_SLOT=1 \
+ENV NODE_ENV=production \
+    PORT=8080 \
     AF_NO_TUNNEL=1 \
+    AF_NO_GIT=1 \
     AF_DATA_DIR=/data \
-    AF_CLIENT_DIR=/app/client
+    AF_WS_HEARTBEAT_MS=25000
 
-# 运行时持久卷（Fly.io volume / 本地 ./data）
-VOLUME ["/data"]
+# 持久卷：seed 数据首次启动时自动初始化（saves/accounts 从 seed-villagedb.json 建）
+RUN mkdir -p /data && cp -r data/. /data/ 2>/dev/null || true
 
 EXPOSE 8080
+HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -sf http://127.0.0.1:8080/ >/dev/null || exit 1
 
-# 启动：cp -n 把配置补到卷（只补缺失，不覆盖已存在的运行时存档/账号），再启 afserver
-CMD ["/bin/sh", "-c", "mkdir -p /data && cp -n /app/data/*.json /data/ 2>/dev/null; exec node /app/afserver.mjs"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["node", "src/index.ts"]
