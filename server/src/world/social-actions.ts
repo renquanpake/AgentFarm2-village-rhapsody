@@ -106,3 +106,53 @@ export function socialBind(app: App, state: WorldState, uid: string, rawTarget: 
   log.write('info', 'social', `[social] ${fromNick} 与 ${pB.nick} 结为 ${def.name}`);
   return { ok: true, msg: `已与 ${pB.nick} 结为「${def.name}」`, detail: { social: 'bind', target, relation: type, relName: def.name } };
 }
+
+// ---------- Agent↔Agent 直连社交（打招呼 / 结伴 / 闹翻） ----------
+// 事件流说明：行为流水（agentLogData）由 /act 统一出口自动落条，无需在此重复；
+// 此处只写结构化 info 日志，与上方 give/bind 同风格。好感一律走 socialData.pairs，
+// 禁止在 playerData 上另开 favTo/favFrom（全库无此字段，双写必漂）。
+type CompanionRec = { a: string; b: string; at: number };
+
+function charMissing(state: WorldState, x: string, y: string): boolean {
+  return !state.playersDb.get(x)?.get('playerData') || !state.playersDb.get(y)?.get('playerData');
+}
+
+/** Agent 间见面打招呼：双方好感各 +1（同场景近距的触发时机由调用方把关） */
+export function agentGreet(state: WorldState, fromUid: string, fromNick: string, toUid: string, toNick: string): SocialActionResult {
+  if (fromUid === toUid) return { ok: false, msg: '不能和自己打招呼' };
+  if (charMissing(state, fromUid, toUid)) return { ok: false, msg: '角色数据缺失' };
+  addFav(state, fromUid, toUid, 1);
+  addFav(state, toUid, fromUid, 1);
+  log.write('info', 'social', `[agent-greet] ${fromNick || fromUid} 向 ${toNick || toUid} 打招呼，好感各 +1`);
+  return { ok: true, msg: `已向 ${toNick || toUid} 打招呼，双方好感 +1` };
+}
+
+/** Agent 结伴：双方好感均 ≥60 才可结为同伴；记录 socialData.companions（与人类关系系统并行） */
+export function agentCompanionBond(state: WorldState, uidA: string, nickA: string, uidB: string, nickB: string): SocialActionResult {
+  if (uidA === uidB) return { ok: false, msg: '不能和自己结伴' };
+  if (charMissing(state, uidA, uidB)) return { ok: false, msg: '角色数据缺失' };
+  const f = favBetween(state, uidA, uidB);
+  if ((f.aToB || 0) < 60 || (f.bToA || 0) < 60) return { ok: false, msg: `好感不足：结伴需双方≥60（当前 ${f.aToB || 0}/${f.bToA || 0}）` };
+  const sd = state.socialDataObj() as { companions?: CompanionRec[] };
+  sd.companions = sd.companions ?? [];
+  if (!sd.companions.some(c => (c.a === uidA && c.b === uidB) || (c.a === uidB && c.b === uidA))) {
+    sd.companions.push({ a: uidA, b: uidB, at: Date.now() });
+    state.schedulePersist();
+  }
+  log.write('info', 'social', `[agent-bond] ${nickA || uidA} 与 ${nickB || uidB} 结为同伴`);
+  return { ok: true, msg: `已与 ${nickB || uidB} 结伴` };
+}
+
+/** Agent 闹翻：双方好感各 -15；若已是同伴则解除 */
+export function agentFallout(state: WorldState, uidA: string, nickA: string, uidB: string, nickB: string): SocialActionResult {
+  if (uidA === uidB) return { ok: false, msg: '不能与自己闹翻' };
+  if (charMissing(state, uidA, uidB)) return { ok: false, msg: '角色数据缺失' };
+  const { p } = pairOf(state, uidA, uidB);
+  p.fav[uidA] = Math.max(0, (p.fav[uidA] || 0) - 15);
+  p.fav[uidB] = Math.max(0, (p.fav[uidB] || 0) - 15);
+  state.schedulePersist();
+  const sd = state.socialDataObj() as { companions?: CompanionRec[] };
+  if (sd.companions) sd.companions = sd.companions.filter(c => !((c.a === uidA && c.b === uidB) || (c.a === uidB && c.b === uidA)));
+  log.write('info', 'social', `[agent-fallout] ${nickA || uidA} 与 ${nickB || uidB} 闹翻，好感各 -15`);
+  return { ok: true, msg: `与 ${nickB || uidB} 闹翻了，双方好感 -15` };
+}

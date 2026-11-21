@@ -91,9 +91,30 @@ export type AgentActMsgT = z.infer<typeof AgentActMsg>;
 export const AgentPingMsg = z.object({ t: z.literal('ping') }).passthrough();
 export type AgentPingMsgT = z.infer<typeof AgentPingMsg>;
 
+// ---------- village-life: agent↔agent social + malice verbs + dismiss ----------
+export const AgentSocialMsg = z.object({
+  t: z.literal('social'),
+  verb: z.enum(['greet', 'bond', 'fallout']),
+  target: z.string(),
+}).passthrough();
+export type AgentSocialMsgT = z.infer<typeof AgentSocialMsg>;
+
+export const AgentDismissMsg = z.object({
+  t: z.literal('agent_dismiss'),
+}).passthrough();
+export type AgentDismissMsgT = z.infer<typeof AgentDismissMsg>;
+
+export const AgentMaliceMsg = z.object({
+  t: z.literal('malice'),
+  verb: z.enum(['steal', 'clear']),
+  x: num, y: num,
+}).passthrough();
+export type AgentMaliceMsgT = z.infer<typeof AgentMaliceMsg>;
+
 export const AgentMsg = z.union([
   AgentObserveMsg, AgentInboxMsg, AgentChatLogMsg, AgentMoveStateMsg,
   AgentDmSendMsg, AgentDmLogMsg, AgentDmUnlockedMsg, AgentActMsg, AgentPingMsg,
+  AgentSocialMsg, AgentDismissMsg, AgentMaliceMsg,
 ]);
 export type AgentMsgT = z.infer<typeof AgentMsg>;
 

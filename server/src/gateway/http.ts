@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { App } from '../app.ts';
 import { loadJson } from '../persistence/state.ts';
 import { AccountStore } from '../persistence/accounts.ts';
-import { PROVIDER_FILE, SAVES_DIR, PORT, slotPaths } from '../config.ts';
+import { PROVIDER_FILE, SAVES_DIR, PORT, slotPaths, REPO_ROOT } from '../config.ts';
 import { readJsonBody, RegisterBody, AgentProviderBody, AgentControlBody, SwitchSlotBody, RenameSlotBody, JoinRoomBody, GiveCoinsBody, GiveItemBody, AgentSetupBody } from './protocol.ts';
 import { resolveProvider } from '../cognition/managed.ts';
 import { rulesPrompt, rulesTokenEstimate } from '../world/rules-prompt.ts';
@@ -348,6 +348,46 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       app.state.playersDb.get(a.uid)!.set('afCardRedrawn', { val: true } as never);
       log.write('info', 'http', `[card] ${a.uid} 重抽到「${pick.name}」(免费重抽已消耗)`);
       json(res, 200, { ok: true, card: { name: pick.name, tone: pick.tone, hobbies: pick.hobbies, scores: pick.scores, total: pick.total, note: pick.note } });
+      return;
+    }
+
+    // 人设卡面图片（客户端传完整文件名，避免中文编码歧义）
+    if (u.pathname === '/af/card-image') {
+      const fname = u.searchParams.get('file') || '';
+      // 白名单字符 + 禁 ".."，挡路径穿越；正则保证仅 *.png
+      if (!/^[\w\u4e00-\u9fff.\-]+\.png$/.test(fname) || fname.includes('..')) { res.writeHead(400); res.end('bad filename'); return; }
+      const imgPath = path.join(REPO_ROOT, 'assets', 'personalities', fname);
+      if (!fs.existsSync(imgPath)) { res.writeHead(404); res.end('not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' });
+      fs.createReadStream(imgPath).pipe(res);
+      return;
+    }
+
+    // 取消托管（双击接管）：sendBeacon 调用，无 body 也可；标记 dismissed 不灭进程，待命留场
+    if (u.pathname === '/af/agent-dismiss' && req.method === 'POST') {
+      const raw = await readJsonBody(req, 256);
+      const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      if (!app.state.playersDb.has(a.uid)) app.state.playersDb.set(a.uid, new Map());
+      app.state.playersDb.get(a.uid)!.set('afDismissed', { val: true } as never);
+      log.write('info', 'http', `[dismiss] ${a.uid} 双击取消托管，待命留场`);
+      json(res, 200, { ok: true });
+      return;
+    }
+
+    // 首次进村规则告知：模型就绪则明示可托管，缺 Key 则指向指挥面板配置
+    if (u.pathname === '/af/first-join-notice') {
+      const a = app.accounts.findAccountByToken(String(u.searchParams.get('token') || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const providerOk = !!app.provider?.url && !!app.provider?.key;
+      const hasPlayerKey = !!readLlmKey(app.db, a.uid);
+      json(res, 200, {
+        ok: true,
+        modelConfigured: providerOk || hasPlayerKey,
+        message: providerOk || hasPlayerKey
+          ? '模型就绪，可启用 AI 托管替你在村里生活'
+          : '启用 AI 托管需在指挥面板「🤖 模型设置」配置 API 地址、API Key、模型名',
+      });
       return;
     }
 

@@ -2327,6 +2327,47 @@
     cardBtn.addEventListener('click', () => { loadCardInfo(); cardPanel.style.display = 'flex'; });
     document.getElementById('af-card-x').addEventListener('click', () => { cardPanel.style.display = 'none'; });
 
+    // --- 关系名册浮动按钮（人物志） ---
+    const rosterBtn = document.createElement('div');
+    rosterBtn.id = 'af-roster-btn';
+    rosterBtn.textContent = '人物志';
+    rosterBtn.title = '查看全村人物关系';
+    rosterBtn.style.cssText = 'position:fixed;right:10px;top:160px;z-index:99990;cursor:pointer;' +
+      'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+    document.body.appendChild(rosterBtn);
+
+    const rosterPanel = document.createElement('div');
+    rosterPanel.id = 'af-roster-panel';
+    rosterPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:380px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+    rosterPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">全村人物志</b><span id="af-roster-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-roster-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+    document.body.appendChild(rosterPanel);
+    rosterBtn.addEventListener('click', loadRoster);
+    document.getElementById('af-roster-x').addEventListener('click', () => rosterPanel.style.display = 'none');
+
+    async function loadRoster() {
+      const bd = document.getElementById('af-roster-bd');
+      if (!bd) return;
+      bd.textContent = '加载中…';
+      try {
+        // Pull online players from the latest observe state
+        const state = window._afState || {};
+        const players = state.players || [];
+        if (!players.length) { bd.innerHTML = '<p style="color:var(--af-c-text-dim);font-size:12px">暂无在线玩家。村长们都在你家种地呢。</p>'; return; }
+        bd.innerHTML = players.map(p => {
+          const nick = p.nick || '村民';
+          const scene = p.scene || '?';
+          let relBadge = '';
+          if (p.relation) {
+            const colors = { '陌生人':'#888','好友':'#4a8a4a','知己':'#3a6aaa','伴侣':'#aa3a6a' };
+            const col = colors[p.relation] || '#888';
+            relBadge = ` <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${col};color:#fff">${p.relation}</span>`;
+          }
+          return `<div style="margin-bottom:8px"><b>${nick}</b>${relBadge}<br><span style="font-size:11px;color:var(--af-c-text-dim)">场景 ${scene}</span></div>`;
+        }).join('') + '<hr style="border-color:var(--af-c-edge);margin:10px 0"><p style="font-size:11px;color:var(--af-c-text-dim)">更多关系数据随游戏推进解锁。</p>';
+      } catch (e) { bd.textContent = '加载失败'; }
+    }
+
     async function loadCardInfo() {
       const bd = document.getElementById('af-card-bd');
       if (!bd) return;
@@ -2353,6 +2394,9 @@
         }
         bd.innerHTML = `
           <div class="card-name">${c.name}</div>
+          <div style="text-align:center;margin:8px 0">
+            <img id="af-card-img" src="" alt="人设卡面" style="max-width:200px;max-height:300px;border-radius:6px;border:1px solid var(--af-c-edge);object-fit:contain;background:var(--af-c-black-20)" />
+          </div>
           <span class="card-tone" style="background:${toneBg};color:#fff">${c.tone}</span>
           <span class="card-score">总分 ${c.total > 0 ? '+' : ''}${c.total}</span>
           <div class="card-hobby">爱好：${(c.hobbies||[]).join(' · ')}</div>
@@ -2361,6 +2405,8 @@
           <div class="btn-row">
             <div class="btn-redraw" id="af-card-redraw-btn">${j.redrawUsed ? '已用完' : '重抽一次'}</div>
           </div>`;
+        const cid = j.cardId || '';
+        if (cid) document.getElementById('af-card-img').src = '/af/card-image?id=' + cid;
         const rb = document.getElementById('af-card-redraw-btn');
         if (rb && !j.redrawUsed) rb.addEventListener('click', doRedraw);
       } catch (e) { bd.textContent = '加载失败'; }
@@ -2388,6 +2434,23 @@
       if (!agentOnline || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) return;
       e.preventDefault();
       e.stopImmediatePropagation();
+    }, true);
+    // 双击接管机制：单按零反应，防误触；1秒内链式双击=取消本次托管
+    let _lastKeyTime = 0;
+    window.addEventListener('keydown', (e) => {
+      const now = Date.now();
+      if (now - _lastKeyTime <= 1000) {
+        // Chain double-click detected → dismiss hosting
+        _lastKeyTime = 0; // reset chain
+        const token = localStorage.getItem('af_token') || '';
+        if (token) {
+          navigator.sendBeacon('/af/agent-dismiss', JSON.stringify({ token }));
+        }
+        toast('已取消托管，司机待命中', 'info');
+        return;
+      }
+      _lastKeyTime = now;
+      // Single press: zero reaction (anti-mistouch buffer)
     }, true);
     function renderAgentStatus() {
       const chip = document.getElementById('af-hud-agent');
@@ -3140,6 +3203,11 @@
     AFUNI.on(sendBtn, sendMsg);
     AFUNI.on(toggleBtn, async () => {
       try {
+        const acctInfo = window._afAccountInfo;
+        if (acctInfo && !acctInfo.modelConfigured) {
+          toast('启用托管需要先配置模型：点指挥面板里的「🤖 模型设置」填写 API 地址、API Key、模型名', 'warn');
+          return;
+        }
         const r = await fetch(SERVER + '/af/agent-control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: agentOnline ? 'stop' : 'start' }) });
         const d = await r.json();
         if (!d.ok) throw new Error(d.msg || '操作失败');

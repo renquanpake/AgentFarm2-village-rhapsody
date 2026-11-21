@@ -7,10 +7,12 @@ import { MemoryStore, pseudoEmbed } from './memory.ts';
 import { FactStore } from './facts.ts';
 import { affectDelta, decayAffect, saveAffect, loadAffect, emptyAffect, actionPreference, EMOTIONS } from './occ.ts';
 import { triggerGossipOnFavChange } from './gossip.ts';
-import { GoalStore } from './goals.ts';
+import { GoalStore, runSleepCycle } from './goals.ts';
 import { createLlmOps, type LlmOps, llmExtract, llmDailyPlan } from './llm.ts';
 import { rulesPrompt } from '../world/rules-prompt.ts';
 import { plannerSystemPrompt } from '../world/dialogue-prompt.ts';
+import { weatherOf, festivalOf } from '../world/calendar.ts';
+import { loadPersonas, buildDailyHabits } from '../world/habits.ts';
 
 export class CognitionService {
   memory: MemoryStore;
@@ -48,7 +50,7 @@ export class CognitionService {
 
   /** LLM 次日计划（失败回落规则 planDaily；返回计划条数）
    *  P3：system 注入精简版规则上下文（lite ≤300 token），计划里的动作名/价格/坐标不许自编 */
-  async planDailyLlm(agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[] }): Promise<number> {
+  async planDailyLlm(agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[]; habits?: string }): Promise<number> {
     const plans = await llmDailyPlan(this.llm(agent), agent, {
       ...ctx,
       rules: plannerSystemPrompt(rulesPrompt(this.app, { budget: 'lite', uid: agent })),
@@ -59,6 +61,42 @@ export class CognitionService {
       return plans.length;
     }
     return goals.planDaily(agent, ctx).length; // 规则兜底
+  }
+
+  /** 睡眠周期触发（每游戏日 1 次；由外部定时器/日历事件调用） */
+  runNightlySleep(agent: string, gameDay: number): void {
+    const app = this.app;
+    if (!app.state.playersDb.has(agent)) app.state.playersDb.set(agent, new Map());
+    const pm = app.state.playersDb.get(agent)!;
+    let pd = pm.get('playerData') as Record<string, unknown> | undefined;
+    if (!pd) { pd = {}; pm.set('playerData', pd); }
+    const weather = weatherOf(gameDay);
+    const festival = festivalOf(gameDay);
+    const memorySummary = this.memory.summarize(agent, 5).map(m => m.content.slice(0, 80));
+    const topActions = ['move', 'talk'];
+    // 人设习惯倾向：抽卡档 -> 今日习惯语（按游戏日确定性可回放）
+    const wrap = app.state.globals.get('afCardAssign') as { val?: Record<string, number> } | null | undefined;
+    const cardId = wrap?.val?.[agent];
+    let habitSentence = '';
+    if (cardId) {
+      const card = loadPersonas(app.dataDir).find(c => c.id === cardId);
+      if (card) habitSentence = buildDailyHabits(card, gameDay).sentence;
+    }
+    const res = runSleepCycle(app.db, agent, {
+      persona: String(pd.personality || ''),
+      weather,
+      festival,
+      memorySummary,
+      facts: this.facts,
+      goals: new GoalStore(app.db),
+      topActions,
+      lastSleepDay: Number(pd.lastSleepDay || 0),
+      currentDay: gameDay,
+      habits: habitSentence,
+    });
+    if (!res) return; // 本游戏日已睡过（限每日 1 次）
+    pd.lastSleepDay = gameDay; // 落档防重入，否则 guard 恒不触发
+    app.state.persist();
   }
 
   /** 每事件认知更新（log.listen 钩子；幂等、轻量） */

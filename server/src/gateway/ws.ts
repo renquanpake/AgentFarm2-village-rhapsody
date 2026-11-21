@@ -14,7 +14,8 @@ import {
   RELATION_DEFS,
 } from '../world/social.ts';
 import { TASK_DEFS, tasksOf, taskCount, taskView } from '../world/tasks.ts';
-import { socialGive, socialBind } from '../world/social-actions.ts';
+import { socialGive, socialBind, agentGreet, agentCompanionBond, agentFallout } from '../world/social-actions.ts';
+import { actSteal, actClear } from '../world/malice.ts';
 import { loadHomeSlots, homeSlotViolation, homeSpawnPx, slotOfPlayer, type HomeSlotDoc } from '../world/spawn-slots.ts';
 
 // B4 槽位表缓存（data/home-slots.json 变更极少；30s 一次足够，避免每次移动读盘）
@@ -1763,6 +1764,46 @@ responseType = 'move_started';
         break;
       }
       case 'ping': send({ t: 'pong' }); break;
+      case 'social': {
+        const verb = String(msg.verb || '');
+        const target = String(msg.target || '');
+        if (!target || target === uid) { send({ t: 'result', ok: false, msg: '无效目标' }); break; }
+        const tAcc = app.accounts.findAccountByUid(target);
+        if (!tAcc) { send({ t: 'result', ok: false, msg: '目标不在线或不存在' }); break; }
+        const tNick = tAcc.nick || target;
+        let out: { ok: boolean; msg?: string };
+        if (verb === 'greet') {
+          out = agentGreet(state, uid, nick, target, tNick);
+        } else if (verb === 'bond') {
+          out = agentCompanionBond(state, uid, nick, target, tNick);
+        } else if (verb === 'fallout') {
+          out = agentFallout(state, uid, nick, target, tNick);
+        } else {
+          out = { ok: false, msg: '未知 social 动词' };
+        }
+        send({ t: 'result', ...out });
+        break;
+      }
+      case 'malice': {
+        const verb = String(msg.verb || '');
+        const mx = Number(msg.x), my = Number(msg.y);
+        if (!Number.isFinite(mx) || !Number.isFinite(my)) { send({ t: 'result', ok: false, msg: '需要有效坐标 x,y' }); break; }
+        let out: { ok: boolean; msg: string; detail?: string };
+        if (verb === 'steal') {
+          out = actSteal(state, app.tables, uid, Math.floor(mx / 100), Math.floor(my / 100));
+        } else if (verb === 'clear') {
+          out = actClear(state, app.tables, uid, Math.floor(mx / 100), Math.floor(my / 100));
+        } else {
+          out = { ok: false, msg: '未知 malice 动词' };
+        }
+        send({ t: 'result', ...out });
+        break;
+      }
+      case 'agent_dismiss': {
+        // Dismiss handled by HTTP endpoint; WS version sends ack
+        send({ t: 'dismissed_ack' });
+        break;
+      }
     }
   });
 

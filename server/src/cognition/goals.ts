@@ -55,7 +55,7 @@ export class GoalStore {
   }
 
   /** 次日计划（daily 层）：输入 目标树+情感+记忆摘要+天气 -> 可执行计划列表（规则兜底版） */
-  planDaily(agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[] }, now = Date.now()): number[] {
+  planDaily(agent: string, ctx: { persona: string; weather: string; festival: string | null; memorySummary: string[]; topActions: string[]; habits?: string }, now = Date.now()): number[] {
     const ids: number[] = [];
     const festivalGoal = ctx.festival ? `参加${ctx.festival}活动` : null;
     const plans = [
@@ -88,6 +88,7 @@ export function runSleepCycle(db: DatabaseSync, agent: string, ctx: {
   topActions: string[];
   lastSleepDay?: number;
   currentDay: number;
+  habits?: string;
 }): SleepCycleResult | null {
   if (ctx.lastSleepDay === ctx.currentDay) return null; // 限每日 1 次
   // 1) 反思归纳（写进 memory 的 summary；规则版=最近记忆前 3 条拼接）
@@ -98,6 +99,6 @@ export function runSleepCycle(db: DatabaseSync, agent: string, ctx: {
   const relFacts = ctx.facts.current(agent).filter(f => f.predicate.startsWith('related') || f.predicate === 'deep_friend' || f.predicate === 'favors');
   const relationSummary = relFacts.length ? `当前关系事实 ${relFacts.length} 条` : '暂无关系事实';
   // 4) 次日计划
-  const dailyGoalIds = ctx.goals.planDaily(agent, { persona: ctx.persona, weather: ctx.weather, festival: ctx.festival, memorySummary: ctx.memorySummary, topActions: ctx.topActions });
+  const dailyGoalIds = ctx.goals.planDaily(agent, { persona: ctx.persona, weather: ctx.weather, festival: ctx.festival, memorySummary: ctx.memorySummary, topActions: ctx.topActions, habits: ctx.habits });
   return { reflected, factsRevised, relationSummary, dailyGoalIds, at: Date.now() };
 }
