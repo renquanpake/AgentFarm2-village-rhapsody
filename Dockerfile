@@ -1,5 +1,5 @@
 # 服务端生产镜像（Railway / Hugging Face / 任意 Docker 主机通用）
-# 构建上下文 = 仓库根目录；客户端静态资源不在此镜像内（走 GitHub Pages/CDN）
+# 构建上下文 = 仓库根目录；镜像内保持 <root>/server/src 布局，config.ts 用 ../.. 推仓库根
 FROM node:22-slim
 
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY server/package*.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # 代码与运行数据
-COPY server/src ./src
+COPY server/src ./server/src
 # 绝对路径：./seed-data 会落到 /app/seed-data，与 AF_SEED_DIR=/seed-data 不一致
 COPY data /seed-data
 COPY assets/personalities ./assets/personalities
@@ -23,6 +23,7 @@ COPY client ./client
 RUN test -f /seed-data/seed-villagedb.json \
  && test -f /seed-data/village-farm.json \
  && test -f /seed-data/nav/nav-2.json \
+ && test -f /app/server/src/index.ts \
  && test -f /app/client/index.html \
  && test -f /app/client/main.88891.js \
  && test -f /app/client/mod/agentfarm.js
@@ -46,4 +47,4 @@ HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -sf "http://127.0.0.1:${PORT:-8080}/healthz" >/dev/null || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "mkdir -p /data && (cp -an /seed-data/. /data/ || echo '[docker] 预铺种失败，交给 ensureSeedData 重试'); exec node src/index.ts"]
+CMD ["sh", "-c", "mkdir -p /data && (cp -an /seed-data/. /data/ || echo '[docker] 预铺种失败，交给 ensureSeedData 重试'); exec node server/src/index.ts"]
