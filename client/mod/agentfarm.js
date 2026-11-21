@@ -2149,9 +2149,9 @@
     if (document.getElementById('af-diary-btn')) return;
     const css = document.createElement('style');
     css.textContent = `
-      #af-diary-btn { position: fixed; top: 86px; right: 10px; z-index: 99990; cursor: pointer;
+      #af-diary-btn { position: fixed; top: 78px; right: 10px; z-index: 99990; cursor: pointer;
         background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
-        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+        padding: 5px 10px; font: 13px var(--af-font-px); box-shadow: 0 2px 6px var(--af-c-black-40); }
       #af-diary-btn:hover { background: var(--af-c-glass-solid); }
       #af-diary { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100000;
         width: 680px; max-width: 94vw; height: 440px; display: none; flex-direction: column;
@@ -2230,20 +2230,20 @@
     if (document.getElementById('af-agent-btn')) return;
     const css = document.createElement('style');
     css.textContent = `
-      #af-agent-btn, #af-interrupt-btn, #af-resume-btn { position: fixed; right: 10px; z-index: 99990; cursor: pointer;
+      #af-agent-btn, #af-interrupt-btn, #af-resume-btn, #af-card-btn { position: fixed; right: 10px; z-index: 99990; cursor: pointer;
         background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
-        padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+        padding: 5px 10px; font: 13px var(--af-font-px); box-shadow: 0 2px 6px var(--af-c-black-40); }
       #af-agent-btn { top: 46px; }
-      #af-interrupt-btn { top: 126px; color: var(--af-c-danger); border-color: var(--af-c-wood); }
-      #af-resume-btn { top: 126px; right: 88px; color: var(--af-c-success); border-color: var(--af-c-moss); }
+      #af-interrupt-btn { top: 142px; color: var(--af-c-danger); border-color: var(--af-c-wood); }
+      #af-resume-btn { top: 142px; right: 88px; color: var(--af-c-success); border-color: var(--af-c-moss); }
       #af-agent-btn:hover, #af-interrupt-btn:hover, #af-resume-btn:hover { background: var(--af-c-glass-solid); }
-        #af-hud-agent { padding: 4px 10px; border-radius: 6px; font: 12px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); max-width: 300px; }
+        #af-hud-agent { padding: 4px 10px; border-radius: 6px; font: 12px var(--af-font-px); box-shadow: 0 2px 6px var(--af-c-black-40); max-width: 300px; }
         #af-hud-agent.on { background: var(--af-c-glass-moss); color: var(--af-c-success); border: 1px solid var(--af-c-moss); }
         #af-hud-agent.waiting { background: var(--af-c-glass-wood); color: var(--af-c-danger); border: 1px solid var(--af-c-wood-dark); }
         #af-hud-agent.off { background: var(--af-c-glass-panel); color: var(--af-c-text-dim); border: 1px solid var(--af-c-panel); }
-      #af-map-layers { position: fixed; top: 190px; right: 10px; z-index: 99990; display: flex; gap: 4px; }
+      #af-map-layers { position: fixed; top: 270px; right: 10px; z-index: 99990; display: flex; gap: 4px; }
       #af-map-layers button { cursor: pointer; background: var(--af-c-glass-panel); color: var(--af-c-text-dim);
-        border: 1px solid var(--af-c-panel); border-radius: 6px; padding: 3px 8px; font: 11px "Microsoft YaHei", sans-serif;
+        border: 1px solid var(--af-c-panel); border-radius: 6px; padding: 3px 8px; font: 11px var(--af-font-px);
         box-shadow: 0 2px 6px var(--af-c-black-40); }
       #af-map-layers button.on { background: var(--af-c-glass-moss); color: var(--af-c-gold); border-color: var(--af-c-moss); }
       #af-map-layers button:hover { background: var(--af-c-glass-solid); }
@@ -2336,7 +2336,7 @@
       }
       #af-agent-mail-list .af-q { color: var(--af-c-text-dim); border-left: 2px solid var(--af-c-edge); padding-left: var(--af-s-2); margin-bottom: 3px; }
       /* ---------- 人设卡面（village-life） ---------- */
-      #af-card-btn { top: 92px !important; }
+      #af-card-btn { top: 110px !important; }
       #af-card-panel {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 100001;
         width: 340px; max-width: 94vw; display: none; flex-direction: column;
@@ -2353,11 +2353,13 @@
       #af-card-panel .card-name { font-size:var(--af-font-size-lg); color:var(--af-c-gold); margin-bottom:4px; }
       #af-card-panel .card-tone { display:inline-block; font-size:10px; padding:1px 6px; border-radius:3px; margin-right:6px; }
       #af-card-panel .card-hobby { color:var(--af-c-text-dim); font-size:11px; margin:6px 0; }
-      #af-card-panel .card-note { color:var(--af-c-light-soft); font-size:11px; margin:8px 0; padding:6px 8px; background:var(--af-c-black-20); border-radius:4px; }
+      #af-card-panel .card-note { color:var(--af-c-light-soft); font-size:11px; margin:8px 0; padding:6px 8px; background:var(--af-c-black-35); border-radius:4px; }
       #af-card-panel .card-score { font-size:11px; color:var(--af-c-text-dim); }
       #af-card-panel .btn-row { display:flex; gap:8px; margin-top:12px; }
-      #af-card-panel .btn-row div { cursor:pointer; padding:5px 14px; border-radius:4px; font-size:12px; }
-      #af-card-panel .btn-draw { background:var(--af-c-moss); color:#fff; }
+      #af-card-panel .btn-row div { cursor:pointer; padding:5px 14px; border-radius:4px; font-size:12px;
+        transition: filter var(--af-d-fast) var(--af-m-in); }
+      #af-card-panel .btn-row div:hover { filter: brightness(1.15); }
+      #af-card-panel .btn-draw { background:var(--af-c-moss); color:var(--af-c-light); }
       #af-card-panel .btn-redraw { background:var(--af-c-glass-panel); color:var(--af-c-text-dim); border:1px solid var(--af-c-edge); }
     `;
     document.head.appendChild(css);
@@ -2397,7 +2399,7 @@
     rosterBtn.id = 'af-roster-btn';
     rosterBtn.textContent = '人物志';
     rosterBtn.title = '查看全村人物关系';
-    rosterBtn.style.cssText = 'position:fixed;right:10px;top:160px;z-index:99990;cursor:pointer;' +
+    rosterBtn.style.cssText = 'position:fixed;right:10px;top:206px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
       'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
     document.body.appendChild(rosterBtn);
@@ -2415,7 +2417,7 @@
     marketBtn.id = 'af-market-btn';
     marketBtn.textContent = '行情';
     marketBtn.title = '查看订单簿行情与最近成交';
-    marketBtn.style.cssText = 'position:fixed;right:10px;top:130px;z-index:99990;cursor:pointer;' +
+    marketBtn.style.cssText = 'position:fixed;right:10px;top:174px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
       'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
     document.body.appendChild(marketBtn);
@@ -2487,7 +2489,7 @@
     noticeBtn.id = 'af-notice-btn';
     noticeBtn.textContent = '公告';
     noticeBtn.title = '查看全服公告';
-    noticeBtn.style.cssText = 'position:fixed;right:10px;top:168px;z-index:99990;cursor:pointer;' +
+    noticeBtn.style.cssText = 'position:fixed;right:10px;top:238px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
       'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
     document.body.appendChild(noticeBtn);
@@ -2527,7 +2529,7 @@
     npcBtn.id = 'af-npc-btn';
     npcBtn.textContent = '日程';
     npcBtn.title = '查看全村 NPC 当前活动';
-    npcBtn.style.cssText = 'position:fixed;right:10px;top:206px;z-index:99990;cursor:pointer;' +
+    npcBtn.style.cssText = 'position:fixed;right:10px;top:302px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
       'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
     document.body.appendChild(npcBtn);
@@ -2575,9 +2577,9 @@
           const scene = p.scene || '?';
           let relBadge = '';
           if (p.relation) {
-            const colors = { '陌生人':'#888','好友':'#4a8a4a','知己':'#3a6aaa','伴侣':'#aa3a6a' };
-            const col = colors[p.relation] || '#888';
-            relBadge = ` <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${col};color:#fff">${p.relation}</span>`;
+            const colors = { '陌生人':'#888','好友':'#4a8a4a','知己':'#3a6aaa','伴侣':'#aa3a6a' }; /* af-color-allow: 关系语义色板（数据 LUT，token 无对应族，白字对比度依赖其深色） */
+            const col = colors[p.relation] || '#888'; /* af-color-allow: 同上（数据字面量，非 UI chrome） */
+            relBadge = ` <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${col};color:var(--af-c-light)">${p.relation}</span>`;
           }
           return `<div style="margin-bottom:8px"><b>${nick}</b>${relBadge}<br><span style="font-size:11px;color:var(--af-c-text-dim)">场景 ${scene}</span></div>`;
         }).join('') + '<hr style="border-color:var(--af-c-edge);margin:10px 0"><p style="font-size:11px;color:var(--af-c-text-dim)">更多关系数据随游戏推进解锁。</p>';
@@ -2601,8 +2603,8 @@
           return;
         }
         const c = j.card;
-        const toneColors = { '暖光':'#e8a030','暖心':'#c08050','温吞':'#7a9a6a','随和':'#6a8aaa','阴冷':'#5a6a8a','乖戾':'#8a5a6a','寒渊':'#4a3a5a' };
-        const toneBg = toneColors[c.tone] || '#555';
+        const toneColors = { '暖光':'#e8a030','暖心':'#c08050','温吞':'#7a9a6a','随和':'#6a8aaa','阴冷':'#5a6a8a','乖戾':'#8a5a6a','寒渊':'#4a3a5a' }; /* af-color-allow: 性格色板（7 档数据色，token 无对应族，白字对比度依赖其深色） */
+        const toneBg = toneColors[c.tone] || '#555'; /* af-color-allow: 同上 */
         let scoreHtml = '';
         for (const [k, v] of Object.entries(c.scores)) {
           const bar = Math.abs(v) * 3; // -30..30 mapped to px width
@@ -2613,9 +2615,9 @@
         bd.innerHTML = `
           <div class="card-name">${c.name}</div>
           <div style="text-align:center;margin:8px 0">
-            <img id="af-card-img" src="" alt="人设卡面" style="max-width:200px;max-height:300px;border-radius:6px;border:1px solid var(--af-c-edge);object-fit:contain;background:var(--af-c-black-20)" />
+            <img id="af-card-img" src="" alt="人设卡面" style="max-width:200px;max-height:300px;border-radius:6px;border:1px solid var(--af-c-edge);object-fit:contain;background:var(--af-c-black-35)" />
           </div>
-          <span class="card-tone" style="background:${toneBg};color:#fff">${c.tone}</span>
+          <span class="card-tone" style="background:${toneBg};color:var(--af-c-light)">${c.tone}</span>
           <span class="card-score">总分 ${c.total > 0 ? '+' : ''}${c.total}</span>
           <div class="card-hobby">爱好：${(c.hobbies||[]).join(' · ')}</div>
           <div class="card-score">${scoreHtml}</div>
@@ -2820,9 +2822,9 @@
     if (!document.getElementById('af-visual-panel')) {
       const vcss = document.createElement('style');
       vcss.textContent = `
-        #af-visual-panel { position: fixed; top: 200px; right: 10px; z-index: 99987; width: 230px;
-          background: var(--af-c-glass-bg); color: var(--af-c-text); border: 1px solid var(--af-c-panel); border-radius: 8px;
-          font: 12px/1.5 'Microsoft YaHei', sans-serif; }
+        #af-visual-panel { position: fixed; top: 86px; left: 10px; z-index: 99987; width: 230px;
+          background: var(--af-c-glass-bg); color: var(--af-c-text); border: 1px solid var(--af-c-edge); border-radius: 8px;
+          font: 12px/1.5 var(--af-font-px); }
         #af-visual-panel .hd { padding: 6px 10px; background: var(--af-c-glass-bg-solid); border-bottom: 1px solid var(--af-c-panel);
           display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         #af-visual-panel .sec { padding: 6px 10px; border-bottom: 1px solid var(--af-c-panel-deep); }
@@ -2841,7 +2843,7 @@
         '<div class="sec"><div class="tt">动物（点击刷新）</div><div id="af-vp-animals" class="line muted">…</div></div>' +
         '<div class="sec"><div class="tt">庭院榜</div><div id="af-vp-decor" class="line muted">…</div></div>' +
         '<div class="sec"><div class="tt">回放（M1.4 确定性）</div><div id="af-vp-replay" class="line muted">…</div>' +
-        '<button id="af-vp-replay-btn" style="margin-top:4px;padding:3px 8px;background:var(--af-c-panel-deep);color:var(--af-c-text);border:1px solid var(--af-c-panel);border-radius:4px;cursor:pointer;font:11px \'Microsoft YaHei\',sans-serif;">刷新回放时间线</button></div>';
+        '<button id="af-vp-replay-btn" style="margin-top:4px;padding:3px 8px;background:var(--af-c-panel-deep);color:var(--af-c-text);border:1px solid var(--af-c-edge);border-radius:4px;cursor:pointer;font:11px var(--af-font-px);">刷新回放时间线</button></div>';
       document.body.appendChild(vp);
       AFUNI.on(vp.querySelector('#af-vp-x'), () => { vp.classList.toggle('collapsed'); vp.querySelector('#af-vp-x').textContent = vp.classList.contains('collapsed') ? '▸' : '▾'; }, { cls: false });
 
@@ -2920,7 +2922,7 @@
       const ocss = document.createElement('style');
       ocss.textContent = `
       #af-onboard { position: fixed; inset: 0; z-index: 100200; display: none;
-         align-items: center; justify-content: center; background: var(--af-c-overlay); /* af-color-allow 遮罩走 tokens 变量 */ }
+         align-items: center; justify-content: center; background: var(--af-c-black-60); /* 遮罩走 tokens 变量（tokens 无 --af-c-overlay，用 black-60 同 dialog scrim） */ }
       #af-ob-card { width: 560px; max-width: 94vw; max-height: 88vh; overflow: auto; display: flex; flex-direction: column;
         background: linear-gradient(180deg,var(--af-c-panel-deep),var(--af-c-panel-deep));
         border: 2px solid var(--af-c-wood); border-radius: 12px;
@@ -4109,7 +4111,8 @@
   setInterval(() => { try { injectAreaName(); } catch (e) {} }, 500);
 
   // ---------- U6/U7/U9 + 五件套（帮助/设置）：紧凑入口按钮 + 小浮层（open-work.md §五） ----------
-  // 服务端有家底、玩家零入口的五处 UI；右侧栈式按钮（244 起排，避让现有 roster@160/npc@206/map-layers@190）。
+  // 服务端有家底、玩家零入口的五处 UI；右侧栈式按钮（与整列统一 32px 节距：agent@46/diary@78/card@110/中断恢复行@142/
+  // market@174/roster@206/notice@238/map-layers@270/npc@302，本组自 delegate@334 续排）。
   // /af/delegates 与 mapgrid 的 claims 字段均不存在（http.ts 已核），两处按欠账表给占位文案；
   // 日报卡走现成的 /af/economy + /af/metrics，字段以服务端实际返回为准。
   try {
@@ -4119,12 +4122,12 @@
       css.textContent = `
         #af-delegate-btn, #af-claim-btn, #af-report-btn, #af-help-btn, #af-settings-btn { position: fixed; right: 10px; z-index: 99990; cursor: pointer;
           background: var(--af-c-glass-panel); color: var(--af-c-gold); border: 1px solid var(--af-c-moss); border-radius: 6px;
-          padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
-        #af-delegate-btn { top: 244px; }
-        #af-claim-btn { top: 282px; }
-        #af-report-btn { top: 320px; }
-        #af-help-btn { top: 358px; }
-        #af-settings-btn { top: 396px; }
+          padding: 5px 10px; font: 13px var(--af-font-px); box-shadow: 0 2px 6px var(--af-c-black-40); }
+        #af-delegate-btn { top: 334px; }
+        #af-claim-btn { top: 366px; }
+        #af-report-btn { top: 398px; }
+        #af-help-btn { top: 430px; }
+        #af-settings-btn { top: 462px; }
         #af-delegate-btn:hover, #af-claim-btn:hover, #af-report-btn:hover, #af-help-btn:hover, #af-settings-btn:hover { background: var(--af-c-glass-solid); }
         .af-pop { position: fixed; right: 10px; z-index: 100001; display: none; flex-direction: column; width: 252px; max-width: 92vw; max-height: 64vh;
           background: linear-gradient(180deg, var(--af-c-glass-solid), var(--af-c-glass-bg-deep));
@@ -4175,17 +4178,17 @@
       // --- U6 委托栏：/af/delegates 路由不存在，占位（接入时替换此段为拉取渲染） ---
       const delegatePanel = mkPanel('af-delegate-panel', '📥 委托栏',
         '<div style="color:var(--af-c-text-dim);font-size:12px">委托栏功能随 Agent 夜间活动解锁</div>' +
-        '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">挂单 / 接取 / 结算目前走 Agent 通道，玩家端入口待开放。</div>', 244);
-      mkBtn('af-delegate-btn', '📥 委托', () => togglePop(delegatePanel, 244));
+        '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">挂单 / 接取 / 结算目前走 Agent 通道，玩家端入口待开放。</div>', 334);
+      mkBtn('af-delegate-btn', '📥 委托', () => togglePop(delegatePanel, 334));
 
       // --- U7 认领查看：/af/mapgrid 响应不含 claims，租约数据无 HTTP 面，占位 ---
       const claimPanel = mkPanel('af-claim-panel', '🚩 认领',
         '<div style="color:var(--af-c-text-dim);font-size:12px">认领信息通过 Agent 查看</div>' +
-        '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">资源租约与占用互斥由服务端裁决，玩家面板待开放。</div>', 282);
-      mkBtn('af-claim-btn', '🚩 认领', () => togglePop(claimPanel, 282));
+        '<div style="margin-top:8px;font-size:11px;color:var(--af-c-text-dim)">资源租约与占用互斥由服务端裁决，玩家面板待开放。</div>', 366);
+      mkBtn('af-claim-btn', '🚩 认领', () => togglePop(claimPanel, 366));
 
       // --- U9 Agent 日报卡：/af/economy（经济概况）+ /af/metrics（活跃统计），字段以服务端实际返回为准 ---
-      const reportPanel = mkPanel('af-report-panel', '🕐 日报', '<div id="af-report-bd" style="font-size:12px">加载中…</div>', 320);
+      const reportPanel = mkPanel('af-report-panel', '🕐 日报', '<div id="af-report-bd" style="font-size:12px">加载中…</div>', 398);
       async function loadReportCard() {
         const bd = document.getElementById('af-report-bd');
         if (!bd) return;
@@ -4212,7 +4215,7 @@
           bd.innerHTML = html || '<div style="color:var(--af-c-text-dim)">暂无数据</div>';
         } catch (e) { bd.textContent = '加载失败'; }
       }
-      mkBtn('af-report-btn', '🕐 日报', () => { togglePop(reportPanel, 320); loadReportCard(); });
+      mkBtn('af-report-btn', '🕐 日报', () => { togglePop(reportPanel, 398); loadReportCard(); });
 
       // --- 五件套 · 帮助面板（按钮 + ? 键，文本输入中不触发） ---
       const HELP_HTML = `
@@ -4235,13 +4238,13 @@
   🗺 人设卡 · 📋 人物志 · 📈 行情<br>
   📋 公告 · 🕐 日程 · 🤖 人物志
 </div>`;
-      const helpPanel = mkPanel('af-help-panel', '❓ 帮助', HELP_HTML, 358);
-      mkBtn('af-help-btn', '❓ 帮助', () => togglePop(helpPanel, 358));
+      const helpPanel = mkPanel('af-help-panel', '❓ 帮助', HELP_HTML, 430);
+      mkBtn('af-help-btn', '❓ 帮助', () => togglePop(helpPanel, 430));
       window.addEventListener('keydown', (e) => {
         if (e.key !== '?') return;
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-        togglePop(helpPanel, 358);
+        togglePop(helpPanel, 430);
       });
 
       // --- 五件套 · 设置面板：名牌显隐落盘 af.showNameplates；音量双写 af.musicVol/af.sfxVol（规格键）
@@ -4255,8 +4258,8 @@
         '<input type="range" id="af-set-svol" min="0" max="1" step="0.05" style="width:100%"></div>' +
         '<div style="border-top:1px dashed var(--af-c-edge);padding-top:8px;font-size:11px;color:var(--af-c-text-dim)">' +
         '小地图图层开关见右上角「路网」「地标」按钮（状态持久化）。</div>';
-      const settingsPanel = mkPanel('af-settings-panel', '⚙ 设置', settingsBody, 396);
-      mkBtn('af-settings-btn', '⚙ 设置', () => togglePop(settingsPanel, 396));
+      const settingsPanel = mkPanel('af-settings-panel', '⚙ 设置', settingsBody, 462);
+      mkBtn('af-settings-btn', '⚙ 设置', () => togglePop(settingsPanel, 462));
 
       const VOL_KEY = { bgm: 'af.musicVol', sfx: 'af.sfxVol };
       function volNum(x) { const n = Number(x); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; }
@@ -4296,13 +4299,13 @@
       const poiBtn = document.createElement('div');
       poiBtn.id = 'af-poi-btn'; poiBtn.textContent = '📖 图鉴';
       poiBtn.title = '查看全村 POI 文本地图（自动生成）';
-      poiBtn.style.cssText = 'position:fixed;right:10px;top:434px;z-index:99990;cursor:pointer;' +
+      poiBtn.style.cssText = 'position:fixed;right:10px;top:494px;z-index:99990;cursor:pointer;' +
         'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
         'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
       document.body.appendChild(poiBtn);
       const poiPanel = document.createElement('div');
       poiPanel.id = 'af-poi-panel';
-      poiPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:420px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+      poiPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:380px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
       poiPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">POI 图鉴 · 全村文本地图</b><span id="af-poi-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-poi-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
       document.body.appendChild(poiPanel);
       async function loadPoiGuide() {
@@ -4336,7 +4339,7 @@
       const bigmapBtn = document.createElement('div');
       bigmapBtn.id = 'af-bigmap-btn'; bigmapBtn.textContent = '🗺 大地图';
       bigmapBtn.title = '查看当前位置、附近地标与周边格子';
-      bigmapBtn.style.cssText = 'position:fixed;right:10px;top:472px;z-index:99990;cursor:pointer;' +
+      bigmapBtn.style.cssText = 'position:fixed;right:10px;top:526px;z-index:99990;cursor:pointer;' +
         'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
         'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
       document.body.appendChild(bigmapBtn);
@@ -4375,7 +4378,7 @@
           for (let dy = 4; dy >= -4; dy--) {
             for (let dx = -4; dx <= 4; dx++) {
               const cx = gx + dx, cy = gy + dy;
-              let bg = 'rgba(255,255,255,.05)';
+              let bg = 'var(--af-c-white-04)';
               if (cx >= 0 && cy >= 0 && cx < W && cy < H) {
                 const i = cy * W + cx;
                 if (g.water && g.water[i]) bg = 'var(--af-c-sky)';
@@ -4399,7 +4402,7 @@
       const relayBtn = document.createElement('div');
       relayBtn.id = 'af-relay-btn'; relayBtn.textContent = '🐎 快传';
       relayBtn.title = '选择村落地标，快速前往';
-      relayBtn.style.cssText = 'position:fixed;right:10px;top:510px;z-index:99990;cursor:pointer;' +
+      relayBtn.style.cssText = 'position:fixed;right:10px;top:558px;z-index:99990;cursor:pointer;' +
         'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
         'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
       document.body.appendChild(relayBtn);
@@ -4447,4 +4450,344 @@
       document.getElementById('af-relay-x').addEventListener('click', () => { relayPanel.style.display = 'none'; });
     }
   } catch (e) { console.warn('[AF] 五件套余项面板注入失败：', e && e.message); }
+
+  // ---------- 微信式私聊浮层（右侧栈按钮入口：联系人 → 会话气泡流） ----------
+  // 与左上角旧版私聊面板（injectDmUI 的 af-dm-* 节点）并存独立：ID 全量加 wxdm 前缀，
+  // 避免与旧节点同名造成 getElementById 串台；本块纯追加，不改动上方任何逻辑。
+  // 私聊协议走既有 /ws 面：dm_send{target,text} / dm_log{target} → dm_log 回包 msgs{from,nick,text,at},
+  // dm_result 回执；对方发言 dm_in{from,nick,text,agent?}。
+  // 「我的司机」条目走 agent_msg/agent_reply（Agent 收件箱是唯一可用的自连通道，
+  // dm_send 对本人 uid 服务端判「无效目标」）；Agent 发言以 🤖 前缀+苔绿气泡区分。
+  (function injectWxDmUI() {
+    try {
+      if (document.getElementById('af-wxdm-btn')) return; // 防重复注入
+      const css = document.createElement('style');
+      css.textContent = `
+        #af-wxdm-btn { position: fixed; right: 10px; top: 560px; z-index: 99990; cursor: pointer;
+          background: var(--af-c-glass-panel); color: var(--af-c-gold);
+          border: 1px solid var(--af-c-moss); border-radius: 6px;
+          padding: 5px 10px; font: 13px "Microsoft YaHei", sans-serif; box-shadow: 0 2px 6px var(--af-c-black-40); }
+        #af-wxdm-btn:hover { background: var(--af-c-glass-solid); }
+        #af-wxdm-panel { position: fixed; right: 10px; top: 602px; z-index: 100001;
+          display: none; flex-direction: column;
+          width: 360px; max-width: 92vw; height: min(520px, 62vh);
+          background: linear-gradient(180deg, var(--af-c-glass-solid), var(--af-c-glass-bg-deep));
+          border: 1px solid var(--af-c-edge); border-top: 2px solid var(--af-c-gold);
+          border-radius: var(--af-msg-radius); box-shadow: 0 12px 40px var(--af-c-black-70);
+          backdrop-filter: blur(8px); overflow: hidden;
+          font-family: var(--af-font-px); font-size: var(--af-font-size-sm); color: var(--af-c-text); }
+        .wxd-hd { display: flex; align-items: center; gap: var(--af-s-2);
+          padding: 7px 12px; border-bottom: 1px solid var(--af-c-edge); background: var(--af-c-black-35); }
+        .wxd-hd .back { cursor: pointer; color: var(--af-c-text-dim); user-select: none; }
+        .wxd-hd .back:hover { color: var(--af-c-gold); }
+        .wxd-hd b { color: var(--af-c-gold); font-size: var(--af-font-size-md); letter-spacing: .5px; margin-left: auto; }
+        .wxd-contacts { flex: 1; overflow-y: auto; overscroll-behavior: contain;
+          scrollbar-width: thin; scrollbar-color: var(--af-c-edge) transparent; }
+        .wxd-contact { display: flex; align-items: center; gap: var(--af-s-2);
+          padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--af-c-white-04); }
+        .wxd-contact:hover { background: var(--af-c-glow-gold-strong); }
+        .wxd-contact .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .wxd-badge { flex: none; font-size: var(--af-font-size-xs); color: var(--af-c-bg);
+          background: var(--af-c-gold); border-radius: 3px; padding: 1px 5px; }
+        .wxd-st { flex: none; font-size: var(--af-font-size-xs); color: var(--af-c-success); }
+        .wxd-empty { color: var(--af-c-text-dim); text-align: center; padding: var(--af-s-4) 0; font-size: var(--af-font-size-xs); }
+        .wxd-msgs { flex: 1; overflow-y: auto; overscroll-behavior: contain;
+          display: flex; flex-direction: column; gap: var(--af-msg-gap);
+          padding: var(--af-s-3); scrollbar-width: thin; scrollbar-color: var(--af-c-edge) transparent; }
+        .wxrow { display: flex; flex-direction: column; max-width: 82%;
+          animation: wxb-in 260ms var(--af-m-slide); }
+        .wxrow--out { align-self: flex-end; align-items: flex-end; }
+        .wxrow--in { align-self: flex-start; align-items: flex-start; }
+        .wxrow .wxn { font-size: var(--af-font-size-xs); color: var(--af-msg-nick); margin-bottom: 3px; padding: 0 4px; }
+        .wxb { padding: var(--af-msg-pad); border-radius: var(--af-msg-radius);
+          line-height: 1.6; word-break: break-word; white-space: pre-wrap; border: 1px solid var(--af-msg-other-edge); }
+        .wxb--in { background: var(--af-msg-other-bg); color: var(--af-msg-text); }
+        .wxb--out { background: var(--af-msg-self-bg); border-color: var(--af-msg-self-edge); color: var(--af-c-light); }
+        .wxb--agent { background: linear-gradient(135deg, var(--af-c-glass-moss), var(--af-c-glass-bg-deep));
+          border-color: var(--af-c-moss); color: var(--af-c-light); }
+        @keyframes wxb-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .wxd-typing { align-self: flex-start; display: inline-flex; gap: 4px; padding: 10px 12px;
+          border-radius: var(--af-msg-radius); background: var(--af-msg-other-bg);
+          border: 1px solid var(--af-msg-other-edge); }
+        .wxd-typing i { width: 6px; height: 6px; border-radius: 50%;
+          background: var(--af-c-text-dim); animation: wxd-dot 1s var(--af-m-in) infinite; }
+        .wxd-typing i:nth-child(2) { animation-delay: .15s; }
+        .wxd-typing i:nth-child(3) { animation-delay: .3s; }
+        @keyframes wxd-dot { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+        .wxd-bar { display: flex; gap: var(--af-s-2); padding: var(--af-s-2) var(--af-s-3); border-top: 1px solid var(--af-c-edge); }
+        .wxd-bar input { flex: 1; min-width: 0; background: var(--af-c-bg); color: var(--af-c-light-soft);
+          border: 1px solid var(--af-c-edge); border-radius: var(--af-r-2);
+          padding: 7px 10px; font: var(--af-font-size-sm)/1.4 var(--af-font-px); outline: none;
+          transition: border-color var(--af-d-fast) var(--af-m-in), box-shadow var(--af-d-fast) var(--af-m-in); }
+        .wxd-bar input:focus { border-color: var(--af-c-gold); box-shadow: 0 0 0 2px var(--af-focus-ring); }
+        .wxd-bar button { flex: none; background: var(--af-c-gold); color: var(--af-c-bg);
+          border: 1px solid var(--af-c-gold); border-radius: var(--af-r-2);
+          padding: 7px 14px; font: var(--af-font-size-sm)/1 var(--af-font-px); font-weight: var(--af-font-weight);
+          cursor: pointer; user-select: none;
+          transition: filter var(--af-d-fast) var(--af-m-in), transform var(--af-d-fast) var(--af-m-in); }
+        .wxd-bar button:hover { filter: brightness(1.1); }
+        .wxd-bar button:active { transform: translateY(2px); }
+      `;
+      document.head.appendChild(css);
+
+      const S = { view: 'list', target: '', driver: false, agentNick: '', logReq: '' };
+      const MAXKEEP = 120;
+      const pendingAcks = [];
+
+      const btn = document.createElement('div');
+      btn.id = 'af-wxdm-btn'; btn.textContent = '💬 私聊';
+      btn.title = '微信式私聊：选联系人 → 气泡会话';
+      document.body.appendChild(btn);
+      const panel = document.createElement('div');
+      panel.id = 'af-wxdm-panel';
+      panel.innerHTML =
+        '<div class="wxd-hd"><span class="back" style="display:none">◀ 返回</span>' +
+        '<b id="af-wxdm-title">私聊选择</b></div>' +
+        '<div class="wxd-contacts" id="af-wxdm-contacts"></div>' +
+        '<div class="wxd-msgs" id="af-wxdm-msgs" style="display:none"></div>' +
+        '<div class="wxd-bar" id="af-wxdm-bar" style="display:none">' +
+        '<input id="af-wxdm-input" placeholder="输入消息…" maxlength="500">' +
+        '<button type="button" id="af-wxdm-send">发送</button></div>';
+      document.body.appendChild(panel);
+      const $ = (sel) => panel.querySelector(sel);
+      const titleEl = $('#af-wxdm-title'), backEl = $('.back');
+      const contactsEl = $('#af-wxdm-contacts'), msgsEl = $('#af-wxdm-msgs');
+      const barEl = $('#af-wxdm-bar'), inputEl = $('#af-wxdm-input');
+      const sendBtn = $('#af-wxdm-send');
+
+      function wxdOn(el, fn) {
+        try {
+          if (window.AFUNI && window.AFUNI.on) window.AFUNI.on(el, fn, { cls: false });
+          else el.addEventListener('click', fn);
+        } catch (e) { el.addEventListener('click', fn); }
+      }
+      const wsSend = (o) => { try { if (connected && ws) { ws.send(JSON.stringify(o)); return true; } } catch (e) {} return false; };
+
+      function setView(v) {
+        S.view = v;
+        const chat = v === 'chat';
+        contactsEl.style.display = chat ? 'none' : '';
+        msgsEl.style.display = chat ? 'flex' : 'none';
+        barEl.style.display = chat ? 'flex' : 'none';
+        backEl.style.display = chat ? '' : 'none';
+      }
+      function setTitle(t) { titleEl.textContent = t; }
+
+      // ---- 联系人列表（数据源 window._afState.players，由下方 WS 旁听持续保鲜；司机昵称来自账号侧 agent-status）----
+      function renderContacts() {
+        contactsEl.innerHTML = '';
+        const rows = [];
+        if (S.agentNick) rows.push({ drv: true, nick: S.agentNick });
+        for (const p of (window._afState && window._afState.players || [])) {
+          rows.push({ drv: false, uid: String(p.uid), nick: p.nick || p.uid });
+        }
+        if (!rows.length) {
+          contactsEl.innerHTML = '<div class="wxd-empty">暂无在线村民，去村里逛逛吧</div>';
+          return;
+        }
+        for (const r of rows) {
+          const d = document.createElement('div');
+          d.className = 'wxd-contact';
+          const ic = document.createElement('span');
+          ic.className = 'ic'; ic.textContent = r.drv ? '🚗' : '👤';
+          const nm = document.createElement('span');
+          nm.className = 'nm'; nm.textContent = r.drv ? ('我的司机「' + r.nick + '」') : r.nick;
+          d.appendChild(ic); d.appendChild(nm);
+          if (r.drv) {
+            const bdg = document.createElement('span');
+            bdg.className = 'wxd-badge'; bdg.textContent = '(司机)';
+            d.appendChild(bdg);
+          } else {
+            const st = document.createElement('span');
+            st.className = 'wxd-st'; st.textContent = '（在线）';
+            d.appendChild(st);
+          }
+          wxdOn(d, () => { if (r.drv) openDriverChat(); else openChat(r.uid, r.nick); });
+          contactsEl.appendChild(d);
+        }
+      }
+      function refreshDriverNick() {
+        fetch(SERVER + '/af/agent-status?token=' + encodeURIComponent(token))
+          .then((r) => r.json())
+          .then((d) => { if (d && d.online && d.nick) { S.agentNick = d.nick; if (S.view === 'list') renderContacts(); } })
+          .catch(() => {});
+      }
+
+      // ---- 气泡渲染（左=对方灰泡，右=我方金泡；Agent 发言 🤖 + 苔绿区分；新消息淡入上移并自动滚底）----
+      function makeBubble(out, agent, nick, text) {
+        const row = document.createElement('div');
+        row.className = 'wxrow wxrow--' + (out ? 'out' : 'in');
+        if (!out && nick) {
+          const nl = document.createElement('div');
+          nl.className = 'wxn'; nl.textContent = nick;
+          row.appendChild(nl);
+        }
+        const b = document.createElement('div');
+        b.className = 'wxb wxb--' + (out ? 'out' : 'in') + (agent ? ' wxb--agent' : '');
+        b.textContent = agent ? '🤖 ' + text : text;
+        row.appendChild(b);
+        msgsEl.appendChild(row);
+        while (msgsEl.children.length > MAXKEEP) msgsEl.removeChild(msgsEl.firstChild);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+        return row;
+      }
+      function renderHistory(msgs) {
+        hideTyping();
+        msgsEl.innerHTML = '';
+        const arr = Array.isArray(msgs) ? msgs.slice(-60) : [];
+        if (!arr.length) {
+          msgsEl.innerHTML = '<div class="wxd-empty">还没有消息，打个招呼吧</div>';
+          return;
+        }
+        for (const m of arr) {
+          const out = String(m.from) === String(uid);
+          makeBubble(out, m.agent === true, out ? '' : (m.nick || m.from), String(m.text || ''));
+        }
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+      }
+
+      // ---- 会话视图 ----
+      function openChat(uid, nick) {
+        S.target = String(uid); S.driver = false;
+        hideTyping();
+        setView('chat');
+        setTitle('与「' + nick + '」的私聊');
+        msgsEl.innerHTML = '<div class="wxd-empty">加载中…</div>';
+        S.logReq = S.target;
+        wsSend({ t: 'dm_log', target: uid }) || toast('未连接服务器，拉不到记录', 'err');
+        inputEl.focus();
+      }
+      function openDriverChat() {
+        S.driver = true; S.target = '';
+        hideTyping();
+        setView('chat');
+        setTitle('与「' + (S.agentNick || '司机') + '」的私聊');
+        msgsEl.innerHTML = '<div class="wxd-empty">和司机的实时私聊 · 司机的回答会带 🤖 气泡出现在这里</div>';
+        inputEl.focus();
+      }
+      function showTyping() {
+        hideTyping();
+        const td = document.createElement('div');
+        td.className = 'wxd-typing';
+        td.innerHTML = '<i></i><i></i><i></i>';
+        msgsEl.appendChild(td);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+        S.typing = td;
+      }
+      function hideTyping() {
+        if (S.typing) { S.typing.remove(); S.typing = null; }
+      }
+      function sendText() {
+        const text = inputEl.value.trim();
+        if (!text) return;
+        if (!connected) { toast('未连接服务器，无法发送', 'err'); }
+        else if (S.driver) {
+          // 司机通道：Agent 收件箱（dm_send 对本人 uid 被服务端判无效）
+          if (wsSend({ t: 'agent_msg', text })) { makeBubble(true, false, '', text); showTyping(); }
+        } else if (S.target) {
+          if (wsSend({ t: 'dm_send', target: S.target, text })) {
+            const node = makeBubble(true, false, '', text);
+            pendingAcks.push(node);
+            showTyping();
+          }
+        } else {
+          toast('先选一位联系人', 'info');
+        }
+        inputEl.value = '';
+        inputEl.focus();
+      }
+
+      // ---- 打开 / 关闭 / 切换 ----
+      function openPanel() {
+        setView('list');
+        setTitle('私聊选择');
+        renderContacts();
+        refreshDriverNick();
+        panel.style.display = 'flex';
+        inputEl.blur();
+      }
+      function closePanel() {
+        panel.style.display = 'none';
+        hideTyping();
+        pendingAcks.length = 0;
+        inputEl.blur();
+      }
+
+      wxdOn(btn, () => { panel.style.display === 'flex' ? closePanel() : openPanel(); });
+      wxdOn(backEl, () => { hideTyping(); setView('list'); setTitle('私聊选择'); renderContacts(); });
+      wxdOn(sendBtn, sendText);
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); sendText(); }
+        else if (e.key === 'Escape') { e.preventDefault(); closePanel(); }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && panel.style.display === 'flex') closePanel();
+      });
+
+      // ---- 全局 WS 旁听：不改动上方 onmessage 的既有分发，以并行 addEventListener 复制一份消息流。
+      //     现有连接直接挂；重连后新建的 socket 由构造器补丁自动挂载。
+      //     同时把 welcome/player_* 事件沉淀进 window._afState.players（该变量全仓此前无任何写入方）。
+      function wxdmOnMsg(m) {
+        try {
+          if (!m || !m.t) return;
+          if (m.t === 'welcome' || m.t === 'player_join' || m.t === 'player_leave') {
+            const map = new Map(((window._afState && window._afState.players) || []).map((p) => [String(p.uid), p]));
+            if (m.t === 'welcome') {
+              map.clear();
+              for (const p of (m.players || [])) map.set(String(p.uid), p);
+            } else if (m.t === 'player_join' && m.p && m.p.uid) {
+              map.set(String(m.p.uid), Object.assign({}, map.get(String(m.p.uid)) || {}, m.p));
+            } else if (m.t === 'player_leave' && m.uid) {
+              map.delete(String(m.uid));
+            }
+            window._afState = window._afState || {};
+            window._afState.players = Array.from(map.values());
+            if (S.view === 'list') renderContacts();
+          } else if (m.t === 'agent_status' && m.online && m.nick) {
+            S.agentNick = m.nick;
+          } else if (m.t === 'dm_in') {
+            if (S.view === 'chat' && !S.driver && String(m.from) === String(S.target) && m.from !== uid) {
+              makeBubble(false, m.agent === true, m.nick || m.from, String(m.text || ''));
+            }
+          } else if (m.t === 'dm_result') {
+            if (!pendingAcks.length) return;
+            const node = pendingAcks.shift();
+            hideTyping();
+            if (!m.ok && node) {
+              node.remove();
+              toast('私聊失败：' + (m.msg || '未知原因'), 'err');
+            }
+          } else if (m.t === 'dm_log') {
+            if (S.view === 'chat' && !S.driver && S.logReq && String(S.logReq) === String(S.target)) {
+              S.logReq = '';
+              renderHistory(m.msgs || []);
+            }
+          } else if (m.t === 'agent_reply') {
+            if (S.view === 'chat' && S.driver) {
+              hideTyping();
+              makeBubble(false, true, S.agentNick || '司机', String(m.text || ''));
+            }
+          } else if (m.t === 'agent_msg_ack') {
+            hideTyping();
+            const node = pendingAcks.shift();
+            if (!m.delivered && node) {
+              node.remove();
+              toast(m.msg || '司机没在线，消息没人处理', 'err');
+            }
+          }
+        } catch (e) {}
+      }
+      function wxdmWrap(sock) {
+        if (!sock || sock.__afWxDmHooked || typeof sock.addEventListener !== 'function') return;
+        sock.__afWxDmHooked = true;
+        sock.addEventListener('message', (ev) => {
+          let m = null;
+          try { m = JSON.parse(ev.data); } catch (e) { return; }
+          wxdmOnMsg(m);
+        });
+      }
+      try { if (ws) wxdmWrap(ws); } catch (e) {}
+    } catch (e) { console.warn('[AF] 微信式私聊面板注入失败：', e && e.message); }
+  })();
+
 })();
