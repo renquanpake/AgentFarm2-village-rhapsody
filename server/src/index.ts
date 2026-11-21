@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
 import { App } from './app.ts';
+import { ensureSeedData } from './persistence/seed.ts';
 import { PORT, WS_HEARTBEAT_MS, BACKUP_SCRIPT, DATA_DIR, SAVES_DIR } from './config.ts';
 import { createHttpHandler } from './gateway/http.ts';
 import { gameConn, agentConn } from './gateway/ws.ts';
@@ -22,6 +23,8 @@ import { currentGameDay } from './world/calendar.ts';
 import { settleFestival, snapshotFestivalDecor, activeFestival } from './world/festival.ts';
 import { publishNightActivity } from './world/night-events.ts';
 
+// 持久卷首次启动：先把种子数据铺进 AF_DATA_DIR（App/Tables 构造前必须完成）
+ensureSeedData();
 const app = new App();
 const server = http.createServer(createHttpHandler(app));
 // maxPayload 8MB：单条 WS 消息超过即断开，防内存炸弹

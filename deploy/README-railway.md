@@ -52,7 +52,7 @@ AF_DEV_ENDPOINTS=0                 # 生产关调试发币发物端点
 ```
 
 **Persistent Volume**：dashboard → Storage → New Volume，挂到 `/data`（0.5 GB 上限够用）。存档会跨重启保留。
-挂载后 `/data` 是空卷也没关系：容器启动命令会自动把镜像内的 `data/` 静态数据铺进去（`cp -an` 不覆盖已有存档）。
+挂载后 `/data` 是空卷也没关系：服务启动时会自动把镜像内的 `/seed-data` 铺进 `/data`（Node 启动路径 `ensureSeedData()` 执行，dashboard 里配了 startCommand 也绕不开；已存在的存档一律不覆盖）。部署日志会出现 `[seed] 已从 /seed-data 铺设 N 个文件`。
 
 ## 第 4 步：上线验收
 

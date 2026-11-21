@@ -16,11 +16,17 @@ COPY data ./seed-data
 COPY assets/personalities ./assets/personalities
 COPY assets/generated ./assets/generated
 
+# 构建期硬断言：种子数据缺文件直接红，避免运行期静默空世界
+RUN test -f /seed-data/seed-villagedb.json \
+ && test -f /seed-data/village-farm.json \
+ && test -f /seed-data/nav/nav-2.json
+
 ENV NODE_ENV=production \
     PORT=8080 \
     AF_NO_TUNNEL=1 \
     AF_NO_GIT=1 \
     AF_DATA_DIR=/data \
+    AF_SEED_DIR=/seed-data \
     AF_WS_HEARTBEAT_MS=25000 \
     AF_MAX_PLAYERS=4 \
     AF_DEV_ENDPOINTS=0
