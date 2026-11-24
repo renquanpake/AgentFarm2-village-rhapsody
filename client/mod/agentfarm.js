@@ -12,6 +12,14 @@
   if (window.__AF_MOD__) return;
   window.__AF_MOD__ = true;
 
+function cssColor(name, fallback) {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    if (v && v.trim() !== '' && v.trim() !== 'none') return v.trim();
+  } catch (e) {}
+  return fallback;
+}
+
   const HOST = location.hostname || '127.0.0.1';
   // 朋友打开 https://你的域名 进游戏，无感连房主服。本地开发/内网才需手动改地址。
   // 静态资源可来自任意来源（本地启动器/房主/CDN），API+WS 连这里填的房间服务器。
@@ -3492,13 +3500,6 @@
       })
       .catch(() => {});
   }
-  // Canvas 2D 不解析 CSS 变量：绘制地图前把 token 解析成真实色值（回落 = tokens.css 设计值）
-  function cssColor(name, fallback) {
-    try {
-      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-      return v || fallback;
-    } catch (e) { return fallback; }
-  }
   function injectVillageMap() {
     try {
       const scene = cc.director && cc.director.getScene();
@@ -3535,12 +3536,12 @@
             if (inOrig) continue;
             const i = y * g.W + x;
             if (g.water[i]) fill(x, y, cssColor('--af-c-sky', '#8fb0d8'));
-            else if (g.blocked && g.blocked[i]) fill(x, y, cssColor('--af-c-wood', '#7a6a4a'));
+            else if (g.blocked && g.blocked[i]) fill(x, y, cssColor('--af-c-wood', '#b5a06e'));
           }
           for (const h of (g.houses || [])) {
             const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
             if (inOrig) continue;
-            ctx.strokeStyle = cssColor('--af-c-wood-dark', '#8a5a2a');
+            ctx.strokeStyle = cssColor('--af-c-wood-dark', '#9a7428');
             ctx.lineWidth = Math.max(1, Math.round(cw / 220));
             ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
           }
@@ -3595,13 +3596,13 @@
       if (inOrig) continue; // 原版区透明，透底
       const i = y * g.W + x;
       if (g.water[i]) fill(x, y, cssColor('--af-c-sky', '#8fb0d8'));
-      else if (g.blocked && g.blocked[i]) fill(x, y, cssColor('--af-c-wood', '#7a6a4a'));
+      else if (g.blocked && g.blocked[i]) fill(x, y, cssColor('--af-c-wood', '#b5a06e'));
     }
     // 宅基地描边（只在扩展区画）
     for (const h of (g.houses || [])) {
       const inOrig = h.x >= g.LEFT && h.x + h.w <= g.LEFT + g.origW && h.y >= g.TOP && h.y + h.h <= g.TOP + g.origH;
       if (inOrig) continue;
-      ctx.strokeStyle = cssColor('--af-c-wood-dark', '#8a5a2a');
+      ctx.strokeStyle = cssColor('--af-c-wood-dark', '#9a7428');
       ctx.lineWidth = Math.max(1, Math.round(cw / 220));
       ctx.strokeRect(h.x * sx + 1, h.y * sy + 1, h.w * sx - 2, h.h * sy - 2);
     }
@@ -3645,7 +3646,7 @@
     rc.lineCap = 'round'; rc.lineJoin = 'round';
     for (const r of (g.roads || [])) {
       if (!Array.isArray(r.line) || r.line.length < 2) continue;
-      rc.strokeStyle = cssColor('--af-c-gold', '#ffd97a');
+      rc.strokeStyle = cssColor('--af-c-gold', '#c9a227');
       rc.lineWidth = Math.max(1, Math.round((r.width || 1) * sx * 0.75));
       rc.beginPath();
       for (let i = 0; i < r.line.length; i++) {
@@ -3661,8 +3662,8 @@
     for (const L of (g.landmarks || [])) {
       if (!Number.isFinite(L.x) || !Number.isFinite(L.y)) continue;
       const px = (L.x + 0.5) * sx, py = (L.y + 0.5) * sy;
-      lc.fillStyle = cssColor('--af-c-amber', '#e0a63c');
-      lc.strokeStyle = cssColor('--af-c-amber', '#e0a63c');
+      lc.fillStyle = cssColor('--af-c-amber', '#ef9a3c');
+      lc.strokeStyle = cssColor('--af-c-amber', '#ef9a3c');
       lc.lineWidth = 1;
       lc.beginPath();
       switch (L.type) {
