@@ -570,6 +570,14 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
       if (pending.size) flush();
       startPosSync();
       toast('已连接 · ' + (nick || uid), 'ok');
+      // 心跳：5s 一次 ping，15s 无 pong 重连
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      lastPongAt = Date.now();
+      heartbeatTimer = setInterval(() => {
+        if (!connected || !ws || ws.readyState !== 1) return;
+        try { ws.send(JSON.stringify({ t: 'chat', text: '__ping__', seq: ++lastMoveSeq })); } catch (e) {}
+        if (Date.now() - lastPongAt > 15000) { try { ws.close(); } catch (e) {} }
+      }, 5000);
     };
     ws.onmessage = function (ev) {
       let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
@@ -613,6 +621,16 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
           break;
         }
         case 'move': onRemoteMove(msg); break;
+        case 'move_ack': lastAuthPos = { x: msg.x, y: msg.y, scene: msg.scene, at: msg.at || Date.now() }; lastMoveSeq = (typeof msg.seq === 'number') ? msg.seq : lastMoveSeq; break;
+        case 'move_reject': {
+          if (lastAuthPos) {
+            const n = resolvePlayerNode();
+            if (n && n.isValid) { try { n.setPosition(lastAuthPos.x, lastAuthPos.y, 0); } catch (e) {} }
+            toast('移动被拒绝：' + (msg.reason || '非法坐标'), 'err');
+          }
+          break;
+        }
+        case 'pong': lastPongAt = Date.now(); break;
         case 'social_in': onSocialIn(msg); break;
         case 'social_result': onSocialResult(msg); break;
         case 'social_tp_apply': {
@@ -652,6 +670,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     };
     ws.onclose = function () {
       connected = false;
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
       if (afKicked) return; // 被踢/鉴权失败：等待用户刷新页面，避免重连循环
       setTimeout(connect, 3000);
     };
@@ -668,6 +687,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
   // 黑洞解开的 pending 若比它更早，就是过期重放：done 已把节点吸附到更新的位置，
   // 再 tween 回旧目标会让画面往回退（黑洞重放断言表现为 node 停在中间格）。
   let lastAuthAt = 0;
+let lastMoveSeq = 0, lastAuthPos = null, lastPongAt = 0, heartbeatTimer = null;
   let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
   let lastAgentMovePayload = null, agentMoveDoneCount = 0, lastServerPos = null;
   // 节点生命周期显式绑定（WP1b）：scene-launched 触发 + EVENT_AFTER_UPDATE 帧级探测 + 失效解绑，
@@ -905,7 +925,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
       const pos = readPlayerPos();
       if (pos && connected && !hostedAgentOnline) {
         if (pos.scene !== lastScene) { lastScene = pos.scene; sceneChangeAt = Date.now(); spawnFixed = false; }
-        try { ws.send(JSON.stringify({ t: 'move', scene: pos.scene, x: pos.x, y: pos.y })); } catch (e) {}
+        try { ws.send(JSON.stringify({ t: 'move', scene: pos.scene, x: pos.x, y: pos.y, seq: ++lastMoveSeq })); } catch (e) {}
       }
       // P1.1 pending 重放 flush：节点未就绪时收到的 agent_move 在 tick 尝试应用
       if (agentPending) flushAgentPending();
