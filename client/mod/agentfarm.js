@@ -283,7 +283,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
           <p class="sub">输入房主给你的6位房间码，或直接输入地址</p>
           <input id="af-roomcode" placeholder="6位房间码（如 382915）" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px;font-weight:bold;">
           <div style="text-align:center;color:var(--af-c-text-dim);font-size:12px;margin:8px 0">—— 或手动输入地址 ——</div>
-          <input id="af-srv" placeholder="如 http://192.168.1.5:8080" value="${esc(SERVER)}" maxlength="120">
+          <input id="af-srv" placeholder="如 http://your-server:8080" value="${esc(SERVER)}" maxlength="120">
           <div class="err" id="af-err"></div>
           <button class="btn btn-primary" id="af-join-btn">连接</button>
           <div class="foot-hint">让房主告诉你他的房间码或地址。</div>
