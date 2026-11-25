@@ -16,7 +16,16 @@ import {
 import { TASK_DEFS, tasksOf, taskCount, taskView } from '../world/tasks.ts';
 import { socialGive, socialBind, agentGreet, agentCompanionBond, agentFallout } from '../world/social-actions.ts';
 import { actSteal, actClear } from '../world/malice.ts';
+import { recordFact } from '../world/social-facts.ts';
+import { rollQuality, QUALITY_CN } from '../world/quality.ts';
 import { loadHomeSlots, homeSlotViolation, homeSpawnPx, slotOfPlayer, type HomeSlotDoc } from '../world/spawn-slots.ts';
+
+/** FNV-1a 32 位（确定性 hash，社交选择支/品质共用口径） */
+function fnvU32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
+}
 
 // B4 槽位表缓存（data/home-slots.json 变更极少；30s 一次足够，避免每次移动读盘）
 let homeSlotsCache: { doc: HomeSlotDoc | null; at: number } = { doc: null, at: 0 };
@@ -614,12 +623,24 @@ state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
         if (!nr.ok) { send({ t: 'social_result', social: 'talk', ok: false, msg: nr.msg }); break; }
         const text = String(msg.text || '').slice(0, 200);
         if (text) sendTo(pB, { t: 'social_in', social: 'talk', from: uid, nick: p.nick, text });
-        const fav = addFav(state, uid!, target, 2);
+        // M14 对话选择支：care +3 / joke 70% +2 否则 -1 / cold -2 / 无选择 = 旧行为 +2
+        const choice = String(msg.choice || '');
+        let delta = 2;
+        let kind = 'talk';
+        let note = `${p.nick} 和 ${pB.nick} 聊了聊`;
+        if (choice === 'care') { delta = 3; kind = 'talk_care'; note = `${p.nick} 关心了 ${pB.nick}`; }
+        else if (choice === 'joke') {
+          const h = (fnvU32(`${uid}|${target}|${Date.now() >> 13}`) / 0xffffffff);
+          if (h < 0.7) { delta = 2; kind = 'talk_joke'; note = `${p.nick} 讲了笑话，${pB.nick} 笑了`; }
+          else { delta = -1; kind = 'talk_cold'; note = `${p.nick} 的玩笑有点冷场`; }
+        } else if (choice === 'cold') { delta = -2; kind = 'talk_cold'; note = `${p.nick} 对 ${pB.nick} 爱答不理`; }
+        const fav = addFav(state, uid!, target, delta);
+        recordFact(state, uid!, target, kind, note);
         taskCount(state, app.tables, uid!, 'talk');
         taskCount(state, app.tables, target, 'talk');
         const firstMeet = dmUnlock(state, uid!, target);
         // 事件溯源：好感与 DM 解锁入事件流（结构化域事实源）
-        app.log.append('social.fav', uid!, { a: uid!, b: target, delta: 2 });
+        app.log.append('social.fav', uid!, { a: uid!, b: target, delta, choice: choice || 'plain' });
         if (firstMeet) {
           app.log.append('dm.unlocked', uid!, { a: uid!, b: target });
           announceDmUnlock(state, uid!, target, `🤝 ${p.nick} 和 ${pB.nick} 见面了，可以开始私聊了`);
@@ -627,8 +648,9 @@ state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
         }
         app.log.append('task.progress', uid!, { uid: uid!, type: 'talk', n: 1 });
         app.log.append('task.progress', uid!, { uid: target, type: 'talk', n: 1 });
-        send({ t: 'social_result', social: 'talk', ok: true, msg: firstMeet ? `首次见面，已解锁私聊！好感 +2（现 ${fav}）` : `已对话，${pB.nick} 对你的好感 +2（现 ${fav}）` });
-        log.write('info', 'ws', `[social] ${p.nick} 对话 ${pB.nick}`);
+        const favTxt = delta >= 0 ? `好感 +${delta}（现 ${fav}）` : `好感 ${delta}（现 ${fav}）`;
+        send({ t: 'social_result', social: 'talk', ok: true, msg: firstMeet ? `首次见面，已解锁私聊！${favTxt}` : `已对话，${pB.nick} 对你的${favTxt}` });
+        log.write('info', 'ws', `[social] ${p.nick} 对话 ${pB.nick}（${choice || 'plain'} ${delta >= 0 ? '+' : ''}${delta}）`);
         break;
       }
       case 'social_give': {
@@ -1459,16 +1481,19 @@ responseType = 'move_started';
             worldPlants(state).splice(worldPlants(state).indexOf(p), 1);
             const plot = worldPlots(state).find(pl => pl.plantUID === p.uId);
             if (plot) plot.plantUID = 0;
-            knapAdd(pm, crop.cropItemId, 1);
+            // M12 品质：收获时 roll（确定性种子），金/银按 bonus 额外产出
+            const { quality, qty } = rollQuality(uid, p.uId);
+            knapAdd(pm, crop.cropItemId, qty);
             state.persist();
-            app.log.append('crop.harvested', uid, { uId: p.uId });
-            app.log.append('item.gained', uid, { uid, itemId: crop.cropItemId, num: 1 });
+            app.log.append('crop.harvested', uid, { uId: p.uId, quality, qty });
+            app.log.append('item.gained', uid, { uid, itemId: crop.cropItemId, num: qty });
             taskCount(state, app.tables, uid, 'harvest');
             app.log.append('task.progress', uid, { uid, type: 'harvest', n: 1 });
             publish('正在收获' + crop.name);
             // B11 秋丰收：收获次数计分（仅丰收日生效）
             recordFestivalScore(app, uid, 1, 'harvest');
-            result = { ok: true, harvested: { crop: crop.name, itemId: crop.cropItemId }, msg: `收获了${crop.name} ×1，已放入背包` };
+            const qTxt = QUALITY_CN[quality];
+            result = { ok: true, harvested: { crop: crop.name, itemId: crop.cropItemId, qty, quality }, msg: `收获了${crop.name} ×${qty}（${qTxt}品质）${qty > 1 ? '（品质溢额）' : ''}，已放入背包` };
           } else if (action === 'chop') {
             const _t = normXYOf(app, msg.x, msg.y);
             const gx = Math.floor(_t.x / 100), gy = Math.floor(_t.y / 100);
