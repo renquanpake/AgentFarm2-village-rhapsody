@@ -30,6 +30,7 @@ import { recapView } from '../world/agent-log.ts';
 import { agentMailOf } from '../world/agent-mail.ts';
 import { SAVE_VERSION, saveVersionOf, migrationPlan } from '../persistence/save-version.ts';
 import { loadPersonas, buildDailyHabits, rememberCard, type PersonaCard } from '../world/habits.ts';
+import { craftStart, craftCollect, craftJobsOf, CRAFT_RECIPES, MAX_CRAFT_JOBS } from '../world/craft.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 void __dirname;
@@ -821,6 +822,41 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
       if (!a) { text(res, 401, 'bad token'); return; }
       json(res, 200, { ok: true, ...economyReport(app) });
+      return;
+    }
+
+    // M13 加工链：列表 / 提交 / 收取（料理台 artisan 溢价，作物 -> 金币）
+    if (u.pathname === '/af/craft') {
+      const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
+      if (!a) { text(res, 401, 'bad token'); return; }
+      const jobs = craftJobsOf(app.state, a.uid).map(j => {
+        const r = CRAFT_RECIPES.find(x => x.id === j.recipeId);
+        return { ...j, name: r?.name || j.recipeId, remainMs: Math.max(0, j.readyAt - Date.now()) };
+      });
+      json(res, 200, {
+        ok: true,
+        jobs,
+        recipes: CRAFT_RECIPES.map(r => ({ id: r.id, name: r.name, inputs: r.inputs, ms: r.ms, mul: r.mul })),
+        maxJobs: MAX_CRAFT_JOBS,
+      });
+      return;
+    }
+    if (u.pathname === '/af/craft/start' && req.method === 'POST') {
+      const raw = await readJsonBody(req, 256);
+      const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const r = craftStart(app.state, app.tables, a.uid, String((raw || {}).recipeId || ''));
+      if (r.ok) { app.log.append('craft.started', a.uid, { jobId: r.job?.jobId, recipeId: r.job?.recipeId }); app.state.schedulePersist(); }
+      json(res, 200, { ok: r.ok, msg: r.msg, job: r.job || null });
+      return;
+    }
+    if (u.pathname === '/af/craft/collect' && req.method === 'POST') {
+      const raw = await readJsonBody(req, 256);
+      const a = app.accounts.findAccountByToken(String((raw || {}).token || ''));
+      if (!a) { json(res, 401, { ok: false, msg: 'bad token' }); return; }
+      const r = craftCollect(app.state, a.uid, String((raw || {}).jobId || ''));
+      if (r.ok) { app.log.append('craft.collected', a.uid, { jobId: (raw || {}).jobId, payout: r.payout, recipeId: r.recipeId }); app.state.schedulePersist(); }
+      json(res, 200, { ok: r.ok, msg: r.msg, payout: r.payout || null, recipeId: r.recipeId || null });
       return;
     }
 
