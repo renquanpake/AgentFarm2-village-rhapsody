@@ -163,6 +163,9 @@ function sendTo(p: { ws: WebSocket }, obj: unknown): void {
   if (p.ws && p.ws.readyState === 1) p.ws.send(JSON.stringify(obj));
 }
 
+// 联机预测修正：上一条合法位置（uid -> 最近一次 move 的位置与时间戳）
+const lastMovePos = new Map<string, { x: number; y: number; scene: number; at: number }>();
+
 /** 目标坐标容错：agent 可能传格子坐标（如 33,15）或像素坐标（如 3350,1550） */
 export function normXYOf(app: App, x: unknown, y: unknown): { x: number; y: number } {
   return normXY(app.tables, x, y);
@@ -573,6 +576,12 @@ state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
         const nextScene = msg.scene === undefined ? p.scene : Math.round(cv(msg.scene, p.scene));
         const nextX = cv(msg.x, p.x);
         const nextY = cv(msg.y, p.y);
+        // 位置合法性：NaN/越界/瞬移检测（联机预测修正）
+        if (!Number.isFinite(nextX) || !Number.isFinite(nextY)) { send({ t: 'move_reject', reason: 'bad_coord' }); break; }
+        const prev = lastMovePos.get(uid!);
+        if (prev && prev.scene === nextScene && (Math.abs(nextX - prev.x) > 300 || Math.abs(nextY - prev.y) > 300)) {
+          send({ t: 'move_reject', reason: 'teleport' }); break;
+        }
         // B4 槽位隔离：场景 1（家门口）是私有槽位，跨槽移动拒收（房子真的分家了）
         if (nextScene === 1) {
           const doc = homeSlots(app.dataDir);
@@ -582,6 +591,10 @@ state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
         p.scene = nextScene;
         p.x = nextX;
         p.y = nextY;
+        lastMovePos.set(uid!, { x: nextX, y: nextY, scene: nextScene, at: now });
+        // 联机预测确认：回 seq 让客户端清理 pending
+        const ackSeq = typeof msg.seq === 'number' ? msg.seq : null;
+        send({ t: 'move_ack', seq: ackSeq, x: nextX, y: nextY, scene: nextScene, at: now });
         if (msg.scene !== undefined) {
           trackSceneTogether(state, uid!, p.scene);
           for (const [k, o] of state.online) if (k !== uid && o.scene === p.scene) registerScenePeer(state, uid!, k, p.scene);
@@ -602,6 +615,11 @@ state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
         }
         win.push(now);
         (ws as { _chatWin?: number[] })._chatWin = win;
+        // 心跳：pong 回 seq + 服务端时间
+        if (msg.text === '__ping__' && typeof msg.seq === 'number') {
+          send({ t: 'pong', seq: msg.seq, serverTime: now });
+          break;
+        }
         const text = String(msg.text || '').slice(0, 200);
         log.write('info', 'ws', `[chat] ${p.nick}: ${text}`);
         app.chatLog.push({ nick: p.nick, text, at: Date.now() });
@@ -843,6 +861,7 @@ state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
     // 仅当关闭的是当前在线记录对应的连接时才移除（防双开被顶掉的旧连接误删新连接）
     if (uid && state.online.get(uid)?.ws === ws) {
       state.online.delete(uid);
+      lastMovePos.delete(uid); // 联机预测修正：清理上一条合法位置
       metricsSessionEnd(app, uid); // N8：累计在线时长
       dropScenePeer(state, uid);
       app.narrative.liveDirector.clearWatch(uid); // M1：断开时清观战
