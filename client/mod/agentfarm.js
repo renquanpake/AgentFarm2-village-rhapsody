@@ -186,6 +186,20 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
       #af-login .save .cur { color: var(--af-c-amber); font-size: 11px; margin-left: 6px; }
       #af-login .save.empty { opacity: .55; cursor: default; }
       #af-login .warn { color: var(--af-c-gold); font-size: 12px; margin: 0 0 8px; }
+      /* —— 浮动按钮统一 hover 效果 —— */
+      #af-market-btn:hover, #af-roster-btn:hover, #af-notice-btn:hover, #af-craft-btn:hover, #af-npc-btn:hover,
+      #af-poi-btn:hover, #af-bigmap-btn:hover, #af-relay-btn:hover {
+        background: var(--af-c-glass-solid);
+        border-color: var(--af-c-gold);
+        box-shadow: 0 4px 12px var(--af-c-black-50);
+        transform: translateY(-1px);
+      }
+      /* —— 面板淡入动画 —— */
+      @keyframes afFadeIn { from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+      #af-market-panel, #af-roster-panel, #af-notice-panel, #af-craft-panel, #af-npc-panel,
+      #af-poi-panel, #af-bigmap-panel, #af-relay-panel {
+        animation: afFadeIn 0.18s ease-out;
+      }
     `;
     document.head.appendChild(css);
 
@@ -2438,7 +2452,8 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     rosterBtn.title = '查看全村人物关系';
     rosterBtn.style.cssText = 'position:fixed;right:10px;top:206px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
-      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40);transition:all 0.15s ease';
+    document.body.appendChild(rosterBtn);
     document.body.appendChild(rosterBtn);
 
     const rosterPanel = document.createElement('div');
@@ -2456,7 +2471,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     marketBtn.title = '查看订单簿行情与最近成交';
     marketBtn.style.cssText = 'position:fixed;right:10px;top:174px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
-      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40);transition:all 0.15s ease';
     document.body.appendChild(marketBtn);
 
     const marketPanel = document.createElement('div');
@@ -2526,9 +2541,9 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     noticeBtn.id = 'af-notice-btn';
     noticeBtn.textContent = '公告';
     noticeBtn.title = '查看全服公告';
-    noticeBtn.style.cssText = 'position:fixed;right:10px;top:238px;z-index:99990;cursor:pointer;' +
+    noticeBtn.style.cssText = 'position:fixed;right:10px;top:270px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
-      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40);transition:all 0.15s ease';
     document.body.appendChild(noticeBtn);
 
     const noticePanel = document.createElement('div');
@@ -2566,9 +2581,9 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     craftBtn.id = 'af-craft-btn';
     craftBtn.textContent = '加工';
     craftBtn.title = '料理台 artisan 加工（作物 -> 金币溢价）';
-    craftBtn.style.cssText = 'position:fixed;right:10px;top:206px;z-index:99990;cursor:pointer;' +
+    craftBtn.style.cssText = 'position:fixed;right:10px;top:238px;z-index:99990;cursor:pointer;' +
       'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
-      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40);transition:all 0.15s ease';
     document.body.appendChild(craftBtn);
 
     const craftPanel = document.createElement('div');
