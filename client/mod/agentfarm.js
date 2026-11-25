@@ -20,6 +20,9 @@ function cssColor(name, fallback) {
   return fallback;
 }
 
+// 统一 HTML 转义，所有向 innerHTML 写入的用户/服务端可控数据必须先 esc
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
   const HOST = location.hostname || '127.0.0.1';
   // 朋友打开 https://你的域名 进游戏，无感连房主服。本地开发/内网才需手动改地址。
   // 静态资源可来自任意来源（本地启动器/房主/CDN），API+WS 连这里填的房间服务器。
@@ -2532,7 +2535,7 @@ function cssColor(name, fallback) {
           const k = kindLabel[n.kind] || n.kind || '';
           return '<div style="margin-bottom:8px;border-left:2px solid var(--af-c-gold);padding-left:8px">' +
             '<span style="font-size:10px;color:var(--af-c-text-dim)">#' + n.seq + ' · ' + k + '</span>' +
-            '<div>' + (n.text || '') + '</div></div>';
+            '<div>' + escHtml(n.text || '') + '</div></div>';
         }).join('');
       } catch (e) { bd.textContent = '加载失败'; }
     }
@@ -2882,8 +2885,8 @@ function cssColor(name, fallback) {
             const el = vp.querySelector('#af-vp-animals');
             if (!d.ok || !d.animals || !d.animals.length) { el.textContent = '暂无动物（去牧场领养）'; el.className = 'line muted'; return; }
             el.innerHTML = d.animals.slice(0, 6).map(a =>
-              a.name + '(' + a.stage + ') 饱' + (a.satiety == null ? '-' : a.satiety)
-            ).join('<br>') + (d.animals.length > 6 ? '<br><span class="muted">…共 ' + d.animals.length + ' 只</span>' : '');
+              escHtml(a.name) + '(' + escHtml(a.stage) + ') 饱' + (a.satiety == null ? '-' : escHtml(a.satiety))
+            ).join('<br>') + (d.animals.length > 6 ? '<br><span class="muted">…共 ' + escHtml(d.animals.length) + ' 只</span>' : '');
             el.className = 'line';
           })
           .catch(() => {});
@@ -2899,7 +2902,7 @@ function cssColor(name, fallback) {
           .then(d => {
             const el = vp.querySelector('#af-vp-decor');
             if (!d.ok || !d.top || !d.top.length) { el.textContent = '暂无布置'; el.className = 'line muted'; return; }
-            el.innerHTML = d.top.slice(0, 5).map((r, i) => (i + 1) + '. ' + r.username + ' ' + r.score + '分').join('<br>');
+            el.innerHTML = d.top.slice(0, 5).map((r, i) => (i + 1) + '. ' + escHtml(r.username) + ' ' + escHtml(r.score) + '分').join('<br>');
             el.className = 'line';
           })
           .catch(() => {});
@@ -2914,8 +2917,8 @@ function cssColor(name, fallback) {
           .then(r => r.json())
           .then(d => {
             if (!d.ok) { el.textContent = '回放不可用'; return; }
-            const shots = (d.shots || []).slice(-5).map(s => s.kind + ':' + s.target + '@' + s.x + ',' + s.y).join(' → ');
-            el.textContent = 'seq ' + d.fromSeq + '-' + d.toSeq + ' · ' + (d.shots || []).length + ' 镜头' +
+            const shots = (d.shots || []).slice(-5).map(s => escHtml(s.kind) + ':' + escHtml(s.target) + '@' + escHtml(s.x) + ',' + escHtml(s.y)).join(' → ');
+            el.innerHTML = 'seq ' + escHtml(d.fromSeq) + '-' + escHtml(d.toSeq) + ' · ' + escHtml((d.shots || []).length) + ' 镜头' +
               (d.deterministic === false ? ' · ⚠ 非确定' : ' · 确定性✓') +
               (shots ? '<br><span class="muted">' + shots + '</span>' : '');
           })
