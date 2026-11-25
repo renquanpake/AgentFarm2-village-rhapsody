@@ -471,7 +471,7 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         const pd0 = app.state.playersDb.get(uid)?.get('playerData') as Record<string, unknown> | undefined;
 const savedPos = pd0?.playerPos as { x?: number; y?: number } | undefined;
 const savedScene = (pd0?.sceneType ?? pd0?.posSceneType) as number | undefined;
-const initScene = (msg.scene as number | undefined) ?? (typeof savedScene === 'number' ? savedScene : 0);
+const initScene = (msg.scene as number | undefined) ?? (typeof savedScene === 'number' ? savedScene : 2);
 const initX = (msg.x as number | undefined) ?? (typeof savedPos?.x === 'number' ? savedPos.x : 0);
 const initY = (msg.y as number | undefined) ?? (typeof savedPos?.y === 'number' ? savedPos.y : 0);
 state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
