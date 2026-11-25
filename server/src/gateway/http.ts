@@ -58,13 +58,21 @@ function serveStatic(app: App, req: http.IncomingMessage, res: http.ServerRespon
   res.setHeader('Cache-Control', 'no-cache');
   if (range) {
     const m = /bytes=(\d+)-(\d*)/.exec(range);
-    const start = m ? parseInt(m[1]) : 0;
-    const end = m && m[2] ? parseInt(m[2]) : st.size - 1;
+    const start = m ? parseInt(m[1], 10) : NaN;
+    const end = m && m[2] ? parseInt(m[2], 10) : (m ? st.size - 1 : NaN);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= st.size) {
+      res.writeHead(416);
+      res.setHeader('Content-Range', `bytes */${st.size}`);
+      res.end();
+      return;
+    }
+    const startOk = Math.max(0, start);
+    const endOk = Math.min(end, st.size - 1);
     res.writeHead(206, {
-      'Content-Type': mime, 'Content-Length': end - start + 1,
-      'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${start}-${end}/${st.size}`,
+      'Content-Type': mime, 'Content-Length': endOk - startOk + 1,
+      'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${startOk}-${endOk}/${st.size}`,
     });
-    fs.createReadStream(filePath, { start, end }).pipe(res);
+    fs.createReadStream(filePath, { start: startOk, end: endOk }).pipe(res);
   } else {
     res.writeHead(200, { 'Content-Type': mime, 'Content-Length': st.size, 'Accept-Ranges': 'bytes' });
     fs.createReadStream(filePath).pipe(res);
