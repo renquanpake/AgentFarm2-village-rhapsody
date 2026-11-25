@@ -2566,11 +2566,11 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
         const r = await fetch('/af/npc-schedule');
         const j = await r.json();
         if (!j.ok) { bd.textContent = '加载失败'; return; }
-        let html = '<div style="margin-bottom:8px"><b>当前时段</b>：第 ' + (j.day != null ? j.day : '?') + ' 日 ' + (j.hour != null ? j.hour : '?') + ' 时' +
-          (j.weather ? ' · ' + j.weather : '') + (j.festival ? ' · ' + j.festival : '') + '</div>';
+        let html = '<div style="margin-bottom:8px"><b>当前时段</b>：第 ' + escHtml(j.day != null ? j.day : '?') + ' 日 ' + escHtml(j.hour != null ? j.hour : '?') + ' 时' +
+          (j.weather ? ' · ' + escHtml(j.weather) : '') + (j.festival ? ' · ' + escHtml(j.festival) : '') + '</div>';
         if (j.npcs && j.npcs.length) {
           html += j.npcs.slice(0, 12).map(n =>
-            '<div style="margin-bottom:4px;font-size:11px"><b>' + (n.name || n.id) + '</b>：' + (n.activity || n.scene || '') + '</div>'
+            '<div style="margin-bottom:4px;font-size:11px"><b>' + escHtml(n.name || n.id) + '</b>：' + escHtml(n.activity || n.scene || '') + '</div>'
           ).join('');
         } else {
           html += '<div style="font-size:11px;color:var(--af-c-text-dim)">暂无 NPC 活动数据</div>';
@@ -2589,13 +2589,13 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
         const players = state.players || [];
         if (!players.length) { bd.innerHTML = '<p style="color:var(--af-c-text-dim);font-size:12px">暂无在线玩家。村长们都在你家种地呢。</p>'; return; }
         bd.innerHTML = players.map(p => {
-          const nick = p.nick || '村民';
-          const scene = p.scene || '?';
+          const nick = escHtml(p.nick || '村民');
+          const scene = escHtml(p.scene || '?');
           let relBadge = '';
           if (p.relation) {
             const colors = { '陌生人':'#888','好友':'#4a8a4a','知己':'#3a6aaa','伴侣':'#aa3a6a' }; /* af-color-allow: 关系语义色板（数据 LUT，token 无对应族，白字对比度依赖其深色） */
             const col = colors[p.relation] || '#888'; /* af-color-allow: 同上（数据字面量，非 UI chrome） */
-            relBadge = ` <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${col};color:var(--af-c-light)">${p.relation}</span>`;
+            relBadge = ` <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${col};color:var(--af-c-light)">${escHtml(p.relation)}</span>`;
           }
           return `<div style="margin-bottom:8px"><b>${nick}</b>${relBadge}<br><span style="font-size:11px;color:var(--af-c-text-dim)">场景 ${scene}</span></div>`;
         }).join('') + '<hr style="border-color:var(--af-c-edge);margin:10px 0"><p style="font-size:11px;color:var(--af-c-text-dim)">更多关系数据随游戏推进解锁。</p>';
