@@ -88,7 +88,7 @@ export class OrderBook {
    * 成交取挂单方价格；同价时间优先（FIFO）。
    */
   place(side: Side, price: number, qty: number, owner: string, now = Date.now()): PlaceResult {
-    if (qty <= 0 || price <= 0) return { fills: [], orderId: 0, resting: 0 };
+    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(qty) || qty <= 0) return { fills: [], orderId: 0, resting: 0 };
     const id = this.idBase + this.nextId++;
     const o: LimitOrder = { id, side, price, qty, owner, seq: ++this.seq, ts: now };
     let remaining = qty;
