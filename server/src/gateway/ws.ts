@@ -468,7 +468,13 @@ export function gameConn(app: App, ws: WebSocket, url?: URL | null): void {
         }
         if (!app.state.playersDb.has(uid)) app.state.playersDb.set(uid, new Map());
         metricsSessionStart(app, uid); // N8：会话埋点（首登/会话数/当日活跃）
-        state.online.set(uid, { ws, uid, nick, scene: (msg.scene as number | undefined) ?? 0, x: (msg.x as number | undefined) ?? 0, y: (msg.y as number | undefined) ?? 0 });
+        const pd0 = app.state.playersDb.get(uid)?.get('playerData') as Record<string, unknown> | undefined;
+const savedPos = pd0?.playerPos as { x?: number; y?: number } | undefined;
+const savedScene = (pd0?.sceneType ?? pd0?.posSceneType) as number | undefined;
+const initScene = (msg.scene as number | undefined) ?? (typeof savedScene === 'number' ? savedScene : 0);
+const initX = (msg.x as number | undefined) ?? (typeof savedPos?.x === 'number' ? savedPos.x : 0);
+const initY = (msg.y as number | undefined) ?? (typeof savedPos?.y === 'number' ? savedPos.y : 0);
+state.online.set(uid, { ws, uid, nick, scene: initScene, x: initX, y: initY });
         // 跟踪同场景共处（自动 DM 解锁）
         for (const [k, o] of state.online) if (k !== uid && o.scene === state.online.get(uid)!.scene) registerScenePeer(state, uid, k, o.scene);
         send({ t: 'welcome', uid, players: Array.from(state.online.values()).map(p => ({ uid: p.uid, nick: p.nick, scene: p.scene, x: p.x, y: p.y })) });
@@ -1810,6 +1816,13 @@ responseType = 'move_started';
   ws.on('close', () => {
     const s = app.agentSockets.get(uid);
     if (s) { s.delete(ws); if (!s.size) { app.agentSockets.delete(uid); metricsSessionEnd(app, uid); } }
+    // 该玩家无 agent 连接时，硬停进行中的托管移动（防角色卡死）
+    if (!app.agentSockets.has(uid)) {
+      const task = state.agentMoves.get(uid);
+      if (task) { task.abort(); state.agentMoves.delete(uid); }
+      state.agentRoutes.delete(uid);
+      state.agentArrives.delete(uid);
+    }
     log.write('info', 'ws', `[agent] 断开: ${nick}`);
     for (const [k, p] of state.online) if (k === uid) sendTo(p, { t: 'agent_status', online: false });
   });
