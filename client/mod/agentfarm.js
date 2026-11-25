@@ -621,7 +621,11 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
           break;
         }
         case 'move': onRemoteMove(msg); break;
-        case 'move_ack': lastAuthPos = { x: msg.x, y: msg.y, scene: msg.scene, at: msg.at || Date.now() }; lastMoveSeq = (typeof msg.seq === 'number') ? msg.seq : lastMoveSeq; break;
+        case 'move_ack': {
+          if (typeof msg.seq === 'number' && msg.seq !== lastMoveSeq) break; // 乱序/过期 ack 忽略
+          lastAuthPos = { x: msg.x, y: msg.y, scene: msg.scene, at: msg.at || Date.now() };
+          break;
+        }
         case 'move_reject': {
           if (lastAuthPos) {
             const n = resolvePlayerNode();
@@ -687,7 +691,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
   // 黑洞解开的 pending 若比它更早，就是过期重放：done 已把节点吸附到更新的位置，
   // 再 tween 回旧目标会让画面往回退（黑洞重放断言表现为 node 停在中间格）。
   let lastAuthAt = 0;
-let lastMoveSeq = 0, lastAuthPos = null, lastPongAt = 0, heartbeatTimer = null;
+let lastMoveSeq = 0, lastAuthPos = null, lastPongAt = 0, heartbeatTimer = null, lastSentPos = null;
   let agentMoveTweens = [], blackholeCount = 0, floatTextSeq = 0, floatTextCount = 0;
   let lastAgentMovePayload = null, agentMoveDoneCount = 0, lastServerPos = null;
   // 节点生命周期显式绑定（WP1b）：scene-launched 触发 + EVENT_AFTER_UPDATE 帧级探测 + 失效解绑，
@@ -925,7 +929,13 @@ let lastMoveSeq = 0, lastAuthPos = null, lastPongAt = 0, heartbeatTimer = null;
       const pos = readPlayerPos();
       if (pos && connected && !hostedAgentOnline) {
         if (pos.scene !== lastScene) { lastScene = pos.scene; sceneChangeAt = Date.now(); spawnFixed = false; }
-        try { ws.send(JSON.stringify({ t: 'move', scene: pos.scene, x: pos.x, y: pos.y, seq: ++lastMoveSeq })); } catch (e) {}
+        // 位移阈值：原地不动不刷包，场景切换强制发一包
+        const st = lastSentPos;
+        const moved = !st || pos.x !== st.x || pos.y !== st.y || pos.scene !== st.scene;
+        if (moved) {
+          lastSentPos = { x: pos.x, y: pos.y, scene: pos.scene };
+          try { ws.send(JSON.stringify({ t: 'move', scene: pos.scene, x: pos.x, y: pos.y, seq: ++lastMoveSeq })); } catch (e) {}
+        }
       }
       // P1.1 pending 重放 flush：节点未就绪时收到的 agent_move 在 tick 尝试应用
       if (agentPending) flushAgentPending();
