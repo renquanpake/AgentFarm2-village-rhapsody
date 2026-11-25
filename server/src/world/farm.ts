@@ -172,7 +172,7 @@ function knapOf(pm: Map<string, unknown> | undefined): Knap {
   return kn;
 }
 
-export function knapAdd(pm: Map<string, unknown> | undefined, itemId: number, num: number): Knap {
+export function knapAdd(pm: Map<string, unknown> | undefined, itemId: number, num: number): Knap {\n  if (!Number.isFinite(num) || num <= 0) return { items: [], gold: 0 };
   const kn = knapOf(pm);
   const p = kn.props!.find(x => x.id === itemId);
   if (p) p.num = (p.num || 0) + num;
@@ -187,7 +187,7 @@ export function knapHas(pm: Map<string, unknown> | undefined, itemId: number, nu
   return !!p && (p.num || 0) >= num;
 }
 
-export function knapSub(pm: Map<string, unknown> | undefined, itemId: number, num = 1): boolean {
+export function knapSub(pm: Map<string, unknown> | undefined, itemId: number, num = 1): boolean {\n  if (!pm || !Number.isFinite(num) || num <= 0) return false;
   const kn = knapOf(pm);
   const p = kn.props!.find(x => x.id === itemId);
   if (!p || (p.num || 0) < num) return false;
