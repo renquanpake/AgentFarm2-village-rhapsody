@@ -2752,7 +2752,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
         try {
           const act = ACT_CN[npc.activity] || npc.activity || '';
           const h = hour != null ? (' ' + String(hour).padStart(2, '0') + ':00') : '';
-          tick.innerHTML = '🧑 ' + '<span class="who">' + (npc.name || '村民') + '</span>' + ' ' + act + h;
+          tick.innerHTML = '🧑 ' + '<span class="who">' + escHtml(npc.name || '村民') + '</span>' + ' ' + escHtml(act) + escHtml(h);
           tick.classList.add('show');
           if (tickTimer) clearTimeout(tickTimer);
           tickTimer = setTimeout(() => tick.classList.remove('show'), 6000);
@@ -2784,7 +2784,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
             // 日期与天气由右上角 HUD 时钟唯一承载；这个盒子只补 HUD 之外的节日信息，
             // 两者同时显示会让同一行字在屏幕上出现两遍。
             if (t.festival) {
-              vd.innerHTML = '🎉 <span class="fx">' + t.festival + '</span>';
+              vd.innerHTML = '🎉 <span class="fx">' + escHtml(t.festival) + '</span>';
               vd.style.display = '';
             } else {
               vd.style.display = 'none';
@@ -3096,7 +3096,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
         markStep(3, [true, true, false]);
         const usePlayerKey = !!(d && d.playerKeySet);
         const which = usePlayerKey ? '你自己的 Key（已加密保管）'
-          : '房间模型 ' + ((d && d.providerUrl) || '') + ' / ' + ((d && d.providerModel) || '');
+          : '房间模型 ' + escHtml((d && d.providerUrl) || '') + ' / ' + escHtml((d && d.providerModel) || '');
         // 房间模型从没探通过 = 坏 Key/错地址的概率很高。先劝玩家点一次「测试连接」，
         // 别等托管起来后才在日志里看到失败。
         const unverified = !usePlayerKey && d && !d.providerVerified;
@@ -3186,7 +3186,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
         say('');
         $('#af-ob-form').style.display = 'none';
         loadState().then(render).catch(e => {
-          noteEl.innerHTML = '<b>读取接入状态失败：</b>' + e.message + '<br>可点「稍后再说」，之后点右上角状态胶囊重试。';
+          noteEl.innerHTML = '<b>读取接入状态失败：</b>' + escHtml(e.message) + '<br>可点「稍后再说」，之后点右上角状态胶囊重试。';
           rowEl.innerHTML = '';
         });
       }
