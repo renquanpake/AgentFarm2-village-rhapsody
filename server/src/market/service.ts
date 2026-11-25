@@ -121,7 +121,7 @@ export class MarketService {
 
   /** 挂单（预留 -> 撮合 -> 结算过户 -> 落库/事件） */
   place(uid: string, item: number, side: Side, price: number, qty: number): PlaceResult {
-    if (qty <= 0 || price <= 0) return { ok: false, msg: 'price/qty 需为正数' };
+    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(qty) || qty <= 0) return { ok: false, msg: 'price/qty 需为正数' };
     this.ensureMaker(item);
     const b = this.bookOf(item);
     if (b.isBroken()) return { ok: false, msg: '该订单簿熔断中（交易异常），暂停撮合' };
