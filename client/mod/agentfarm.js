@@ -2100,8 +2100,29 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
       case 'talk': {
         const target = a(0);
         const rest = parts.slice(2).join(' ');
-        if (!target || !rest) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '用法：/talk 昵称 想说的话'); return true; }
+        if (!target || !rest) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '用法：/talk 昵称 想说的话（默认 +2，关心/玩笑/冷淡请用 /care /joke /cold）'); return true; }
         sendSocial('talk', { target, text: rest });
+        return true;
+      }
+      case 'care': {
+        const target = a(0);
+        const rest = parts.slice(2).join(' ');
+        if (!target || !rest) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '用法：/care 昵称 说的话（好感 +3，记录关心）'); return true; }
+        sendSocial('talk', { target, text: rest, choice: 'care' });
+        return true;
+      }
+      case 'joke': {
+        const target = a(0);
+        const rest = parts.slice(2).join(' ');
+        if (!target || !rest) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '用法：/joke 昵称 说的话（70% +2，30% 冷场 -1）'); return true; }
+        sendSocial('talk', { target, text: rest, choice: 'joke' });
+        return true;
+      }
+      case 'cold': {
+        const target = a(0);
+        const rest = parts.slice(2).join(' ');
+        if (!target || !rest) { if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', '用法：/cold 昵称 说的话（好感 -2，记录冷淡）'); return true; }
+        sendSocial('talk', { target, text: rest, choice: 'cold' });
         return true;
       }
       case 'give': {
@@ -2537,6 +2558,77 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
             '<span style="font-size:10px;color:var(--af-c-text-dim)">#' + n.seq + ' · ' + k + '</span>' +
             '<div>' + escHtml(n.text || '') + '</div></div>';
         }).join('');
+      } catch (e) { bd.textContent = '加载失败'; }
+    }
+
+    // --- U5 加工链面板（M13 artisan） ---
+    const craftBtn = document.createElement('div');
+    craftBtn.id = 'af-craft-btn';
+    craftBtn.textContent = '加工';
+    craftBtn.title = '料理台 artisan 加工（作物 -> 金币溢价）';
+    craftBtn.style.cssText = 'position:fixed;right:10px;top:206px;z-index:99990;cursor:pointer;' +
+      'background:var(--af-c-glass-panel);color:var(--af-c-gold);border:1px solid var(--af-c-moss);border-radius:6px;' +
+      'padding:5px 10px;font:13px var(--af-font-px);box-shadow:0 2px 6px var(--af-c-black-40)';
+    document.body.appendChild(craftBtn);
+
+    const craftPanel = document.createElement('div');
+    craftPanel.id = 'af-craft-panel';
+    craftPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:360px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
+    craftPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">加工链</b><span id="af-craft-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div>' +
+      '<div id="af-craft-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
+    document.body.appendChild(craftPanel);
+    craftBtn.addEventListener('click', () => { loadCraft(); craftPanel.style.display = 'flex'; });
+    document.getElementById('af-craft-x').addEventListener('click', () => { craftPanel.style.display = 'none'; });
+
+    async function loadCraft() {
+      const bd = document.getElementById('af-craft-bd');
+      if (!bd) return;
+      bd.textContent = '加载中…';
+      try {
+        const token = localStorage.getItem('af_token') || '';
+        const r = await fetch('/af/craft?token=' + encodeURIComponent(token));
+        const j = await r.json();
+        if (!j.ok) { bd.textContent = '加载失败'; return; }
+        const jobs = j.jobs || [];
+        const recipes = j.recipes || [];
+        let h = '';
+        if (jobs.length) {
+          h += '<div style="margin-bottom:8px"><b>进行中</b></div>';
+          h += jobs.map(jb => {
+            const remain = jb.remainMs > 0 ? Math.ceil(jb.remainMs / 1000) + 's' : '✅ 可收取';
+            const btn = jb.remainMs > 0 ? '' : ' <button data-job="' + jb.jobId + '" class="af-craft-collect" style="padding:2px 8px;border:1px solid var(--af-c-gold);background:var(--af-c-glass-panel);color:var(--af-c-gold);border-radius:4px;cursor:pointer;font:11px var(--af-font-px)">收取</button>';
+            return '<div style="margin-bottom:4px;font-size:11px"><b>' + escHtml(jb.name || jb.recipeId) + '</b>：' + remain + '（+' + jb.payout + '金币）' + btn + '</div>';
+          }).join('');
+          h += '<div style="height:1px;background:var(--af-c-edge);margin:8px 0"></div>';
+        }
+        h += '<div style="margin-bottom:6px"><b>配方</b></div>';
+        h += recipes.map(r => {
+          const inputStr = Object.keys(r.inputs || {}).map(k => k + '×' + r.inputs[k]).join(' + ');
+          return '<div style="margin-bottom:6px;font-size:11px;display:flex;align-items:center;gap:6px">' +
+            '<span style="flex:1"><b>' + escHtml(r.name) + '</b>（' + r.id + '）：' + inputStr + ' · ' + Math.round(r.ms / 60000) + 'min · ' + r.mul + 'x</span>' +
+            '<button data-recipe="' + r.id + '" class="af-craft-start" style="padding:2px 8px;border:1px solid var(--af-c-moss);background:var(--af-c-glass-panel);color:var(--af-c-text);border-radius:4px;cursor:pointer;font:11px var(--af-font-px)">开始</button>' +
+            '</div>';
+        }).join('');
+        bd.innerHTML = h;
+        // 绑定按钮
+        bd.querySelectorAll('.af-craft-start').forEach(b => {
+          b.addEventListener('click', async () => {
+            const token = localStorage.getItem('af_token') || '';
+            const rr = await fetch('/af/craft/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, recipeId: b.dataset.recipe }) });
+            const jj = await rr.json();
+            if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', (jj.ok ? '✅ ' : '❌ ') + (jj.msg || ''));
+            loadCraft();
+          });
+        });
+        bd.querySelectorAll('.af-craft-collect').forEach(b => {
+          b.addEventListener('click', async () => {
+            const token = localStorage.getItem('af_token') || '';
+            const rr = await fetch('/af/craft/collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, jobId: b.dataset.job }) });
+            const jj = await rr.json();
+            if (window.__AF_CHAT_ADD__) window.__AF_CHAT_ADD__('系统', (jj.ok ? '✅ ' : '❌ ') + (jj.msg || ''));
+            loadCraft();
+          });
+        });
       } catch (e) { bd.textContent = '加载失败'; }
     }
 
