@@ -808,7 +808,9 @@ export function createHttpHandler(app: App): (req: http.IncomingMessage, res: ht
       const a = app.accounts.findAccountByToken(u.searchParams.get('token'));
       if (!a) { text(res, 401, 'bad token'); return; }
       const item = Number(mktMatch[1]);
-      const days = Number(u.searchParams.get('days') || 7);
+      if (!Number.isFinite(item) || item < 1 || item > 9999) { text(res, 400, 'bad item'); return; }
+      const daysRaw = Number(u.searchParams.get('days') || 7);
+      const days = Number.isFinite(daysRaw) ? Math.max(1, Math.min(30, Math.floor(daysRaw))) : 7;
       const v = app.market.marketView(item, days);
       json(res, 200, { ok: true, item, basePrice: app.market.basePrice(item), ...v });
       return;
