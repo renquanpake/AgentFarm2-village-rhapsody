@@ -21,7 +21,7 @@ function fnv1a(s: string): number {
 }
 
 /** 收获品质 roll（纯函数，确定性）：种子 = uid + uId + 游戏日 */
-export function rollQuality(uid: string, uId: number, gameDay: number): { quality: Quality; bonus: number } {
+export function rollQuality(uid: string, uId: number, gameDay = Math.floor(Date.now() / 86_400_000)): { quality: Quality; bonus: number } {
   const h = fnv1a(`${uid}|${uId}|${gameDay}`);
   const r = h / 0xffffffff; // [0,1)
   if (r < 0.10) return { quality: 'gold', bonus: 1 };       // 金：必额外 +1
