@@ -7,7 +7,7 @@
 //   队列存 world.craftData（世界桶共享？不——玩家私有桶 afCraft.jobs，防互相偷）。
 //   上限：每人 4 个并行 job；收取时校验 readyAt <= now，未熟给剩余秒数。
 import type { WorldState } from '../persistence/state.ts';
-import { knapHas, knapSub } from './farm.ts';
+import { knapHas, knapSub, knapAdd } from './farm.ts';
 import type { Tables } from './tables.ts';
 
 export interface CraftRecipe {
@@ -92,7 +92,6 @@ export function craftCollect(state: WorldState, uid: string, jobId: string): { o
   jobs.splice(idx, 1);
   pm.set(CRAFT_KEY, { jobs });
   // 发金币（金币 = 道具 id 1 的堆叠）
-  const { knapAdd } = require('./farm.ts') as typeof import('./farm.ts');
   knapAdd(pm, 1, job.payout);
   state.persist();
   const r = CRAFT_RECIPES.find(x => x.id === job.recipeId);
