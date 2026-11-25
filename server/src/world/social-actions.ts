@@ -32,13 +32,15 @@ export function socialGive(app: App, state: WorldState, uid: string, rawTarget: 
   const pB = state.online.get(target);
   const targetAgentId = target.startsWith('agent:') ? target.slice(6) : null;
   if (!target) return { ok: false, msg: '对方不在村内（在线昵称 / uid / agent:<uid>）' };
+  if (target === uid) return { ok: false, msg: '不能给自己送礼' };
   if (!pB && !targetAgentId) return { ok: false, msg: '对方不在线' };
   if (pB) {
     const nr = socialNear(state, uid, target);
     if (!nr.ok) return { ok: false, msg: nr.msg || '距离太远（需同场景 8 格内）' };
   }
   const itemId = Number(rawItemId);
-  const num = Math.max(1, Math.min(99, Number(rawNum || 1)));
+  const numRaw = Number(rawNum || 1);
+  const num = Number.isFinite(numRaw) ? Math.max(1, Math.min(99, Math.floor(numRaw))) : 1;
   const it = app.tables.items.find(x => x.id === itemId);
   if (!it) return { ok: false, msg: '没有这个物品' };
   const pmA = state.playersDb.get(uid);
@@ -59,8 +61,8 @@ export function socialGive(app: App, state: WorldState, uid: string, rawTarget: 
   app.log.append('social.fav', uid, { a: uid, b: target, delta: g });
   app.log.append('task.progress', uid, { uid, type: 'give', n: 1 });
 
-  for (const [, o] of state.online) o.ws.send(JSON.stringify({ t: 'chat', uid: 'sys', nick: '系统', text: `${fromNick} 送给了 ${toNick} ${it.name}×${num}，好感 +${g}` }));
-  if (pB) pB.ws.send(JSON.stringify({ t: 'social_in', social: 'give', from: uid, nick: fromNick, itemId, num, fav }));
+  for (const [, o] of state.online) if (o.ws.readyState === 1) o.ws.send(JSON.stringify({ t: 'chat', uid: 'sys', nick: '系统', text: `${fromNick} 送给了 ${toNick} ${it.name}×${num}，好感 +${g}` }));
+  if (pB && pB.ws.readyState === 1) pB.ws.send(JSON.stringify({ t: 'social_in', social: 'give', from: uid, nick: fromNick, itemId, num, fav }));
   else if (targetAgentId) app.inboxPush(targetAgentId, fromNick, `收到你赠送的 ${it.name}×${num}，好感 +${g}`);
 
   const giveMeet = dmUnlock(state, uid, target);
@@ -85,6 +87,7 @@ export function socialGive(app: App, state: WorldState, uid: string, rawTarget: 
 /** 结为关系：好友(30) / 知己(60) / 伴侣(90)，按对 TA 的好感门槛 */
 export function socialBind(app: App, state: WorldState, uid: string, rawTarget: string, rawType: string): SocialActionResult {
   const target = resolveOnlineUid(state, String(rawTarget || '')) || resolveAnyUid(state, app.accounts, String(rawTarget || '')) || '';
+  if (target === uid) return { ok: false, msg: '不能和自己结关系' };
   const pB = state.online.get(target);
   if (!pB) return { ok: false, msg: '对方不在线（结关系需要对方在线）' };
   const type = String(rawType || 'friend');
@@ -101,8 +104,8 @@ export function socialBind(app: App, state: WorldState, uid: string, rawTarget: 
   app.log.append('social.relation', uid, { a: uid, b: target, relation: type, by: uid });
   app.log.append('task.progress', uid, { uid, type: 'bind', n: 1 });
   const fromNick = nickOf(app, state, uid, '玩家');
-  for (const [, o] of state.online) o.ws.send(JSON.stringify({ t: 'chat', uid: 'sys', nick: '系统', text: `${fromNick} 与 ${pB.nick} 结为「${def.name}」！` }));
-  pB.ws.send(JSON.stringify({ t: 'social_in', social: 'bind', from: uid, nick: fromNick, relation: type, relName: def.name }));
+  for (const [, o] of state.online) if (o.ws.readyState === 1) o.ws.send(JSON.stringify({ t: 'chat', uid: 'sys', nick: '系统', text: `${fromNick} 与 ${pB.nick} 结为「${def.name}」！` }));
+  if (pB && pB.ws.readyState === 1) pB.ws.send(JSON.stringify({ t: 'social_in', social: 'bind', from: uid, nick: fromNick, relation: type, relName: def.name }));
   log.write('info', 'social', `[social] ${fromNick} 与 ${pB.nick} 结为 ${def.name}`);
   return { ok: true, msg: `已与 ${pB.nick} 结为「${def.name}」`, detail: { social: 'bind', target, relation: type, relName: def.name } };
 }
