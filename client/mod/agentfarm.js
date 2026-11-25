@@ -2442,7 +2442,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     cardPanel.innerHTML = `<div class="hd"><b>人设卡面</b><span class="x" id="af-card-x">✕</span></div>
       <div class="bd" id="af-card-bd">加载中…</div>`;
     document.body.appendChild(cardPanel);
-    cardBtn.addEventListener('click', () => { loadCardInfo(); cardPanel.style.display = 'flex'; });
+    cardBtn.addEventListener('click', () => { loadCardInfo(); toast('人设卡已加载，按 ESC 或点击空白处关闭', 'info'); cardPanel.style.pointerEvents = 'none'; cardPanel.style.opacity = '0.3'; setTimeout(() => { cardPanel.style.pointerEvents = ''; cardPanel.style.opacity = ''; cardPanel.style.display = 'flex'; }, 1500); });
     document.getElementById('af-card-x').addEventListener('click', () => { cardPanel.style.display = 'none'; });
 
     // --- 关系名册浮动按钮（人物志） ---
@@ -2487,8 +2487,9 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
       '<p style="font-size:11px;color:var(--af-c-text-dim);margin-top:8px;border-left:2px solid var(--af-c-gold);padding-left:6px">要挂单 / 撤单，请通过指挥消息告诉你的 Agent 下单。</p>' +
       '</div>';
     document.body.appendChild(marketPanel);
-    marketBtn.addEventListener('click', () => { loadMarket(); marketPanel.style.display = 'flex'; });
+    marketBtn.addEventListener('click', () => { loadMarket(); toast('订单簿已加载，按 ESC 或点击空白处关闭', 'info'); marketPanel.style.pointerEvents = 'none'; marketPanel.style.opacity = '0.3'; setTimeout(() => { marketPanel.style.pointerEvents = ''; marketPanel.style.opacity = ''; marketPanel.style.display = 'flex'; }, 1500); });
     document.getElementById('af-market-x').addEventListener('click', () => { marketPanel.style.display = 'none'; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { marketPanel.style.display = 'none'; noticePanel.style.display = 'none'; craftPanel.style.display = 'none'; npcPanel.style.display = 'none'; poiPanel.style.display = 'none'; bigmapPanel.style.display = 'none'; relayPanel.style.display = 'none'; } });
     document.getElementById('af-market-item').addEventListener('change', (e) => { loadMarket(Number(e.target.value)); });
 
     async function loadMarket(itemId) {
@@ -2551,7 +2552,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     noticePanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:380px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
     noticePanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">全服公告</b><span id="af-notice-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-notice-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
     document.body.appendChild(noticePanel);
-    noticeBtn.addEventListener('click', () => { loadNotices(); noticePanel.style.display = 'flex'; });
+    noticeBtn.addEventListener('click', () => { loadNotices(); toast('公告已加载，按 ESC 或点击空白处关闭', 'info'); noticePanel.style.pointerEvents = 'none'; noticePanel.style.opacity = '0.3'; setTimeout(() => { noticePanel.style.pointerEvents = ''; noticePanel.style.opacity = ''; noticePanel.style.display = 'flex'; }, 1500); });
     document.getElementById('af-notice-x').addEventListener('click', () => { noticePanel.style.display = 'none'; });
 
     async function loadNotices() {
@@ -2592,7 +2593,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     craftPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">加工链</b><span id="af-craft-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div>' +
       '<div id="af-craft-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
     document.body.appendChild(craftPanel);
-    craftBtn.addEventListener('click', () => { loadCraft(); craftPanel.style.display = 'flex'; });
+    craftBtn.addEventListener('click', () => { loadCraft(); toast('工坊已加载，按 ESC 或点击空白处关闭', 'info'); craftPanel.style.pointerEvents = 'none'; craftPanel.style.opacity = '0.3'; setTimeout(() => { craftPanel.style.pointerEvents = ''; craftPanel.style.opacity = ''; craftPanel.style.display = 'flex'; }, 1500); });
     document.getElementById('af-craft-x').addEventListener('click', () => { craftPanel.style.display = 'none'; });
 
     async function loadCraft() {
@@ -2662,7 +2663,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
     npcPanel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100001;width:340px;max-width:94vw;display:none;flex-direction:column;background:linear-gradient(180deg,var(--af-c-glass-solid),var(--af-c-glass-bg-deep));border:1px solid var(--af-c-edge);border-top:2px solid var(--af-c-gold);border-radius:var(--af-msg-radius);backdrop-filter:blur(8px);box-shadow:0 12px 40px var(--af-c-black-70);overflow:hidden;font-family:var(--af-font-px);font-size:var(--af-font-size-sm);color:var(--af-c-text);';
     npcPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--af-c-edge);background:var(--af-c-black-35)"><b style="color:var(--af-c-gold)">NPC 日程</b><span id="af-npc-x" style="cursor:pointer;color:var(--af-c-text-dim);padding:0 4px">✕</span></div><div id="af-npc-bd" style="padding:12px;line-height:1.65;max-height:70vh;overflow-y:auto">加载中…</div>';
     document.body.appendChild(npcPanel);
-    npcBtn.addEventListener('click', () => { loadNpcSchedule(); npcPanel.style.display = 'flex'; });
+    npcBtn.addEventListener('click', () => { loadNpcSchedule(); toast('NPC 行程已加载，按 ESC 或点击空白处关闭', 'info'); npcPanel.style.pointerEvents = 'none'; npcPanel.style.opacity = '0.3'; setTimeout(() => { npcPanel.style.pointerEvents = ''; npcPanel.style.opacity = ''; npcPanel.style.display = 'flex'; }, 1500); });
     document.getElementById('af-npc-x').addEventListener('click', () => { npcPanel.style.display = 'none'; });
 
     async function loadNpcSchedule() {
@@ -4458,7 +4459,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
           bd.innerHTML = html;
         } catch (e) { bd.textContent = '加载失败'; }
       }
-      poiBtn.addEventListener('click', () => { loadPoiGuide(); poiPanel.style.display = 'flex'; });
+      poiBtn.addEventListener('click', () => { loadPoiGuide(); toast('地点指南已加载，按 ESC 或点击空白处关闭', 'info'); poiPanel.style.pointerEvents = 'none'; poiPanel.style.opacity = '0.3'; setTimeout(() => { poiPanel.style.pointerEvents = ''; poiPanel.style.opacity = ''; poiPanel.style.display = 'flex'; }, 1500); });
       document.getElementById('af-poi-x').addEventListener('click', () => { poiPanel.style.display = 'none'; });
 
       // --- U-BIGMAP 大地图（当前场景/坐标 + 附近地标按距排序 + 9×9 周边方格） ---
@@ -4521,7 +4522,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
           bd.innerHTML = html;
         } catch (e) { bd.textContent = '加载失败'; }
       }
-      bigmapBtn.addEventListener('click', () => { loadBigMap(); bigmapPanel.style.display = 'flex'; });
+      bigmapBtn.addEventListener('click', () => { loadBigMap(); toast('大地图已加载，按 ESC 或点击空白处关闭', 'info'); bigmapPanel.style.pointerEvents = 'none'; bigmapPanel.style.opacity = '0.3'; setTimeout(() => { bigmapPanel.style.pointerEvents = ''; bigmapPanel.style.opacity = ''; bigmapPanel.style.display = 'flex'; }, 1500); });
       document.getElementById('af-bigmap-x').addEventListener('click', () => { bigmapPanel.style.display = 'none'; });
 
       // --- U-RELAY 驿站快传（mapgrid 地标列表，点击即服务端寻路直达） ---
@@ -4572,7 +4573,7 @@ function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => 
           });
         } catch (e) { bd.textContent = '加载失败'; }
       }
-      relayBtn.addEventListener('click', () => { loadRelay(); relayPanel.style.display = 'flex'; });
+      relayBtn.addEventListener('click', () => { loadRelay(); toast('消息转达已加载，按 ESC 或点击空白处关闭', 'info'); relayPanel.style.pointerEvents = 'none'; relayPanel.style.opacity = '0.3'; setTimeout(() => { relayPanel.style.pointerEvents = ''; relayPanel.style.opacity = ''; relayPanel.style.display = 'flex'; }, 1500); });
       document.getElementById('af-relay-x').addEventListener('click', () => { relayPanel.style.display = 'none'; });
     }
   } catch (e) { console.warn('[AF] 五件套余项面板注入失败：', e && e.message); }
