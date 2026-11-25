@@ -7,6 +7,7 @@ import {
 } from '../world/farm.ts';
 import { PLANT_CROPS, SPRINKLER_RANGE } from '../world/tables.ts';
 import { favBetween, dmUnlockedList } from '../world/social.ts';
+import { attitudeOf } from '../world/social-facts.ts';
 import { fitnessOf } from '../world/fitness.ts';
 import { activeFestival } from '../world/festival.ts';
 import { recentNotices } from '../world/notices.ts';
@@ -175,7 +176,8 @@ export function observeState(app: App, uid: string, username: string, nick: stri
     .filter(o => o.uid !== uid)
     .map(o => {
       const f = favBetween(state, uid, o.uid);
-      return { nick: o.nick, favToOther: f.aToB, favFromOther: f.bToA, relation: f.relation };
+      const att = attitudeOf(state, uid, o.uid);
+      return { nick: o.nick, favToOther: f.aToB, favFromOther: f.bToA, relation: f.relation, attitude: att.label };
     });
 
   const inboxArr = notes.inboxOf(app.usernameOf(uid)).arr;
